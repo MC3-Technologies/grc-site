@@ -9,6 +9,7 @@ GRC-Site is a free MC3 Technologies Cyber Security assessment tool for businesse
 ## Client Overview
 
 ### Information
+
 The client-side application is built with the following technologies:
 
 - **Vite**: A fast build tool and development server for modern web applications.
@@ -22,16 +23,19 @@ With a **Multi-Page Configuration** setup, we are able to handle routing with di
 ### Development Setup
 
 1. Navigate to the `client` directory:
+
    ```bash
    cd client
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Start the development server:
+
    ```bash
    npm run dev
    ```
@@ -39,8 +43,15 @@ With a **Multi-Page Configuration** setup, we are able to handle routing with di
 4. Open the application in your browser:
    - By default, the development server runs on `http://localhost:5173`.
 
+### Adding a new route entry point
+
+1. Within the ./src folder, create your routing folder and its respective index.html -- If I wanted to created a /food routing, create a /food folder in ./src and a index.html file in ./src/food
+2. In the new index.html file, you can copy and paste the contents from the src index.html and change the page entry point on line 11.
+3. Run the dev server with `npm run dev` and going to your page route should work as expected, just dont forgot the slash at the end -- `http://localhost:5173/food/`
+4. In order to add this new entry point to the build, edit the vite.config.ts config file to include it -- there is an example of it on line 12
 
 ### Important Scripts
+
 Inside the `client` folder, the following most used scripts are available:
 
 - `npm run dev`: Starts the development server.
