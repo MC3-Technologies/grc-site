@@ -5,6 +5,8 @@ import { useEffect } from "react";
 
 import "../index.css";
 
+import Chat from "../components/Chat";
+
 export function Index() {
   useEffect(() => {
     initFlowbite();
@@ -97,6 +99,8 @@ export function Index() {
           </div>
         </div>
       </section>
+
+      <Chat />
     </>
   );
 }
