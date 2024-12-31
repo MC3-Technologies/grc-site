@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import "../index.css";
 
+import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 
 export function Index() {
@@ -14,6 +15,7 @@ export function Index() {
 
   return (
     <>
+    <Navbar/>
       <section className="bg-white">
         <div className="py-8 px-4 mx-auto max-w-screen-xl text-center lg:py-16 lg:px-12">
           <a
