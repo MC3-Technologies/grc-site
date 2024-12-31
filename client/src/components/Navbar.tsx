@@ -19,8 +19,9 @@ const Navbar = () => {
             </span>
           </a>
           <div className="flex items-center md:order-2 space-x-1 md:space-x-0 rtl:space-x-reverse">
-            <button
+            <a
               type="button"
+              href="/signin/"
               className="inline-flex items-center font-medium justify-center px-4 py-2 text-sm text-gray-900 dark:text-white rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-white"
             >
               <svg
@@ -39,7 +40,7 @@ const Navbar = () => {
                 />
               </svg>
               Sign in
-            </button>
+            </a>
             <DarkModeToggle />
 
             <button
@@ -90,7 +91,7 @@ const Navbar = () => {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/assessment/"
                   className="block py-2 px-3 md:p-0 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
                 >
                   CMMC Assessment
@@ -98,13 +99,12 @@ const Navbar = () => {
               </li>
               <li>
                 <a
-                  href="#"
+                  href="/osint/"
                   className="block py-2 px-3 md:p-0 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-blue-700 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
                 >
                   OSINT Scan
                 </a>
               </li>
-             
             </ul>
           </div>
         </div>
