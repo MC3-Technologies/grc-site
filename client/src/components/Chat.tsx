@@ -4,12 +4,23 @@ import ChatMessage from "./ChatMessage";
 const Chat = () => {
   const [chatBoxOpen, setChatBoxOpen] = useState<boolean>(false);
 
+  const toggleChatBox = () => {
+    setChatBoxOpen(!chatBoxOpen);
+  };
+
+  const button = document.getElementById("check-out-ai");
+  if (button) {
+    button.onclick = () => {
+      setChatBoxOpen(true);
+    };
+  }
+
   return (
     <>
       <div className="fixed bottom-0 right-0 mb-4 mr-4 z-50">
         <button
           onClick={() => {
-            setChatBoxOpen(!chatBoxOpen);
+            toggleChatBox();
           }}
           id="open-chat"
           className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 flex items-center"
