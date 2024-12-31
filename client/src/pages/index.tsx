@@ -7,6 +7,7 @@ import "../index.css";
 
 import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
+import Footer from "../components/Footer";
 
 export function Index() {
   useEffect(() => {
@@ -103,6 +104,7 @@ export function Index() {
       </section>
 
       <Chat />
+      <Footer/>
     </>
   );
 }
