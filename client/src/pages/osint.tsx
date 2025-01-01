@@ -17,7 +17,9 @@ export function Osint() {
   return (
     <>
       <Navbar />
-      <section className="bg-white">This is the OSINT scanning page.</section>
+      <section className="mt-20 bg-white dark:bg-gray-900">
+        This is the OSINT scanning page.
+      </section>
       <Chat />
       <Footer />
     </>

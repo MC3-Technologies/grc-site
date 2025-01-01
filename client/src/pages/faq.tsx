@@ -17,7 +17,9 @@ export function Faq() {
   return (
     <>
       <Navbar />
-      <section className="bg-white">This is the FAQ page.</section>
+      <section className="mt-20 bg-white dark:bg-gray-900">
+        This is the FAQ page.
+      </section>
       <Chat />
       <Footer />
     </>

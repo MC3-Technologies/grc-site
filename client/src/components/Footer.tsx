@@ -8,12 +8,12 @@ const Footer = () => {
 
   return (
     <>
-      <hr className="w-6/12 mx-auto h-px  bg-gray-200 border-0"></hr>
-      <footer className="w-full py-3 bg-white">
+      <hr className="w-6/12 mx-auto h-px  bg-gray-200 border-0 dark:hidden"></hr>
+      <footer className="w-full py-3  dark:bg-gray-900">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto">
             <div className="text-lg flex items-center justify-center flex-col gap-3 md:flex-row md:gap-10 transition-all duration-500  mb-1 py-2 ">
-              <div className="flex items-center text-gray-500">
+              <div className="flex items-center text-gray-500 dark:text-white">
                 <svg
                   className="w-5 h-5 "
                   aria-hidden="true"
@@ -37,7 +37,7 @@ const Footer = () => {
                 </a>
               </div>
 
-              <div className="flex items-center text-gray-500">
+              <div className="flex items-center text-gray-500 dark:text-white">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="15"
@@ -58,7 +58,7 @@ const Footer = () => {
               </div>
             </div>
 
-            <span className="text-sm text-gray-500 text-center block">
+            <span className="text-sm text-gray-500 text-center block dark:text-white">
               ©
               <a href="https://mc3technologies.org" target="_blank">
                 MC3 Technologies

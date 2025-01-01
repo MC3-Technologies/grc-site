@@ -17,7 +17,9 @@ export function Assessment() {
   return (
     <>
       <Navbar />
-      <section className="bg-white">This is the assessment page.</section>
+      <section className="mt-20 bg-white dark:bg-gray-900">
+        This is the assessment page.
+      </section>
       <Chat />
       <Footer />
     </>

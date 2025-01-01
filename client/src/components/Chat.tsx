@@ -68,7 +68,7 @@ const Chat = () => {
       </div>
       <div
         id="chat-container"
-        className={`fixed bottom-16 right-4 w-96 ${
+        className={`fixed bottom-16 right-4 sm:w-96 w-max ${
           chatBoxOpen ? `` : `hidden `
         }`}
       >
