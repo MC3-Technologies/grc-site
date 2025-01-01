@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ChatMessage from "./ChatMessage";
 
 const Chat = () => {
@@ -8,12 +8,14 @@ const Chat = () => {
     setChatBoxOpen(!chatBoxOpen);
   };
 
-  const button = document.getElementById("check-out-ai");
-  if (button) {
-    button.onclick = () => {
-      setChatBoxOpen(true);
-    };
-  }
+  useEffect(() => {
+    const button = document.getElementById("check-out-ai");
+    if (button) {
+      button.onclick = () => {
+        setChatBoxOpen(true);
+      };
+    }
+  }, []);
 
   return (
     <>
