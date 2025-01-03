@@ -1,5 +1,5 @@
 import json
-from port_scanning import port_scan
+from src.port_scanning import port_scan
 
 def handler(event, context):
     try:
