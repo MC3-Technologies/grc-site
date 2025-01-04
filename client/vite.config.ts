@@ -9,6 +9,12 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        assessment: resolve(__dirname, "assessment/index.html"),
+        faq: resolve(__dirname, "faq/index.html"),
+        forgotPassword: resolve(__dirname, "forgot-password/index.html"),
+        osint: resolve(__dirname, "osint/index.html"),
+        signIn: resolve(__dirname, "signin/index.html"),
+        signUp: resolve(__dirname, "signup/index.html"),
         // example-page-directory: resolve(__dirname, 'path/to/page/index.html'),
       },
     },
