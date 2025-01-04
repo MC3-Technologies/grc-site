@@ -54,61 +54,177 @@ export function Index() {
             MC3 Cyber Assistant, ensuring your business stays secure and
             compliant.
           </p>
-          <div className="flex flex-col  space-y-4 sm:flex-row sm:justify-center sm:space-y-0 sm:space-x-4">
+
+          <div className="grid md:grid-cols-2 gap-5 my-10 md:mx-0 mx-2">
             <a
               href="/assessment/"
-              className="inline-flex justify-center items-center py-3 px-5 text-base font-medium text-center text-white rounded-lg bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 dark:focus:ring-primary-900"
+              className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
-              <svg
-                className="w-5 h-5 mr-2"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-6 7 2 2 4-4m-5-9v4h4V3h-4Z"
-                />
-              </svg>
-              Cybersecurity Assessment
+              <div className="flex flex-col justify-between p-4 leading-normal">
+                <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  <svg
+                    className="w-7 h-7 mr-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M15 4h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3m0 3h6m-6 7 2 2 4-4m-5-9v4h4V3h-4Z"
+                    />
+                  </svg>
+                  Cybersecurity Assessment
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  Use our pre-assessment questionnaire as a vital tool to
+                  understand and improve your business’s CMMC security posture.
+                  By completing it, you’ll provide crucial insights that help us
+                  pinpoint areas needing attention.
+                </p>
+              </div>
             </a>
 
             <a
-              href="https://mc3technologies.com"
-              className="inline-flex justify-center items-center py-3 px-5 text-base font-medium text-center text-gray-900 rounded-lg border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700 dark:focus:ring-gray-800"
+              href="/osint/"
+              className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
-              <svg
-                className="mr-2 -ml-1 w-5 h-5 "
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-              Check out MC3
+              <div className="flex flex-col justify-between p-4 leading-normal">
+                <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  <svg
+                    className="w-7 h-7 mr-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 12a28.076 28.076 0 0 1-1.091 9M7.231 4.37a8.994 8.994 0 0 1 12.88 3.73M2.958 15S3 14.577 3 12a8.949 8.949 0 0 1 1.735-5.307m12.84 3.088A5.98 5.98 0 0 1 18 12a30 30 0 0 1-.464 6.232M6 12a6 6 0 0 1 9.352-4.974M4 21a5.964 5.964 0 0 1 1.01-3.328 5.15 5.15 0 0 0 .786-1.926m8.66 2.486a13.96 13.96 0 0 1-.962 2.683M7.5 19.336C9 17.092 9 14.845 9 12a3 3 0 1 1 6 0c0 .749 0 1.521-.031 2.311M12 12c0 3 0 6-2 9"
+                    />
+                  </svg>
+                  OSINT Scanning
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  Stay ahead of cyber threats with our powerful OSINT scanning
+                  tool. Designed for security professionals and researchers, it
+                  gathers intelligence from open sources to help identify
+                  vulnerabilities and analyze potential risks.
+                </p>
+              </div>
             </a>
+          </div>
+          <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow p-5   dark:border-gray-700 dark:bg-gray-800 ">
+            <div className="flex flex-col justify-between  leading-normal">
+              <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                <svg
+                  className="w-7 h-7 mr-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 6a2 2 0 0 1 2-2h5.532a2 2 0 0 1 1.536.72l1.9 2.28H3V6Zm0 3v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9H3Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Security Resources
+              </h5>
+              <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                Access a comprehensive collection of cybersecurity resources
+                covering IT security, HIPAA compliance, and PCI DSS standards.
+                Whether you're securing networks, protecting sensitive
+                healthcare data, or ensuring payment security compliance, our
+                curated guides, tools, and insights provide the knowledge you
+                need to stay compliant and safeguard critical systems.
+              </p>
+            </div>
+            <div className="items-center justify-center space-y-3 sm:flex sm:space-y-0 sm:space-x-4 rtl:space-x-reverse">
+              <a
+                href="#"
+                className="font-semibold w-full sm:w-auto bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+              >
+                <svg
+                  className="w-6 h-6 mr-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M12.356 3.066a1 1 0 0 0-.712 0l-7 2.666A1 1 0 0 0 4 6.68a17.695 17.695 0 0 0 2.022 7.98 17.405 17.405 0 0 0 5.403 6.158 1 1 0 0 0 1.15 0 17.406 17.406 0 0 0 5.402-6.157A17.694 17.694 0 0 0 20 6.68a1 1 0 0 0-.644-.949l-7-2.666Z" />
+                </svg>
+                IT Security
+              </a>
+              <a
+                href="#"
+                className="font-semibold w-full sm:w-auto bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+              >
+                <svg
+                  className="w-6 h-6 mr-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 9h3m-3 3h3m-3 3h3m-6 1c-.306-.613-.933-1-1.618-1H7.618c-.685 0-1.312.387-1.618 1M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Zm7 5a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"
+                  />
+                </svg>
+                HIPAA Security
+              </a>
+              <a
+                href="#"
+                className="font-semibold w-full sm:w-auto bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+              >
+                <svg
+                  className="w-6 h-6 mr-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 10h18M6 14h2m3 0h5M3 7v10a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1Z"
+                  />
+                </svg>
+                PCI DSS Security
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="bg-white dark:bg-gray-900" id="about-us">
-        <div className="py-8 px-4 mx-auto max-w-screen-xl sm:py-16 lg:px-6">
-          <div className=" mb-8 lg:mb-16">
+        <div className="py-8 px-4 mx-auto max-w-screen-xl  lg:px-6">
+          <div className="mb-8 lg:mb-16">
             <h2 className="mb-4 text-4xl tracking-tight font-extrabold text-gray-900 dark:text-white">
               About MC3 Technologies
             </h2>
