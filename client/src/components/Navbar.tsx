@@ -121,7 +121,7 @@ const Navbar = () => {
                   >
                     <li>
                       <a
-                        href="#"
+                        href="/resources/?resource=it-security"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                       >
                         IT Security
@@ -129,7 +129,7 @@ const Navbar = () => {
                     </li>
                     <li>
                       <a
-                        href="#"
+                        href="/resources/?resource=hipaa-security"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                       >
                         HIPAA Security
@@ -137,7 +137,7 @@ const Navbar = () => {
                     </li>
                     <li>
                       <a
-                        href="#"
+                        href="/resources/?resource=pci-dss-security"
                         className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                       >
                         PCI DSS Security
