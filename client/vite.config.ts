@@ -15,6 +15,7 @@ export default defineConfig({
         osint: resolve(__dirname, "osint/index.html"),
         signIn: resolve(__dirname, "signin/index.html"),
         signUp: resolve(__dirname, "signup/index.html"),
+        resources: resolve(__dirname, "resources/index.html"),
         // example-page-directory: resolve(__dirname, 'path/to/page/index.html'),
       },
     },
