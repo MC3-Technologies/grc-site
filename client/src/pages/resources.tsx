@@ -124,83 +124,84 @@ export function Resources() {
                 </h1>
 
                 <div className="grid md:grid-cols-2 gap-5 my-10 md:mx-0 mx-2">
-                  <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl  dark:border-gray-700 dark:bg-gray-800 ">
-                    <div className="flex flex-col justify-between p-4 leading-normal">
-                      <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        <svg
-                          className="w-7 h-7 mr-2"
-                          aria-hidden="true"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                          />
-                        </svg>
+                  <div className="grid gap-5  md:mx-0 mx-2">
+                    <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl  dark:border-gray-700 dark:bg-gray-800 ">
+                      <div className="flex flex-col justify-between p-4 leading-normal">
+                        <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                          <svg
+                            className="w-7 h-7 mr-2"
+                            aria-hidden="true"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              stroke="currentColor"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                            />
+                          </svg>
 
-                        {`What is ${resource?.name}?`}
-                      </h5>
-                      <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                        {resource?.description}
-                      </p>
+                          {`What is ${resource?.name}?`}
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                          {resource?.description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl  dark:border-gray-700 dark:bg-gray-800 ">
+                      <div className="flex flex-col justify-between p-4 leading-normal">
+                        <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                          <svg
+                            className="w-7 h-7 mr-2"
+                            aria-hidden="true"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            fill="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M12.356 3.066a1 1 0 0 0-.712 0l-7 2.666A1 1 0 0 0 4 6.68a17.695 17.695 0 0 0 2.022 7.98 17.405 17.405 0 0 0 5.403 6.158 1 1 0 0 0 1.15 0 17.406 17.406 0 0 0 5.402-6.157A17.694 17.694 0 0 0 20 6.68a1 1 0 0 0-.644-.949l-7-2.666Z" />
+                          </svg>
+                          Frameworks Utilized
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400 ">
+                          This security policy utilizes the{" "}
+                          {resource?.frameworksUtilized.url ? (
+                            <>
+                              <a
+                                className="underline"
+                                target="_blank"
+                                href={resource.frameworksUtilized.url}
+                              >
+                                {resource?.frameworksUtilized.name}
+                              </a>
+                            </>
+                          ) : (
+                            <>{resource?.frameworksUtilized.name}</>
+                          )}{" "}
+                          framework to ensure compliance.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow p-5 dark:border-gray-700 dark:bg-gray-800 ">
+                      <div className="flex flex-col justify-between  leading-normal">
+                        <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                          How to Utilize this Policy
+                        </h5>
+                        <p className="mb-3 font-normal text-gray-700 dark:text-gray-400 whitespace-pre-line">
+                          {howToUtilize}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl dark:border-gray-700 dark:bg-gray-800">
-                    <div className="flex flex-col justify-between p-4 leading-normal">
-                      <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        <svg
-                          className="w-7 h-7 mr-2"
-                          aria-hidden="true"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="24"
-                          height="24"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12.356 3.066a1 1 0 0 0-.712 0l-7 2.666A1 1 0 0 0 4 6.68a17.695 17.695 0 0 0 2.022 7.98 17.405 17.405 0 0 0 5.403 6.158 1 1 0 0 0 1.15 0 17.406 17.406 0 0 0 5.402-6.157A17.694 17.694 0 0 0 20 6.68a1 1 0 0 0-.644-.949l-7-2.666Z" />
-                        </svg>
-                        Frameworks Utilized
-                      </h5>
-                      <p className="mb-3 font-normal text-gray-700 dark:text-gray-400 ">
-                        This security policy utilizes the{" "}
-                        {resource?.frameworksUtilized.url ? (
-                          <>
-                            <a
-                              className="underline"
-                              target="_blank"
-                              href={resource.frameworksUtilized.url}
-                            >
-                              {resource?.frameworksUtilized.name}
-                            </a>
-                          </>
-                        ) : (
-                          <>{resource?.frameworksUtilized.name}</>
-                        )}{" "}
-                        framework to ensure compliance.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow p-5 dark:border-gray-700 dark:bg-gray-800 ">
-                  <div className="flex flex-col justify-between  leading-normal">
-                    <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                      How to Utilize this Policy
-                    </h5>
-                    <p className="mb-3 font-normal text-gray-700 dark:text-gray-400 whitespace-pre-line">
-                      {howToUtilize}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-5 my-10 md:mx-0 mx-2">
                   <div className="flex justify-center ">
                     {resource?.coverPicture ? (
                       <LoadingImage
@@ -209,12 +210,11 @@ export function Resources() {
                       />
                     ) : null}
                   </div>
-
-                  <div className="flex justify-center items-center">
-                    {resource?.fileName ? (
-                      <FileDownloadButton fileName={resource?.fileName} />
-                    ) : null}
-                  </div>
+                </div>
+                <div className="flex justify-center items-center">
+                  {resource?.fileName ? (
+                    <FileDownloadButton fileName={resource?.fileName} />
+                  ) : null}
                 </div>
               </div>
             </section>
