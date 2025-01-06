@@ -21,7 +21,7 @@ const Navbar = () => {
               alt="Flowbite Logo"
             />
             <span className="self-center text-xl font-semibold whitespace-nowrap dark:text-white hidden lg:block">
-              MC3 Technologies
+              MC3 GRC
             </span>
           </a>
           <div className="flex items-center md:order-2 space-x-1 md:space-x-0 rtl:space-x-reverse">
