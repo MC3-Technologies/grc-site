@@ -156,7 +156,7 @@ export function Index() {
             <div className="items-center justify-center space-y-3 sm:flex sm:space-y-0 sm:space-x-4 rtl:space-x-reverse">
               <a
                 href="/resources/?resource=it-security"
-                className="font-semibold w-full sm:w-auto bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+                className="font-semibold w-full sm:w-auto bg-primary-800 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-primary-700 dark:hover:bg-primary-600 dark:focus:ring-primary-700"
               >
                 <svg
                   className="w-6 h-6 mr-2"
@@ -173,7 +173,7 @@ export function Index() {
               </a>
               <a
                 href="/resources/?resource=hipaa-security"
-                className="font-semibold w-full sm:w-auto bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+                className="font-semibold w-full sm:w-auto bg-primary-800 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-primary-700 dark:hover:bg-primary-600 dark:focus:ring-primary-700"
               >
                 <svg
                   className="w-6 h-6 mr-2"
@@ -196,7 +196,7 @@ export function Index() {
               </a>
               <a
                 href="/resources/?resource=pci-dss-security"
-                className="font-semibold w-full sm:w-auto bg-gray-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+                className="font-semibold w-full sm:w-auto bg-primary-800 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 text-white rounded-lg inline-flex items-center justify-center px-3 py-2 dark:bg-primary-700 dark:hover:bg-primary-600 dark:focus:ring-primary-700"
               >
                 <svg
                   className="w-6 h-6 mr-2"

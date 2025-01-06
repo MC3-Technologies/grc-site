@@ -20,7 +20,7 @@ const FileDownloadButton = (props: Props) => {
       className="inline-flex items-center justify-center focus:outline-none text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-purple-300 font-bold rounded-lg text-xl px-5 py-5 mb-2 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-purple-900 w-full"
     >
       <svg
-        className="w-7 h-7 text-gray-800 dark:text-white mr-2"
+        className="w-7 h-7 mr-2"
         aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"
         width="24"
