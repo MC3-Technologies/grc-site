@@ -1,5 +1,5 @@
 {
-  "name": "grc-site2",
+  "name": "grc-site",
   "version": "1.0.0",
   "description": "GRC-Site is a free MC3 Technologies Cyber Security assessment tool for businesses based on the CMMC Cyber Security Model.",
   "main": "index.js",
