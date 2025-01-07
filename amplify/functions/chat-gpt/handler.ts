@@ -1,3 +1,8 @@
-export const handler = async (event) => {
-  return "Hello from my first function!";
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "Hello from the ChatGPT function!" }),
+  };
 };
