@@ -28,10 +28,10 @@ export function Signup() {
     password: "",
     confirmPassword: "",
   });
-  const [signUpFormError, setSignUpFormError] = useState(null);
+  const [signUpFormError, setSignUpFormError] = useState<null | string>(null);
 
   const [verifyFormData, setVerifyFormData] = useState<string>("");
-  const [verifyFormError, setVerifyFormError] = useState(null);
+  const [verifyFormError, setVerifyFormError] = useState<null | string>(null);
   const [verifyFormSuccessful, setVerifyFormSuccessful] =
     useState<boolean>(false);
 
@@ -60,7 +60,7 @@ export function Signup() {
       setSignedUp(true);
     } catch (e) {
       console.log(e);
-      setSignUpFormError(e as any);
+      setSignUpFormError(e as string);
     }
   };
 
@@ -80,7 +80,7 @@ export function Signup() {
       }, 3000);
     } catch (e) {
       console.log(e);
-      setVerifyFormError(e as any);
+      setVerifyFormError(e as string);
     }
   };
 

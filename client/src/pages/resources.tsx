@@ -30,6 +30,45 @@ type Framework = {
   url: string | null;
 };
 
+const howToUtilize =
+  '1. Download the necessary Word documents. \n 2. Replace "Company Name" with your organization’s name in the highlighted areas. \n 3. Proofread each policy to ensure they align with your organization’s needs. \n 4. Make any necessary changes. \n 5. Share the updated policies with the relevant teams and ensure management enforces them properly.';
+
+const resources: Resource[] = [
+  {
+    name: "IT Security",
+    description:
+      "IT security protects your digital information, including personal data like passwords and credit card numbers, as well as important business data, from threats.",
+    frameworksUtilized: {
+      name: "CIS 18 IG1 v8",
+      url: "https://www.cisecurity.org/controls/implementation-groups/ig1",
+    },
+    fileName: "InfoSec-Policy-CIS-v8-IG1-Template.docx",
+    coverPicture: ItResourceCover,
+  },
+  {
+    name: "HIPAA Security",
+    description:
+      "HIPAA, or the Health Insurance Portability and Accountability Act, protects the privacy and security of your health information, ensuring that personal medical data remains confidential and secure.",
+    frameworksUtilized: {
+      name: "HIPAA Security Rule",
+      url: "https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html",
+    },
+    fileName: "HIPAA-Policy-Template.docx",
+    coverPicture: HippaResoureCover,
+  },
+  {
+    name: "PCI DSS Security",
+    description:
+      "PCI DSS, or the Payment Card Industry Data Security Standard, protects your credit card information by setting standards for secure handling, ensuring that payment data remains safe from fraud and breaches.",
+    frameworksUtilized: {
+      name: "PCI DSS 4.0.1",
+      url: "https://docs-prv.pcisecuritystandards.org/PCI%20DSS/Standard/PCI-DSS-v4_0_1.pdf",
+    },
+    fileName: "PCI-DSS-4.0.1-Security-Policy-Template.docx",
+    coverPicture: PciDssResourceCover,
+  },
+];
+
 export function Resources() {
   const [resource, setResource] = useState<Resource | null>(null);
   const [resourceExist, setResourceExist] = useState<boolean>(false);
@@ -67,45 +106,6 @@ export function Resources() {
     }
     setLoading(false);
   }, []);
-
-  const howToUtilize =
-    '1. Download the necessary Word documents. \n 2. Replace "Company Name" with your organization’s name in the highlighted areas. \n 3. Proofread each policy to ensure they align with your organization’s needs. \n 4. Make any necessary changes. \n 5. Share the updated policies with the relevant teams and ensure management enforces them properly.';
-
-  const resources: Resource[] = [
-    {
-      name: "IT Security",
-      description:
-        "IT security protects your digital information, including personal data like passwords and credit card numbers, as well as important business data, from threats.",
-      frameworksUtilized: {
-        name: "CIS 18 IG1 v8",
-        url: "https://www.cisecurity.org/controls/implementation-groups/ig1",
-      },
-      fileName: "InfoSec-Policy-CIS-v8-IG1-Template.docx",
-      coverPicture: ItResourceCover,
-    },
-    {
-      name: "HIPAA Security",
-      description:
-        "HIPAA, or the Health Insurance Portability and Accountability Act, protects the privacy and security of your health information, ensuring that personal medical data remains confidential and secure.",
-      frameworksUtilized: {
-        name: "HIPAA Security Rule",
-        url: "https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html",
-      },
-      fileName: "HIPAA-Policy-Template.docx",
-      coverPicture: HippaResoureCover,
-    },
-    {
-      name: "PCI DSS Security",
-      description:
-        "PCI DSS, or the Payment Card Industry Data Security Standard, protects your credit card information by setting standards for secure handling, ensuring that payment data remains safe from fraud and breaches.",
-      frameworksUtilized: {
-        name: "PCI DSS 4.0.1",
-        url: "https://docs-prv.pcisecuritystandards.org/PCI%20DSS/Standard/PCI-DSS-v4_0_1.pdf",
-      },
-      fileName: "PCI-DSS-4.0.1-Security-Policy-Template.docx",
-      coverPicture: PciDssResourceCover,
-    },
-  ];
 
   return (
     <>
