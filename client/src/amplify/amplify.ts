@@ -39,4 +39,8 @@ const loggedInRedirect = async () => {
   }
 };
 
-export { handleSignUp, handleConfirmSignUp, loggedInRedirect };
+const getAmplify = () => {
+  return Amplify;
+};
+
+export { getAmplify, handleSignUp, handleConfirmSignUp, loggedInRedirect };
