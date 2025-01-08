@@ -1,7 +1,7 @@
 import { Amplify } from "aws-amplify";
 import { signUp, confirmSignUp, getCurrentUser } from "aws-amplify/auth";
 
-import outputs from "./amplify_outputs.json";
+import outputs from "../../../amplify_outputs.json";
 
 Amplify.configure(outputs);
 
