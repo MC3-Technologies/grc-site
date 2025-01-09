@@ -7,7 +7,7 @@ import { Hub } from "aws-amplify/utils";
 import { getCurrentUser } from "../amplify/auth";
 
 interface Props {
-  initalTab?: "signUp" | "forgotPassword";
+  initialTab?: "signUp" | "forgotPassword";
 }
 
 const redirectHome = (): void => {
@@ -40,17 +40,32 @@ const AmplifyAuth = (props: Props) => {
     });
   }, [authEvents]);
 
-  const getAuthenticator = (): JSX.Element => {
-    const { initalTab } = props;
-    if (!initalTab) {
+  const components = {
+    Header() {
       return (
-        <Authenticator>
-          <Spinner />
-        </Authenticator>
+        <a
+          href="/"
+          className="flex justify-center items-center  text-2xl font-semibold text-gray-900 dark:text-white"
+        >
+          <img
+            className="w-12 h12 mr-2"
+            src="/logo-transparent.png"
+            alt="logo"
+          />
+          MC3 GRC
+        </a>
       );
-    }
+    },
+  };
+
+  const getAuthenticator = (): JSX.Element => {
+    const { initialTab } = props;
+
     return (
-      <Authenticator initialState={initalTab}>
+      <Authenticator
+        {...(initialTab ? { initialState: initialTab } : {})}
+        components={components}
+      >
         <Spinner />
       </Authenticator>
     );
