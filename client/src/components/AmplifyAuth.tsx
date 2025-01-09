@@ -1,5 +1,4 @@
 import { Authenticator } from "@aws-amplify/ui-react";
-
 import { getAmplify } from "../amplify/amplify";
 import { useEffect, useState } from "react";
 import Spinner from "./Spinner";
@@ -14,41 +13,43 @@ const redirectHome = (): void => {
   window.location.href = "/";
 };
 
-const AmplifyAuth = (props: Props) => {
-  const [loading, setIsLoading] = useState<boolean>(true);
-  const [authEvents, setAuthEvents] = useState<any>(null);
+const AmplifyAuth = ({ initialTab }: Props) => {
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    const checkUser = async () => {
+    const initializeAuth = async () => {
       try {
         const user = await getCurrentUser();
         if (user) {
-          window.location.href = "/";
+          redirectHome();
+          return;
         }
       } catch (error) {
-        console.error(error);
+        console.error("Error fetching user:", error);
       }
+
+      getAmplify();
+      const authListener = (data: any) => {
+        if (data.payload.event === "signedIn") {
+          redirectHome();
+        }
+      };
+      Hub.listen("auth", authListener);
+      setLoading(false);
     };
-    checkUser();
-    getAmplify();
-    setIsLoading(false);
-    Hub.listen("auth", (data) => {
-      if (data.payload.event !== "signedIn") {
-        setAuthEvents(data);
-      }
-      redirectHome();
-    });
-  }, [authEvents]);
+
+    initializeAuth();
+  }, []);
 
   const components = {
     Header() {
       return (
         <a
           href="/"
-          className="flex justify-center items-center  text-2xl font-semibold text-gray-900 dark:text-white"
+          className="flex justify-center items-center text-2xl font-semibold text-gray-900 dark:text-white"
         >
           <img
-            className="w-12 h12 mr-2"
+            className="w-12 h-12 mr-2"
             src="/logo-transparent.png"
             alt="logo"
           />
@@ -58,20 +59,16 @@ const AmplifyAuth = (props: Props) => {
     },
   };
 
-  const getAuthenticator = (): JSX.Element => {
-    const { initialTab } = props;
-
-    return (
-      <Authenticator
-        {...(initialTab ? { initialState: initialTab } : {})}
-        components={components}
-      >
-        <Spinner />
-      </Authenticator>
-    );
-  };
-
-  return <>{loading ? <Spinner /> : getAuthenticator()}</>;
+  return loading ? (
+    <Spinner />
+  ) : (
+    <Authenticator
+      {...(initialTab ? { initialState: initialTab } : {})}
+      components={components}
+    >
+      <Spinner />
+    </Authenticator>
+  );
 };
 
 export default AmplifyAuth;
