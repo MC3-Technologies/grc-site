@@ -1,11 +1,39 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import DarkModeToggle from "./DarkModeToggle";
+import { getCurrentUser, signOutCurrentUser, User } from "../amplify/auth";
+
 import { initFlowbite } from "flowbite";
 
+import { Hub } from "aws-amplify/utils";
+import { getAmplify } from "../amplify/amplify";
+import Spinner from "./Spinner";
+
 const Navbar = () => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authEvents, setAuthEvents] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+
   useEffect(() => {
+    getAmplify();
+    Hub.listen("auth", (data) => {
+      setAuthEvents(data);
+    });
+
+    const checkUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error("Error checking user session:", error);
+        setCurrentUser(null);
+      }
+    };
+
+    checkUser();
     initFlowbite();
-  }, []);
+    setLoading(false);
+  }, [authEvents]);
 
   return (
     <>
@@ -25,28 +53,112 @@ const Navbar = () => {
             </span>
           </a>
           <div className="flex items-center md:order-2 space-x-1 md:space-x-0 rtl:space-x-reverse">
-            <a
-              type="button"
-              href="/signin/"
-              className="inline-flex items-center font-medium justify-center px-4 py-2 text-sm text-gray-900 dark:text-white rounded-lg cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 dark:hover:text-white"
-            >
-              <svg
-                className="w-6 h-6 mr-2 text-gray-800 dark:text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              Sign in
-            </a>
+            {loading ? (
+              <>
+                <Spinner />
+              </>
+            ) : (
+              <>
+                {currentUser ? (
+                  <>
+                    <button
+                      type="button"
+                      className="inline-flex items-center font-medium justify-center px-4 py-2 text-sm text-gray-900 dark:text-white rounded-lg cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 dark:hover:text-white"
+                      id="normal-user-menu-button"
+                      aria-expanded="false"
+                      data-dropdown-toggle="normal-user-dropdown"
+                      data-dropdown-placement="bottom"
+                    >
+                      <svg
+                        className="w-6 h-6 text-gray-800 dark:text-white"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </button>
+                    <div
+                      className="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600"
+                      id="normal-user-dropdown"
+                    >
+                      <div className="px-4 py-3">
+                        <span className="block text-sm  text-gray-500 truncate dark:text-gray-400"></span>
+
+                        <span className="block text-sm text-gray-900 dark:text-white">
+                          {currentUser.email}
+                        </span>
+                      </div>
+                      <ul
+                        className="py-2"
+                        aria-labelledby="normal-user-menu-button"
+                      >
+                        <li>
+                          <a
+                            href="#"
+                            className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
+                          >
+                            My Account
+                          </a>
+                        </li>
+                        <li>
+                          <a
+                            href="#"
+                            className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
+                          >
+                            My Assessments
+                          </a>
+                        </li>
+
+                        <li>
+                          <a
+                            className="block px-4 py-1 text-sm text-red-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-200 dark:hover:text-red"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => {
+                              signOutCurrentUser();
+                            }}
+                          >
+                            Sign out
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <a
+                      type="button"
+                      href="/signin/"
+                      className="inline-flex items-center font-medium justify-center px-4 py-2 text-sm text-gray-900 dark:text-white rounded-lg cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 dark:hover:text-white"
+                    >
+                      <svg
+                        className="w-6 h-6 mr-2 text-gray-800 dark:text-white"
+                        aria-hidden="true"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M12 20a7.966 7.966 0 0 1-5.002-1.756l.002.001v-.683c0-1.794 1.492-3.25 3.333-3.25h3.334c1.84 0 3.333 1.456 3.333 3.25v.683A7.966 7.966 0 0 1 12 20ZM2 12C2 6.477 6.477 2 12 2s10 4.477 10 10c0 5.5-4.44 9.963-9.932 10h-.138C6.438 21.962 2 17.5 2 12Zm10-5c-1.84 0-3.333 1.455-3.333 3.25S10.159 13.5 12 13.5c1.84 0 3.333-1.455 3.333-3.25S13.841 7 12 7Z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Sign in
+                    </a>
+                  </>
+                )}
+              </>
+            )}
             <DarkModeToggle />
 
             <button
