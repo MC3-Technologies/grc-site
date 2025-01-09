@@ -1,10 +1,9 @@
 import { Authenticator } from "@aws-amplify/ui-react";
-
 import { getAmplify } from "../amplify/amplify";
 import { useEffect, useState } from "react";
 import Spinner from "./Spinner";
 import { Hub } from "aws-amplify/utils";
-import { getCurrentUser } from "../amplify/auth";
+import { getCurrentUser, ListenData } from "../amplify/auth";
 
 interface Props {
   initialTab?: "signUp" | "forgotPassword";
@@ -14,9 +13,9 @@ const redirectHome = (): void => {
   window.location.href = "/";
 };
 
-const AmplifyAuth = (props: Props) => {
+const AmplifyAuth = ({ initialTab }: Props) => {
   const [loading, setIsLoading] = useState<boolean>(true);
-  const [authEvents, setAuthEvents] = useState<any>(null);
+  const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -32,7 +31,7 @@ const AmplifyAuth = (props: Props) => {
     checkUser();
     getAmplify();
     setIsLoading(false);
-    Hub.listen("auth", (data) => {
+    Hub.listen("auth", (data: ListenData) => {
       if (data.payload.event !== "signedIn") {
         setAuthEvents(data);
       }
@@ -45,10 +44,10 @@ const AmplifyAuth = (props: Props) => {
       return (
         <a
           href="/"
-          className="flex justify-center items-center  text-2xl font-semibold text-gray-900 dark:text-white"
+          className="flex justify-center items-center text-2xl font-semibold text-gray-900 dark:text-white"
         >
           <img
-            className="w-12 h12 mr-2"
+            className="w-12 h-12 mr-2"
             src="/logo-transparent.png"
             alt="logo"
           />
@@ -58,20 +57,16 @@ const AmplifyAuth = (props: Props) => {
     },
   };
 
-  const getAuthenticator = (): JSX.Element => {
-    const { initialTab } = props;
-
-    return (
-      <Authenticator
-        {...(initialTab ? { initialState: initialTab } : {})}
-        components={components}
-      >
-        <Spinner />
-      </Authenticator>
-    );
-  };
-
-  return <>{loading ? <Spinner /> : getAuthenticator()}</>;
+  return loading ? (
+    <Spinner />
+  ) : (
+    <Authenticator
+      {...(initialTab ? { initialState: initialTab } : {})}
+      components={components}
+    >
+      <Spinner />
+    </Authenticator>
+  );
 };
 
 export default AmplifyAuth;
