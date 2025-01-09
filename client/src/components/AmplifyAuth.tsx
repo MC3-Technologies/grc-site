@@ -3,7 +3,7 @@ import { getAmplify } from "../amplify/amplify";
 import { useEffect, useState } from "react";
 import Spinner from "./Spinner";
 import { Hub } from "aws-amplify/utils";
-import { getCurrentUser } from "../amplify/auth";
+import { getCurrentUser, ListenData } from "../amplify/auth";
 
 interface Props {
   initialTab?: "signUp" | "forgotPassword";
@@ -14,32 +14,30 @@ const redirectHome = (): void => {
 };
 
 const AmplifyAuth = ({ initialTab }: Props) => {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setIsLoading] = useState<boolean>(true);
+  const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
 
   useEffect(() => {
-    const initializeAuth = async () => {
+    const checkUser = async () => {
       try {
         const user = await getCurrentUser();
         if (user) {
-          redirectHome();
-          return;
+          window.location.href = "/";
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error(error);
       }
-
-      getAmplify();
-      const authListener = (data: any) => {
-        if (data.payload.event === "signedIn") {
-          redirectHome();
-        }
-      };
-      Hub.listen("auth", authListener);
-      setLoading(false);
     };
-
-    initializeAuth();
-  }, []);
+    checkUser();
+    getAmplify();
+    setIsLoading(false);
+    Hub.listen("auth", (data: ListenData) => {
+      if (data.payload.event !== "signedIn") {
+        setAuthEvents(data);
+      }
+      redirectHome();
+    });
+  }, [authEvents]);
 
   const components = {
     Header() {

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import DarkModeToggle from "./DarkModeToggle";
-import { getCurrentUser, signOutCurrentUser, User } from "../amplify/auth";
+import {
+  getCurrentUser,
+  signOutCurrentUser,
+  User,
+  ListenData,
+} from "../amplify/auth";
 import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
 import { getAmplify } from "../amplify/amplify";
@@ -8,38 +13,29 @@ import Spinner from "./Spinner";
 
 const Navbar = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     getAmplify();
-    initFlowbite();
+    Hub.listen("auth", (data: ListenData) => {
+      setAuthEvents(data);
+    });
 
     const checkUser = async () => {
       try {
         const user = await getCurrentUser();
-        if (user !== currentUser) {
-          setCurrentUser(user);
-        }
+        setCurrentUser(user);
       } catch (error) {
         console.error("Error checking user session:", error);
         setCurrentUser(null);
       }
-      setLoading(false);
     };
 
     checkUser();
-
-    const authListener = (data: any) => {
-      if (
-        data.payload.event === "signedIn" ||
-        data.payload.event === "signedOut"
-      ) {
-        checkUser();
-      }
-    };
-
-    Hub.listen("auth", authListener);
-  }, [currentUser]);
+    initFlowbite();
+    setLoading(false);
+  }, [authEvents]);
 
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-950 fixed z-20 top-0 start-0 w-full">

@@ -7,6 +7,15 @@ type User = {
   userId: string;
 };
 
+type HubPayload = {
+  event: string;
+  message?: string;
+};
+
+type ListenData = {
+  payload: HubPayload;
+};
+
 const getCurrentUser = async (): Promise<User> => {
   getAmplify();
   try {
@@ -26,4 +35,4 @@ const signOutCurrentUser = async (): Promise<void> => {
 };
 
 export { getCurrentUser, signOutCurrentUser };
-export type { User };
+export type { User, ListenData };
