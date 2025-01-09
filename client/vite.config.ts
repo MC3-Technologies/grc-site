@@ -10,9 +10,9 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         assessment: resolve(__dirname, "assessment/index.html"),
+        auth: resolve(__dirname, "auth/index.html"),
         faq: resolve(__dirname, "faq/index.html"),
         osint: resolve(__dirname, "osint/index.html"),
-        signIn: resolve(__dirname, "signin/index.html"),
         resources: resolve(__dirname, "resources/index.html"),
         // example-page-directory: resolve(__dirname, 'path/to/page/index.html'),
       },

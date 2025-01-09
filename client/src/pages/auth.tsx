@@ -10,10 +10,30 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import AmplifyAuth from "../components/AmplifyAuth";
 
-export function Signin() {
+export function Auth() {
   useEffect(() => {
     initFlowbite();
   }, []);
+
+  const getAmplifyAuthWithTab = () => {
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get("tab") as
+      | "sign-in"
+      | "sign-up"
+      | "forgot-password"
+      | null;
+
+    switch (tabParam) {
+      case "sign-in":
+        return <AmplifyAuth />;
+      case "sign-up":
+        return <AmplifyAuth initalTab="signUp" />;
+      case "forgot-password":
+        return <AmplifyAuth initalTab="forgotPassword" />;
+      default:
+        return <AmplifyAuth />;
+    }
+  };
 
   return (
     <>
@@ -31,7 +51,7 @@ export function Signin() {
             />
             MC3 Technologies
           </a>
-          <AmplifyAuth />
+          {getAmplifyAuthWithTab()}
         </div>
       </section>
       <Chat />
@@ -42,6 +62,6 @@ export function Signin() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Signin />
+    <Auth />
   </StrictMode>
 );
