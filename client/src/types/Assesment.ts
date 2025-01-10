@@ -1,51 +1,68 @@
 import { defaultQuestions } from "../assessmentDefaultQuestions";
-import { TextQuestion, RadioQuestion, QuestionNode } from "./questions";
+import { TextQuestion, RadioQuestion } from "./questions";
 
 class Assessment {
-  private head: QuestionNode | null = null;
+  private questions: (TextQuestion | RadioQuestion)[];
+
   constructor(questions: (TextQuestion | RadioQuestion)[]) {
-    const newHead = new QuestionNode(questions[0]);
-    const setNewHead = (currentNode: QuestionNode) => {
-      if (!currentNode) return;
-      // console.log("Looking at node", currentNode.question);
-      for (const conditional of currentNode.conditionals) {
-        if (currentNode.value === conditional.value) {
-          const nextObj = questions.find((q) => q.id === conditional.next);
-          if (!nextObj) {
-            throw new Error("Condition met, condition next does not exist");
-          }
-          currentNode.next = new QuestionNode(nextObj);
-          return setNewHead(currentNode.next);
-        }
-      }
-      if (currentNode.nextObjId === null) {
-        return;
-      }
-      const nextObj = questions.find((q) => q.id === currentNode.nextObjId);
-      if (!nextObj) {
-        throw new Error("Next does not exist");
-      }
-      currentNode.next = new QuestionNode(nextObj);
-      return setNewHead(currentNode.next);
-    };
-    setNewHead(newHead);
-    this.head = newHead;
+    this.questions = questions;
   }
 
-  public getHead = (): QuestionNode | null => {
-    return this.head;
+  public updateValue = (id: string, val: string): void => {
+    const question = this.questions.find((q) => q.id === id);
+    if (!question) {
+      throw new Error("Updating non-existent question.");
+    }
+    question.value = val;
   };
 
-  public toString = (): string => {
-    let result = "";
-    let current = this.head;
+  public getQuestions = (): (TextQuestion | RadioQuestion)[] => {
+    let ret: (TextQuestion | RadioQuestion)[] = [];
 
-    while (current !== null) {
-      result += current.question + "\n";
-      current = current.next;
+    if (!this.questions.length) {
+      return ret;
     }
 
-    return result.trim();
+    let temp = this.questions[0];
+    const visited = new Set<string>();
+
+    while (temp) {
+      if (visited.has(temp.id)) {
+        throw new Error("Loop detected in questions flow");
+      }
+
+      ret.push(temp);
+      visited.add(temp.id);
+
+      let nextQuestion: TextQuestion | RadioQuestion | undefined;
+
+      for (const conditional of temp.conditionals) {
+        if (temp.value === conditional.value) {
+          nextQuestion = this.questions.find((q) => q.id === conditional.next);
+          if (!nextQuestion) {
+            throw new Error(
+              `Condition met, but next question ${conditional.next} does not exist`
+            );
+          }
+          break;
+        }
+      }
+
+      if (!nextQuestion && temp.next) {
+        nextQuestion = this.questions.find((q) => q.id === temp.next);
+        if (!nextQuestion) {
+          throw new Error(`Next question ${temp.next} does not exist`);
+        }
+      }
+
+      if (!nextQuestion) {
+        break;
+      }
+
+      temp = nextQuestion;
+    }
+
+    return ret;
   };
 }
 
