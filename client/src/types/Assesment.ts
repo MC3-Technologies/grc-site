@@ -11,17 +11,22 @@ class Assessment {
       for (const conditional of currentNode.conditionals) {
         if (currentNode.value === conditional.value) {
           const nextObj = questions.find((q) => q.id === conditional.next);
-          if (nextObj) {
-            currentNode.next = new QuestionNode(nextObj);
-            return setNewHead(currentNode.next);
+          if (!nextObj) {
+            throw new Error("Condition met, condition next does not exist");
           }
+          currentNode.next = new QuestionNode(nextObj);
+          return setNewHead(currentNode.next);
         }
       }
-      const nextObj = questions.find((q) => q.id === currentNode.nextObjId);
-      if (nextObj) {
-        currentNode.next = new QuestionNode(nextObj);
-        return setNewHead(currentNode.next);
+      if (currentNode.nextObjId === null) {
+        return;
       }
+      const nextObj = questions.find((q) => q.id === currentNode.nextObjId);
+      if (!nextObj) {
+        throw new Error("Next does not exist");
+      }
+      currentNode.next = new QuestionNode(nextObj);
+      return setNewHead(currentNode.next);
     };
     setNewHead(newHead);
     this.head = newHead;

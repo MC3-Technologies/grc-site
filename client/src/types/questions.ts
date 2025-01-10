@@ -24,7 +24,7 @@ class QuestionNode {
   public id: string;
   public type: "radio" | "text" = "text";
   public question: string = "";
-  private options: string[] | null = null;
+  public options: string[] | null = null;
   public value: string = "";
   public conditionals: Conditional[] = [];
   public nextObjId: string | null = "";
@@ -33,12 +33,7 @@ class QuestionNode {
   constructor(question: TextQuestion | RadioQuestion) {
     this.id = question.id;
     if (question.type === "radio") {
-      this.type = "radio";
-      question.options.forEach((option) => {
-        const newOptions = this.options;
-        newOptions?.push(option);
-        this.options = newOptions;
-      });
+      this.options = [...question.options];
     }
     this.question = question.question;
     this.value = question.value;
