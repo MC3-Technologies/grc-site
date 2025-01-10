@@ -8,6 +8,7 @@ import "../index.css";
 import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
+import AssessmentForm from "../components/assessment/AssessmentForm";
 
 export function Assessment() {
   useEffect(() => {
@@ -18,7 +19,7 @@ export function Assessment() {
     <>
       <Navbar />
       <section className="mt-20 bg-white dark:bg-gray-900">
-        This is the assessment page.
+       <AssessmentForm/>
       </section>
       <Chat />
       <Footer />
