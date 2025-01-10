@@ -5,22 +5,19 @@ interface Conditional {
 
 interface Question {
   id: string;
+  question: string;
+  value: string;
+  conditionals: Conditional[];
   next: string | null;
 }
 
 interface TextQuestion extends Question {
   type: "text";
-  question: string;
-  value: string;
-  conditionals: Conditional[];
 }
 
 interface RadioQuestion extends Question {
   type: "radio";
-  question: string;
   options: string[];
-  value: string;
-  conditionals: Conditional[];
 }
 
 class QuestionNode {
