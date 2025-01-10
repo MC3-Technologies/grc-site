@@ -4,11 +4,11 @@ import { TextQuestion, RadioQuestion, QuestionNode } from "./questions";
 class Assessment {
   private head: QuestionNode | null = null;
   constructor(questions: (TextQuestion | RadioQuestion)[]) {
-    let newHead = new QuestionNode(questions[0]);
+    const newHead = new QuestionNode(questions[0]);
     const setNewHead = (currentNode: QuestionNode) => {
       if (!currentNode) return;
       // console.log("Looking at node", currentNode.question);
-      for (let conditional of currentNode.conditionals) {
+      for (const conditional of currentNode.conditionals) {
         if (currentNode.value === conditional.value) {
           const nextObj = questions.find((q) => q.id === conditional.next);
           if (nextObj) {

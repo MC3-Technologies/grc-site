@@ -42,7 +42,7 @@ class QuestionNode {
     if (question.type === "radio") {
       this.type = "radio";
       question.options.forEach((option) => {
-        let newOptions = this.options;
+        const newOptions = this.options;
         newOptions?.push(option);
         this.options = newOptions;
       });
