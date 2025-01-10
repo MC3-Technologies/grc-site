@@ -3,24 +3,31 @@ import { getNewAssessment } from "../../types/Assesment";
 import { TextQuestion, RadioQuestion } from "../../types/questions";
 
 const AssessmentForm = () => {
-  const [assessment, setAssessment] = useState(getNewAssessment());
+  const [assessment] = useState(getNewAssessment());
   const [questions, setQuestions] = useState<(TextQuestion | RadioQuestion)[]>(
     []
   );
-
-  useEffect(() => {
-    setQuestions(assessment.getQuestions());
-  }, [assessment]);
 
   const handleInputChange = (id: string, value: string) => {
     assessment.updateValue(id, value);
     setQuestions(assessment.getQuestions());
   };
 
-  return (
-    <form>
-      {questions.map((question) => (
-        <div key={question.id} style={{ marginBottom: "20px" }}>
+  useEffect(() => {
+    setQuestions(assessment.getQuestions());
+  }, [assessment]);
+
+  const getSections = (): JSX.Element[] => {
+    const sectionQuestionSet = new Map<string, JSX.Element[]>();
+
+    questions.forEach((question, key) => {
+      if (!sectionQuestionSet.has(question.section)) {
+        sectionQuestionSet.set(question.section, []);
+      }
+
+      const oldSectionArray = sectionQuestionSet.get(question.section) ?? [];
+      oldSectionArray.push(
+        <div key={key} style={{ marginBottom: "20px" }}>
           <label htmlFor={question.id}>{question.question}</label>
 
           {question.type === "text" ? (
@@ -51,11 +58,28 @@ const AssessmentForm = () => {
             </div>
           ) : null}
         </div>
-      ))}
+      );
 
-      <button type="submit">Submit</button>
-    </form>
-  );
+      sectionQuestionSet.set(question.section, oldSectionArray);
+    });
+
+    const ret: JSX.Element[] = [];
+
+    for (const [section, questions] of sectionQuestionSet) {
+      ret.push(
+        <div key={section}>
+          <h2>This is the {section} section.</h2>
+          {questions.map((question, key) => (
+            <div key={key}>{question}</div>
+          ))}
+        </div>
+      );
+    }
+
+    return ret;
+  };
+
+  return <>{getSections()}</>;
 };
 
 export default AssessmentForm;

@@ -4,6 +4,7 @@ interface Conditional {
 }
 
 interface Question {
+  section: "example-section" | "example-section2";
   id: string;
   question: string;
   value: string;

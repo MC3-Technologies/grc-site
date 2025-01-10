@@ -2,6 +2,7 @@ import { TextQuestion, RadioQuestion } from "./types/questions";
 
 const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
   {
+    section: "example-section",
     id: "q1",
     type: "text",
     question: "What is your name?",
@@ -10,6 +11,7 @@ const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
     conditionals: [],
   },
   {
+    section: "example-section",
     id: "q2",
     type: "radio",
     question: "What is your preferred programming language?",
@@ -22,6 +24,7 @@ const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
     ],
   },
   {
+    section: "example-section",
     id: "q2a",
     type: "text",
     question: "What JavaScript framework do you prefer?",
@@ -30,6 +33,7 @@ const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
     conditionals: [],
   },
   {
+    section: "example-section",
     id: "q2b",
     type: "text",
     question: "What Python framework do you prefer?",
@@ -38,6 +42,7 @@ const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
     conditionals: [],
   },
   {
+    section: "example-section2",
     id: "q3",
     type: "radio",
     question: "Do you prefer frontend or backend development?",
@@ -47,6 +52,7 @@ const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
     conditionals: [],
   },
   {
+    section: "example-section2",
     id: "q4",
     type: "text",
     question: "What is your biggest challenge in coding?",

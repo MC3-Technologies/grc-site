@@ -17,7 +17,7 @@ class Assessment {
   };
 
   public getQuestions = (): (TextQuestion | RadioQuestion)[] => {
-    let ret: (TextQuestion | RadioQuestion)[] = [];
+    const ret: (TextQuestion | RadioQuestion)[] = [];
 
     if (!this.questions.length) {
       return ret;
