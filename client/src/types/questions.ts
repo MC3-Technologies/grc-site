@@ -37,7 +37,7 @@ interface HardwareInventoryEntry {
   id: string;
   type: "hardware-entry";
   name: string;
-  make: String;
+  make: string;
   model: string;
   operatingSystem?: string;
   mobileDevice: boolean;
