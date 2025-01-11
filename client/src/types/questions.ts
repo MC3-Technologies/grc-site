@@ -21,4 +21,33 @@ interface RadioQuestion extends Question {
   options: string[];
 }
 
-export type { TextQuestion, RadioQuestion };
+interface SoftwareInventoryEntry {
+  id: string;
+  type: "software-entry";
+  name: string;
+  version?: string;
+  vendor: string;
+  installationDate?: string;
+  lastUpdated?: string;
+  criticalSoftware: boolean;
+  cloudBased: boolean;
+  comments?: string;
+}
+interface HardwareInventoryEntry {
+  id: string;
+  type: "hardware-entry";
+  name: string;
+  make: String;
+  model: string;
+  operatingSystem?: string;
+  mobileDevice: boolean;
+  hasRemoteConnection?: boolean;
+  comments?: string;
+}
+
+export type {
+  TextQuestion,
+  RadioQuestion,
+  SoftwareInventoryEntry,
+  HardwareInventoryEntry,
+};
