@@ -25,7 +25,7 @@ jobs:
         working-directory: ./client
         run: npm install
 
-      - name: Run prefix lint
+      - name: Run tests
         working-directory: ./client
         run: npm run test
 
@@ -45,6 +45,6 @@ jobs:
         working-directory: ./client
         run: npm install
 
-      - name: Run prefix lint
+      - name: Run lint
         working-directory: ./client
         run: npm run lint
