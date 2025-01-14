@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Spinner from "./Spinner";
 import { Hub } from "aws-amplify/utils";
 import { getCurrentUser, ListenData } from "../amplify/auth";
+// import { signUp } from "aws-amplify/auth";
 
 interface Props {
   initialTab?: "signUp" | "forgotPassword";
@@ -63,6 +64,27 @@ const AmplifyAuth = ({ initialTab }: Props) => {
     <Authenticator
       {...(initialTab ? { initialState: initialTab } : {})}
       components={components}
+      // services={{
+      //   async handleSignUp(formData) {
+      //     const { username, password } = formData;
+
+      //     try {
+      //       const user = await signUp({
+      //         username,
+      //         password,
+      //         options: {
+      //           userAttributes: {
+      //             role: "user",
+      //           },
+      //         },
+      //       });
+      //       return user;
+      //     } catch (error) {
+      //       console.error("Sign Up Error:", error);
+      //       throw error;
+      //     }
+      //   },
+      // }}
     >
       <Spinner />
     </Authenticator>
