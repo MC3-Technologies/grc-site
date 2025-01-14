@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import ChatMessage from "./ChatMessage"; 
 import { getCurrentUser } from "../amplify/auth";
+// import { useNavigate } from "react-router-dom";
 
 interface Message {
   role: "user" | "assistant";
@@ -13,13 +14,14 @@ const Chat = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const chatboxRef = useRef<HTMLDivElement>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  // const navigate = useNavigate();
+  // const [isExpanded, setIsExpanded] = useState(false);
 
   const toggleChatBox = () => {
     setChatBoxOpen(!chatBoxOpen);
   };
 
-  const toggleExpand = () => setIsExpanded(!isExpanded);
+  // const toggleExpand = () => setIsExpanded(!isExpanded);
   
   useEffect(() => {
     const button = document.getElementById("check-out-ai");
@@ -36,6 +38,23 @@ const Chat = () => {
     }
   }, [messages]);
 
+  // Add listener for storage events
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "chatMessages" && e.newValue) {
+        try {
+          const newMessages = JSON.parse(e.newValue);
+          setMessages(newMessages);
+        } catch (err) {
+          console.error("Error parsing storage messages:", err);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
 
@@ -43,40 +62,43 @@ const Chat = () => {
       role: "user",
       message: inputMessage,
     };
-    setMessages((prev) => [...prev, newUserMessage]);
+    
+    const newMessages = [...messages, newUserMessage];
+    setMessages(newMessages);
     setInputMessage("");
     setIsLoading(true);
 
     try {
-      
       const user = await getCurrentUser();
-
-      // API call to fetch assistant response
+      
       const response = await fetch(`${import.meta.env.VITE_API_ENDPOINT}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [...messages, newUserMessage],
+          messages: newMessages,
           userId: user?.userId || "guest",
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
+      if (!response.ok) throw new Error("Failed to fetch chat response.");
 
       const data = await response.json();
-      const newAssistantMessage: Message = {
-        role: "assistant",
-        message: data.message || "(No response)",
-      };
-      setMessages((prev) => [...prev, newAssistantMessage]);
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", message: "Sorry, I encountered an error. Please try again." },
-      ]);
+      const updatedMessages = [...newMessages, { 
+        role: "assistant" as const,
+        message: data.message || "(No response)" 
+      }];
+      
+      setMessages(updatedMessages);
+      // Update localStorage with new messages
+      localStorage.setItem("chatMessages", JSON.stringify(updatedMessages));
+    } catch (err) {
+      console.error("Error sending message:", err);
+      const errorMessages = [...newMessages, { 
+        role: "assistant" as const,
+        message: "Sorry, I encountered an error. Please try again." 
+      }];
+      setMessages(errorMessages);
+      localStorage.setItem("chatMessages", JSON.stringify(errorMessages));
     } finally {
       setIsLoading(false);
     }
@@ -88,11 +110,27 @@ const Chat = () => {
     }
   };
 
+  const openMaximizedChat = () => {
+    // 1) Overwrite localStorage with current messages
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
+    localStorage.setItem("inputMessage", inputMessage);
+
+
+    const chatWindow = window.open(
+      "/src/chat/index.html", 
+      "chatWindow", 
+      "width=1000,height=700,top=50,left=50,resizable=yes"
+    );
+
+    // Bring it to the front
+    if (chatWindow) chatWindow.focus();
+  };
+
   return (
     <>
       {/* Chat toggle button */}
-            <div className="fixed bottom-0 right-0 mb-4 mr-4 z-50">
-      <button
+      <div className="fixed bottom-0 right-0 mb-4 mr-4 z-50">
+        <button
           onClick={() => {
             toggleChatBox();
           }}
@@ -143,24 +181,21 @@ const Chat = () => {
       {/* Chatbox container */}
       {chatBoxOpen && (
         <div
-          id="chat-container"
-          className={`${
-            isExpanded
-              ? "fixed inset-0 w-full h-full"
-              : "fixed bottom-16 right-4 sm:w-96 w-full h-[500px]"
-          } bg-white shadow-md rounded-lg transition-all flex flex-col`}
-          ref={chatboxRef}
-        >
+        id="chat-container"
+        className="fixed bottom-16 right-4 sm:w-96 w-full h-[500px] bg-white shadow-md rounded-lg transition-all flex flex-col z-50"
+        ref={chatboxRef}
+      >
           {/* Chat header */}
           <div className="px-3 py-2 border-b bg-blue-500 text-white rounded-t-lg flex justify-between items-center">
             <p className="text-lg font-semibold">MC3 Cyber Assistant</p>
             <div className="flex space-x-2">
               <button
-                onClick={toggleExpand}
+                onClick={openMaximizedChat}
                 className="bg-white text-blue-500 px-2 py-1 rounded-md text-sm"
               >
-                {isExpanded ? "Minimize" : "Maximize"}
+                Maximize
               </button>
+
               <button
                 onClick={toggleChatBox}
                 className="bg-white text-red-500 px-2 py-1 rounded-md text-sm"
@@ -171,7 +206,7 @@ const Chat = () => {
           </div>
 
           {/* Messages display */}
-          <div id="chatbox" className="p-4 overflow-y-auto h-[calc(100%-120px)]">
+          <div id="chatbox" className="p-4 overflow-y-auto flex-grow">
             {messages.map((msg, idx) => (
               <ChatMessage key={idx} role={msg.role} message={msg.message} />
             ))}
