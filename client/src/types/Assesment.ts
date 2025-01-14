@@ -26,7 +26,7 @@ class Assessment {
       (existingEntry) => existingEntry.id === entry.id
     );
     if (exists) {
-      throw new Error(`Software entry with ID '${entry.id}' already exists.`);
+      throw new Error(`Software entry with ID already exists.`);
     }
     this.softwareInventory.push(entry);
   }
@@ -37,7 +37,7 @@ class Assessment {
       (entry) => entry.id !== id
     );
     if (updatedInventory.length === initialLength) {
-      throw new Error(`Software entry with ID '${id}' not found.`);
+      throw new Error(`Software entry with ID not found.`);
     }
     this.softwareInventory = updatedInventory;
   }
@@ -47,7 +47,7 @@ class Assessment {
       (existingEntry) => existingEntry.id === entry.id
     );
     if (exists) {
-      throw new Error(`Hardware entry with ID '${entry.id}' already exists.`);
+      throw new Error(`Hardware entry with ID already exists.`);
     }
     this.hardwareInventory.push(entry);
   }
@@ -58,7 +58,7 @@ class Assessment {
     const updatedInventory = (this.hardwareInventory =
       this.hardwareInventory.filter((entry) => entry.id !== id));
     if (updatedInventory.length === initialLength) {
-      throw new Error(`Hardware entry with ID '${id}' not found.`);
+      throw new Error(`Hardware entry with ID not found.`);
     }
     this.hardwareInventory = updatedInventory;
   }
