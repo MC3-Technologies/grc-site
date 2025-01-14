@@ -1,4 +1,4 @@
-name: Run Lint in Client
+name: Client CI
 
 on:
   push:
