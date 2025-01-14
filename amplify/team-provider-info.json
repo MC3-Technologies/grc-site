@@ -1,0 +1,26 @@
+{
+  "dev": {
+    "awscloudformation": {
+      "AuthRoleName": "amplify-grcsite-dev-d12bf-authRole",
+      "UnauthRoleArn": "arn:aws:iam::207567778575:role/amplify-grcsite-dev-d12bf-unauthRole",
+      "AuthRoleArn": "arn:aws:iam::207567778575:role/amplify-grcsite-dev-d12bf-authRole",
+      "Region": "us-east-1",
+      "DeploymentBucketName": "amplify-grcsite-dev-d12bf-deployment",
+      "UnauthRoleName": "amplify-grcsite-dev-d12bf-unauthRole",
+      "StackName": "amplify-grcsite-dev-d12bf",
+      "StackId": "arn:aws:cloudformation:us-east-1:207567778575:stack/amplify-grcsite-dev-d12bf/97703c40-d226-11ef-9c0c-0affdb118e49",
+      "AmplifyAppId": "diayxuc96gkjp"
+    },
+    "categories": {
+      "function": {
+        "claudeChat2": {
+          "deploymentBucketName": "amplify-grcsite-dev-d12bf-deployment",
+          "s3Key": "amplify-builds/claudeChat2-4932644d7a54446d412f-build.zip"
+        }
+      },
+      "api": {
+        "claudeApi2": {}
+      }
+    }
+  }
+}

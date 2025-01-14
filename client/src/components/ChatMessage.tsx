@@ -1,6 +1,6 @@
-const ChatMessage = (props: { message: string; role: "user" | "bot" }) => {
+const ChatMessage = (props: { message: string; role: "user" | "assistant" }) => {
   const { message, role } = props;
-  return role === "bot" ? (
+  return role === "assistant" ? (
     <>
       <div className="mb-1">
         <p className=" bg-blue-500 text-white rounded-lg py-1 px-2 inline-block text-sm">

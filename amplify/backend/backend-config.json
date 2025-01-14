@@ -1,0 +1,43 @@
+{
+  "api": {
+    "claudeApi2": {
+      "dependsOn": [
+        {
+          "attributes": [
+            "Name",
+            "Arn"
+          ],
+          "category": "function",
+          "resourceName": "claudeChat2"
+        }
+      ],
+      "providerPlugin": "awscloudformation",
+      "service": "API Gateway"
+    }
+  },
+  "function": {
+    "claudeChat2": {
+      "build": true,
+      "providerPlugin": "awscloudformation",
+      "service": "Lambda"
+    }
+  },
+  "parameters": {
+    "AMPLIFY_function_claudeChat2_deploymentBucketName": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "claudeChat2"
+        }
+      ]
+    },
+    "AMPLIFY_function_claudeChat2_s3Key": {
+      "usedBy": [
+        {
+          "category": "function",
+          "resourceName": "claudeChat2"
+        }
+      ]
+    }
+  }
+}

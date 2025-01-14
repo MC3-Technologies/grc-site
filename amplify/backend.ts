@@ -1,7 +1,7 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
-import { chatGptFunction } from './functions/chat-gpt/resource';
+import { chatGptFunction } from './backend/function/chatGpt/resource';
 import { osintFunction } from './functions/osint/resource';
 
 /**
