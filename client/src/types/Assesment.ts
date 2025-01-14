@@ -22,23 +22,45 @@ class Assessment {
   }
 
   public addSoftwareEntry(entry: SoftwareInventoryEntry): void {
+    const exists = this.softwareInventory.some(
+      (existingEntry) => existingEntry.id === entry.id
+    );
+    if (exists) {
+      throw new Error(`Software entry with ID '${entry.id}' already exists.`);
+    }
     this.softwareInventory.push(entry);
   }
 
   public removeSoftwareEntry(id: string): void {
-    this.softwareInventory = this.softwareInventory.filter(
+    const initialLength = this.softwareInventory.length;
+    const updatedInventory = this.softwareInventory.filter(
       (entry) => entry.id !== id
     );
+    if (updatedInventory.length === initialLength) {
+      throw new Error(`Software entry with ID '${id}' not found.`);
+    }
+    this.softwareInventory = updatedInventory;
   }
 
   public addHardwareEntry(entry: HardwareInventoryEntry): void {
+    const exists = this.hardwareInventory.some(
+      (existingEntry) => existingEntry.id === entry.id
+    );
+    if (exists) {
+      throw new Error(`Hardware entry with ID '${entry.id}' already exists.`);
+    }
     this.hardwareInventory.push(entry);
   }
 
   public removeHardwareEntry(id: string): void {
-    this.hardwareInventory = this.hardwareInventory.filter(
-      (entry) => entry.id !== id
-    );
+    const initialLength = this.hardwareInventory.length;
+
+    const updatedInventory = (this.hardwareInventory =
+      this.hardwareInventory.filter((entry) => entry.id !== id));
+    if (updatedInventory.length === initialLength) {
+      throw new Error(`Hardware entry with ID '${id}' not found.`);
+    }
+    this.hardwareInventory = updatedInventory;
   }
 
   public updateValue = (id: string, val: string): void => {
