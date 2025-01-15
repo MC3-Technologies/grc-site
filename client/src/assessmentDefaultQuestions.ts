@@ -1,65 +1,80 @@
-import { TextQuestion, RadioQuestion } from "./types/questions";
+const surveyJson = {
+  pages: [
+    {
+      title: "First page",
+      elements: [
+        {
+          name: "satisfaction-score",
+          title: "How would you describe your experience with our product?",
+          type: "radiogroup",
+          choices: [
+            { value: 5, text: "Fully satisfying" },
+            { value: 4, text: "Generally satisfying" },
+            { value: 3, text: "Neutral" },
+            { value: 2, text: "Rather unsatisfying" },
+            { value: 1, text: "Not satisfying at all" },
+          ],
+          isRequired: true,
+        },
+        {
+          name: "family-history",
+          title: "Test",
+          type: "matrixdynamic",
+          cellType: "text",
+          columns: [
+            {
+              name: "relation",
+              title: "Relation",
+            },
+            {
+              name: "health-conditions",
+              title: "Health conditions",
+            },
+            {
+              name: "cancer-history",
+              title: "Family history of cancer",
+            },
+          ],
+        },
+      ],
+    },
+    {
+      elements: [
+        {
+          name: "what-would-make-you-more-satisfied",
+          title: "What can we do to make your experience more satisfying?",
+          type: "comment",
+        },
+        {
+          name: "nps-score",
+          title:
+            "On a scale of zero to ten, how likely are you to recommend our product to a friend or colleague?",
+          type: "rating",
+          rateMin: 0,
+          rateMax: 10,
+        },
+      ],
+    },
+    {
+      elements: [
+        {
+          name: "how-can-we-improve",
+          title: "In your opinion, how could we improve our product?",
+          type: "comment",
+        },
+      ],
+    },
+    {
+      elements: [
+        {
+          name: "disappointing-experience",
+          title:
+            "Please let us know why you had such a disappointing experience with our product",
+          type: "comment",
+        },
+      ],
+    },
+  ],
+};
 
-const defaultQuestions: (TextQuestion | RadioQuestion)[] = [
-  {
-    section: "example-section",
-    id: "q1",
-    type: "text",
-    question: "What is your name?",
-    value: "",
-    next: "q2",
-    conditionals: [],
-  },
-  {
-    section: "example-section",
-    id: "q2",
-    type: "radio",
-    question: "What is your preferred programming language?",
-    options: ["JavaScript", "Python", "Go", "Rust"],
-    value: "",
-    next: "q3",
-    conditionals: [
-      { value: "JavaScript", next: "q2a" },
-      { value: "Python", next: "q2b" },
-    ],
-  },
-  {
-    section: "example-section",
-    id: "q2a",
-    type: "text",
-    question: "What JavaScript framework do you prefer?",
-    value: "",
-    next: "q3",
-    conditionals: [],
-  },
-  {
-    section: "example-section",
-    id: "q2b",
-    type: "text",
-    question: "What Python framework do you prefer?",
-    value: "",
-    next: "q3",
-    conditionals: [],
-  },
-  {
-    section: "example-section2",
-    id: "q3",
-    type: "radio",
-    question: "Do you prefer frontend or backend development?",
-    options: ["Frontend", "Backend", "Fullstack"],
-    value: "",
-    next: "q4",
-    conditionals: [],
-  },
-  {
-    section: "example-section2",
-    id: "q4",
-    type: "text",
-    question: "What is your biggest challenge in coding?",
-    value: "",
-    next: null,
-    conditionals: [],
-  },
-];
-
-export { defaultQuestions };
+export { surveyJson };

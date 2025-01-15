@@ -24,10 +24,14 @@ const DarkModeToggle = () => {
         document.documentElement.classList.add("dark");
         document.documentElement.style.backgroundColor = "#111827";
         localStorage.setItem("darkMode", "true");
+        // Add dispatch event to toggle Assessment page survey theme
+        window.dispatchEvent(new Event("darkMode"));
       } else {
         document.documentElement.classList.remove("dark");
         document.documentElement.style.backgroundColor = "#ffffff";
         localStorage.setItem("darkMode", "false");
+        // Add dispatch event to toggle Assessment page survey theme
+        window.dispatchEvent(new Event("lightMode"));
       }
 
       return newState;
