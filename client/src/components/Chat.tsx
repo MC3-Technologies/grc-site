@@ -8,7 +8,7 @@ import { getAmplify } from "../amplify/amplify";
 import Spinner from "./Spinner";
 
 export interface ChatHistoryMessage {
-  role: "system" | "user" | "assistant";
+  role: "system" | "user" | "assistant" | "error";
   content: string;
 }
 
@@ -20,6 +20,7 @@ const Chat = () => {
   const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [currentMessage, setCurrentMessage] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getAmplify();
@@ -62,6 +63,7 @@ const Chat = () => {
   };
 
   const handleChatSubmit = async (): Promise<void> => {
+    setError(null);
     try {
       const currentMessages = messages;
       setMessages((prev) => [
@@ -76,14 +78,18 @@ const Chat = () => {
         ]),
       });
 
-      if (response.data) {
-        const parsedMessages = JSON.parse(
-          JSON.parse(response.data as string)
-        ) as ChatHistoryMessage[];
-        setMessages(parsedMessages);
+      if (!response.data) {
+        setError("Error fetching response");
+        return;
       }
+
+      const parsedMessages = JSON.parse(
+        JSON.parse(response.data as string)
+      ) as ChatHistoryMessage[];
+      setMessages(parsedMessages);
     } catch (error) {
       console.error("Error fetching response:", error);
+      setError(`Error fetching response: ${error}`);
     }
     setCurrentMessage("");
   };
@@ -165,6 +171,9 @@ const Chat = () => {
                         message={message.content}
                       />
                     ))}
+                    {error ? (
+                      <ChatMessage role={"error"} message={error} />
+                    ) : null}
                   </>
                 ) : (
                   <>
