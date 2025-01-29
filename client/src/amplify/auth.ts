@@ -30,9 +30,18 @@ const getCurrentUser = async (): Promise<User> => {
   }
 };
 
+const isLoggedIn = async (): Promise<boolean> => {
+  try {
+    await getCurrentUser();
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const signOutCurrentUser = async (): Promise<void> => {
   await signOut();
 };
 
-export { getCurrentUser, signOutCurrentUser };
+export { getCurrentUser, signOutCurrentUser, isLoggedIn };
 export type { User, ListenData };

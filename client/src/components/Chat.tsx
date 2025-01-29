@@ -1,12 +1,46 @@
 import { useEffect, useState } from "react";
 import ChatMessage from "./ChatMessage";
+import { getClientSchema } from "../amplify/schema";
+import { getCurrentUser, User, ListenData } from "../amplify/auth";
+import { initFlowbite } from "flowbite";
+import { Hub } from "aws-amplify/utils";
+import { getAmplify } from "../amplify/amplify";
+import Spinner from "./Spinner";
+
+export interface ChatHistoryMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
 
 const Chat = () => {
   const [chatBoxOpen, setChatBoxOpen] = useState<boolean>(false);
+  const [client] = useState(getClientSchema());
+  const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentMessage, setCurrentMessage] = useState<string>("");
 
-  const toggleChatBox = () => {
-    setChatBoxOpen(!chatBoxOpen);
-  };
+  useEffect(() => {
+    getAmplify();
+    Hub.listen("auth", (data: ListenData) => {
+      setAuthEvents(data);
+    });
+
+    const checkUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error("Error checking user session:", error);
+        setCurrentUser(null);
+      }
+    };
+
+    checkUser();
+    initFlowbite();
+    setLoading(false);
+  }, [authEvents]);
 
   useEffect(() => {
     const button = document.getElementById("check-out-ai");
@@ -15,7 +49,43 @@ const Chat = () => {
         setChatBoxOpen(true);
       };
     }
-  }, []);
+  });
+
+  const toggleChatBox = () => {
+    setChatBoxOpen(!chatBoxOpen);
+  };
+
+  const handleCurrentMessageChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setCurrentMessage(event.target.value);
+  };
+
+  const handleChatSubmit = async (): Promise<void> => {
+    try {
+      const currentMessages = messages;
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: currentMessage },
+      ]);
+
+      const response = await client.queries.gptCompletion({
+        messages: JSON.stringify([
+          ...currentMessages,
+          { role: "user", content: currentMessage },
+        ]),
+      });
+
+      if (response.data) {
+        const parsedMessages = JSON.parse(
+          JSON.parse(response.data as string)
+        ) as ChatHistoryMessage[];
+        setMessages(parsedMessages);
+      }
+    } catch (error) {
+      console.error("Error fetching response:", error);
+    }
+  };
 
   return (
     <>
@@ -76,25 +146,69 @@ const Chat = () => {
           <div className="px-3 py-2 border-b bg-blue-500 text-white rounded-t-lg flex justify-between items-center">
             <p className="text-lg font-semibold">MC3 Cyber Assistant</p>
           </div>
-          <div id="chatbox" className="p-4 h-80 overflow-y-auto">
-            {/* Chat messages will be displayed here */}
-            <ChatMessage role="user" message="This is a user message." />
-            <ChatMessage role="bot" message="This is a bot message." />
-          </div>
-          <div className="p-4 border-t flex">
-            <input
-              id="user-input"
-              type="text"
-              placeholder="Type a message"
-              className="w-full px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              id="send-button"
-              className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300"
-            >
-              Send
-            </button>
-          </div>
+          {loading ? (
+            <Spinner />
+          ) : (
+            <div>
+              <div id="chatbox" className="p-4 h-80 overflow-y-auto">
+                {currentUser ? (
+                  <>
+                    <ChatMessage
+                      role="assistant"
+                      message="Hello! How can I assist you today?"
+                    />
+                    {messages.map((message, key) => (
+                      <ChatMessage
+                        key={key}
+                        role={message.role}
+                        message={message.content}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <ChatMessage
+                      role="assistant"
+                      message="Please log in to use our MC3 chat bot!"
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="p-4 border-t flex">
+                <input
+                  value={currentMessage}
+                  onChange={handleCurrentMessageChange}
+                  id="user-input"
+                  type="text"
+                  placeholder="Type a message"
+                  className="w-full px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {currentMessage.length > 0 && currentUser ? (
+                  <>
+                    <button
+                      id="send-button"
+                      className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300"
+                      onClick={() => {
+                        handleChatSubmit();
+                      }}
+                    >
+                      Send
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div
+                      id="send-button"
+                      className="bg-gray-500 text-white px-4 py-2 rounded-r-md hover:bg-gray-600 transition duration-300"
+                    >
+                      Send
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>
