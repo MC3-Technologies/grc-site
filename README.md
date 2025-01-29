@@ -3,8 +3,7 @@
 GRC-Site is a free MC3 Technologies Cyber Security assessment tool for businesses based on the CMMC Cyber Security Model.
 
 - `/.github/workflows`: Contains all project related automated workflows
-- `/client`: Contains the front-end code for the application. This folder hosts a Vite-based React application using TypeScript and Tailwind CSS. It is configured for a multi-page setup.
-- `/functions`: Currently empty, but reserved for serverless functions or backend logic in the future.
+- `/client`: Contains the front-end code for the application along with the Amplify backend resources. This hosts a Vite-based React application using TypeScript and Tailwind CSS. It is configured for a multi-page setup.
 
 ## Client Overview
 
@@ -60,42 +59,4 @@ Inside the `client` folder, the following most used scripts are available:
 
 ## Functions Overview
 
-We curently have two Lambda functions in plan -- one for GPT integration via OpenAI API and the OSINT scanning function which will use many different OSINT scanning APIs
-
-### OSINT Function
-
-The OSINT scanning function is planned to take in email, IPs or domains and will use many different APIs to return one comprehensive result.
-
-Currently used APIs:
-
-- **ViewDNS**: Free API used for server port scanning
-TBD....
-
-### OSINT Development Setup
-
-1. Navigate to the `osint` directory:
-
-   ```bash
-   cd functions/osint
-   ```
-
-2. Create a Python venv:
-
-   ```bash
-   python -m venv venv
-   ```
-
-3. Install pip dependencies:
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Get and setup port scanning API key :
-   Navigate to [viewdns.info](https://viewdns.info/) and create an account for an API key then create a .env file in the `functions/osint` directory with ```PORT_SCANNING_API_KEY = your-api-key```
-
-5. You can test the port scanning API function by calling the port_scan method in ```functions/osint/src/port_scanning.py``` with ```port_scan("your-ip-to-test")```
-
-### GPT Function
-
-In progress!
+We curently have two functions in plan -- one for GPT integration via OpenAI API and the OSINT scanning function which will use many different OSINT scanning APIs
