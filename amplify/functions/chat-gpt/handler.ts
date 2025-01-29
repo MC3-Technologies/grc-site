@@ -1,8 +1,20 @@
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import { chatRequest } from "./src/textFunctions";
 
-export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ message: "Hello from the ChatGPT function!" }),
-  };
+import { ChatHistoryMessage } from "./src/textFunctions";
+import { Schema } from "../../data/resource";
+
+export const handler: Schema["gptCompletion"]["functionHandler"] = async (
+  event
+) => {
+  try {
+    const { message } = event.arguments;
+    if (!message) {
+      return new Error("Broken");
+    }
+
+    const t = await chatRequest(message as ChatHistoryMessage[]);
+    return JSON.stringify(t);
+  } catch (error) {
+    return new Error("Broken");
+  }
 };
