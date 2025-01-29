@@ -13,15 +13,24 @@ export interface ChatHistoryMessage {
 }
 
 const Chat = () => {
+  // Chat overlay open state
   const [chatBoxOpen, setChatBoxOpen] = useState<boolean>(false);
-  const [client] = useState(getClientSchema());
-  const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
+
+  // Auth tracking state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [currentMessage, setCurrentMessage] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
 
+  // Chatting functions related state
+  const [client] = useState(getClientSchema());
+  const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
+  const [currentMessage, setCurrentMessage] = useState<string>("");
+
+  // Chat handling related state
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [responseLoading, setResponseLoading] = useState<boolean>(false);
+
+  // Listen for user and real time update
   useEffect(() => {
     getAmplify();
     Hub.listen("auth", (data: ListenData) => {
@@ -43,6 +52,7 @@ const Chat = () => {
     setLoading(false);
   }, [authEvents]);
 
+  // Add onclick listener to open chat button
   useEffect(() => {
     const button = document.getElementById("check-out-ai");
     if (button) {
@@ -52,25 +62,36 @@ const Chat = () => {
     }
   });
 
+  // Handler to open chatbox
   const toggleChatBox = () => {
     setChatBoxOpen(!chatBoxOpen);
   };
 
+  // Handle current message input value changing
   const handleCurrentMessageChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setCurrentMessage(event.target.value);
   };
 
+  // Handle chat submit
   const handleChatSubmit = async (): Promise<void> => {
+    // Error or not => set to null, if there is an error, it will be set again at end of function
     setError(null);
+    // Set response loading to true, locking send message button
+    setResponseLoading(true);
     try {
+      // Set a copy of current messages to avoid race condition later
       const currentMessages = messages;
+
+      // Add user message to messages array then set current message back to empty
       setMessages((prev) => [
         ...prev,
         { role: "user", content: currentMessage },
       ]);
+      setCurrentMessage("");
 
+      // Request response from GPT completion function using previous currentMessages copy
       const response = await client.queries.gptCompletion({
         messages: JSON.stringify([
           ...currentMessages,
@@ -78,20 +99,25 @@ const Chat = () => {
         ]),
       });
 
+      // If no response data, set error state
       if (!response.data) {
         setError("Error fetching response");
         return;
       }
 
+      // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
         JSON.parse(response.data as string)
       ) as ChatHistoryMessage[];
       setMessages(parsedMessages);
     } catch (error) {
       console.error("Error fetching response:", error);
+      // Set error and set response loading to false to unlock send message
       setError(`Error fetching response: ${error}`);
+      setResponseLoading(false);
     }
-    setCurrentMessage("");
+    // Set response loading to false to unlock send message
+    setResponseLoading(false);
   };
 
   return (
@@ -194,7 +220,9 @@ const Chat = () => {
                   placeholder="Type a message"
                   className="w-full px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {currentMessage.length > 0 && currentUser ? (
+                {currentMessage.length > 0 &&
+                currentUser &&
+                !responseLoading ? (
                   <>
                     <button
                       id="send-button"
