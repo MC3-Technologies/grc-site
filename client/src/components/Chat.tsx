@@ -85,6 +85,7 @@ const Chat = () => {
     } catch (error) {
       console.error("Error fetching response:", error);
     }
+    setCurrentMessage("");
   };
 
   return (
