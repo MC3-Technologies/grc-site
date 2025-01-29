@@ -8,11 +8,10 @@ specifies that any unauthenticated user can "create", "read", "update",
 and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
-
   gptCompletion: a
     .query()
     .arguments({
-      message: a.json(),
+      messages: a.json(),
     })
     .returns(a.json())
     .handler(a.handler.function(chatGptFunction))

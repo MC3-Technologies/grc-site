@@ -7,14 +7,15 @@ export const handler: Schema["gptCompletion"]["functionHandler"] = async (
   event
 ) => {
   try {
-    const { message } = event.arguments;
-    if (!message) {
-      return new Error("Broken");
+    const { messages } = event.arguments;
+    if (!messages) {
+      return JSON.stringify(new Error("Messages not found"));
     }
-
-    const t = await chatRequest(message as ChatHistoryMessage[]);
-    return JSON.stringify(t);
+    const messagesResponse = await chatRequest(
+      messages as ChatHistoryMessage[]
+    );
+    return JSON.stringify(messagesResponse);
   } catch (error) {
-    return new Error("Broken");
+    return JSON.stringify(new Error(`Internal function error ${error}`));
   }
 };
