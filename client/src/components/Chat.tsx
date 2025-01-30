@@ -134,7 +134,7 @@ const Chat = () => {
             toggleChatBox();
           }}
           id="open-chat"
-          className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300 flex items-center"
+          className="bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition duration-300 flex items-center"
         >
           {chatBoxOpen ? (
             <>
@@ -177,13 +177,32 @@ const Chat = () => {
       </div>
       <div
         id="chat-container"
-        className={`fixed bottom-16 right-4 sm:w-96 w-max z-50 ${
+        className={`fixed bottom-16 right-4 sm:w-96 w-max z-50  ${
           chatBoxOpen ? `` : `hidden `
         }`}
       >
-        <div className="bg-white shadow-md rounded-lg max-w-lg w-full">
-          <div className="px-3 py-2 border-b bg-blue-500 text-white rounded-t-lg flex justify-between items-center">
-            <p className="text-lg font-semibold">MC3 Cyber Assistant</p>
+        <div className="bg-gray-300 dark:bg-gray-800  rounded-lg max-w-lg shadow-2xl w-full">
+          <div className="px-3 py-2  bg-primary-600 dark:bg-primary-700  text-white rounded-t-lg flex justify-between items-center">
+            <p className="text-lg font-semibold inline-flex items-center">
+              <svg
+                className="w-6 h-6 mr-1"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 11h2v5m-2 0h4m-2.592-8.5h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                />
+              </svg>
+              MC3 Cyber Assistant
+            </p>
           </div>
           {loading ? (
             <Spinner />
@@ -217,38 +236,63 @@ const Chat = () => {
                 )}
               </div>
 
-              <div className="p-4 border-t flex">
+              <div className="p-4 flex    rounded-b-md">
                 <input
                   value={currentMessage}
                   onChange={handleCurrentMessageChange}
                   id="user-input"
                   type="text"
                   placeholder="Type a message"
-                  className="w-full px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-l-md focus:outline-none  dark:bg-gray-700 dark:text-white"
                 />
                 {currentMessage.length > 0 &&
                 currentUser &&
                 !responseLoading ? (
-                  <>
-                    <button
-                      id="send-button"
-                      className="bg-blue-500 text-white px-4 py-2 rounded-r-md hover:bg-blue-600 transition duration-300"
-                      onClick={() => {
-                        handleChatSubmit();
-                      }}
+                  <button
+                    id="send-button"
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-r-md  transition duration-300"
+                    onClick={() => {
+                      handleChatSubmit();
+                    }}
+                  >
+                    <svg
+                      className="w-5 h-5 rotate-90 "
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      Send
-                    </button>
-                  </>
+                      <path
+                        fillRule="evenodd"
+                        d="M12 2a1 1 0 0 1 .932.638l7 18a1 1 0 0 1-1.326 1.281L13 19.517V13a1 1 0 1 0-2 0v6.517l-5.606 2.402a1 1 0 0 1-1.326-1.281l7-18A1 1 0 0 1 12 2Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
                 ) : (
-                  <>
-                    <div
-                      id="send-button"
-                      className="bg-gray-500 text-white px-4 py-2 rounded-r-md hover:bg-gray-600 transition duration-300"
+                  <button
+                    id="send-button"
+                    className="bg-gray-600  dark:bg-gray-600  text-white px-4 py-2 rounded-r-md  transition duration-300"
+                    disabled={true}
+                  >
+                    <svg
+                      className="w-5 h-5 rotate-90 "
+                      aria-hidden="true"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      Send
-                    </div>
-                  </>
+                      <path
+                        fillRule="evenodd"
+                        d="M12 2a1 1 0 0 1 .932.638l7 18a1 1 0 0 1-1.326 1.281L13 19.517V13a1 1 0 1 0-2 0v6.517l-5.606 2.402a1 1 0 0 1-1.326-1.281l7-18A1 1 0 0 1 12 2Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
                 )}
               </div>
             </div>
