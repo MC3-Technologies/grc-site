@@ -46,26 +46,6 @@ const Chat = () => {
     }
   }, [messages]);
 
-  // Listen for storage events
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === "chatMessages" && e.newValue) {
-        try {
-          const newMessages = JSON.parse(e.newValue) as ChatHistoryMessage[];
-          setMessages(newMessages);
-        } catch (err) {
-          console.error("Error parsing storage messages:", err);
-        }
-      }
-      if (e.key === "currentMessage" && e.newValue) {
-        setCurrentMessage(e.newValue);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
   // Listen for user and real time update
   useEffect(() => {
     getAmplify();
@@ -120,59 +100,51 @@ const Chat = () => {
 
   // Handle chat submit
   const handleChatSubmit = async (): Promise<void> => {
+    // Don't submit if message is empty or already loading
     if (!currentMessage.trim() || responseLoading) return;
 
+    // Error or not => set to null, if there is an error, it will be set again at end of function
     setError(null);
+    // Set response loading to true, locking send message button
     setResponseLoading(true);
-    
     try {
+      // Set a copy of current messages to avoid race condition later
       const currentMessages = messages;
-      const newMessages = [
-        ...currentMessages,
-        { role: "user" as const, content: currentMessage.trim() }
-      ];
 
-      setMessages(newMessages);
-      localStorage.setItem("chatMessages", JSON.stringify(newMessages));
+      // Add user message to messages array then set current message back to empty
+      setMessages((prev) => [
+        ...prev,
+        { role: "user", content: currentMessage.trim() },
+      ]);
       setCurrentMessage("");
 
+      // Request response from GPT completion function using previous currentMessages copy
       const response = await client.queries.gptCompletion({
-        messages: JSON.stringify(newMessages),
+        messages: JSON.stringify([
+          ...currentMessages,
+          { role: "user", content: currentMessage },
+        ]),
       });
 
+      // If no response data, set error state
       if (!response.data) {
         setError("Error fetching response");
         return;
       }
 
+      // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
         JSON.parse(response.data as string)
       ) as ChatHistoryMessage[];
-      
       setMessages(parsedMessages);
-      localStorage.setItem("chatMessages", JSON.stringify(parsedMessages));
     } catch (error) {
       console.error("Error fetching response:", error);
+      // Set error and set response loading to false to unlock send message
       setError(`Error fetching response: ${error}`);
     } finally {
+      // Set response loading to false to unlock send message
       setResponseLoading(false);
     }
-  };
-
-  // Handle maximizing chat window
-  const openMaximizedChat = () => {
-    // Save current state to localStorage
-    localStorage.setItem("chatMessages", JSON.stringify(messages));
-    localStorage.setItem("currentMessage", currentMessage);
-
-    // Open new window
-    const chatWindow = window.open(
-      "/src/chat/index.html",
-      "chatWindow",
-      "width=1000,height=700,top=50,left=50,resizable=yes"
-    );
-
-    if (chatWindow) chatWindow.focus();
   };
 
   return (
@@ -227,14 +199,6 @@ const Chat = () => {
         <div className="bg-white shadow-md rounded-lg max-w-lg w-full">
           <div className="px-3 py-2 border-b bg-blue-500 text-white rounded-t-lg flex justify-between items-center">
             <p className="text-lg font-semibold">MC3 Cyber Assistant</p>
-            <div className="flex space-x-2">
-              <button
-                onClick={openMaximizedChat}
-                className="bg-white text-blue-500 px-2 py-1 rounded-md text-sm hover:bg-blue-50"
-              >
-                Maximize
-              </button>
-            </div>
           </div>
           {loading ? (
             <Spinner />
