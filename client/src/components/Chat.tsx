@@ -6,11 +6,8 @@ import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
 import { getAmplify } from "../amplify/amplify";
 import Spinner from "./Spinner";
-
-export interface ChatHistoryMessage {
-  role: "system" | "user" | "assistant" | "error";
-  content: string;
-}
+import { saveToLocalStorage, loadFromLocalStorage, clearChatHistory } from "../utils/chatStorage";
+import { ChatHistoryMessage } from "../types/Chat";
 
 const Chat = () => {
   // Chat overlay open state
@@ -38,6 +35,29 @@ const Chat = () => {
 
   // Add ref for auto-scrolling
   const chatboxRef = useRef<HTMLDivElement | null>(null);
+
+  // Load saved messages when user is authenticated
+  useEffect(() => {
+    if (currentUser) {
+      const savedMessages = loadFromLocalStorage();
+      if (savedMessages && savedMessages.length > 0) {
+        setMessages(prevMessages => {
+          // Keep system message and add saved messages
+          const systemMessage = prevMessages[0];
+          return [systemMessage, ...savedMessages];
+        });
+      }
+    }
+  }, [currentUser]);
+
+  // Save messages when they change and user is authenticated
+  useEffect(() => {
+    if (currentUser && messages.length > 1) {
+      // Save all messages except the system message
+      const messagesToSave = messages.slice(1);
+      saveToLocalStorage(messagesToSave);
+    }
+  }, [messages, currentUser]);
 
   // Auto-scroll when new messages are added
   useEffect(() => {
@@ -81,6 +101,12 @@ const Chat = () => {
   // Handler to open chatbox
   const toggleChatBox = () => {
     setChatBoxOpen(!chatBoxOpen);
+  };
+
+  // Handle clear chat history
+  const handleClearChat = () => {
+    clearChatHistory();
+    setMessages([messages[0]]); // Keep only the system message
   };
 
   // Handle current message input value changing
@@ -223,6 +249,29 @@ const Chat = () => {
               </svg>
               MC3 Cyber Assistant
             </p>
+            {currentUser && messages.length > 1 && (
+              <button
+                onClick={handleClearChat}
+                className="text-white hover:text-gray-200 transition duration-300"
+                title="Clear Chat History"
+              >
+                <svg
+                  className="w-5 h-5"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
           {loading ? (
             <Spinner />
@@ -267,7 +316,7 @@ const Chat = () => {
                 )}
               </div>
 
-              <div className="p-4 flex    rounded-b-md">
+              <div className="p-4 flex rounded-b-md">
                 <input
                   value={currentMessage}
                   onChange={handleCurrentMessageChange}
