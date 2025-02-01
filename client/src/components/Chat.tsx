@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, KeyboardEvent } from "react";
 import ChatMessage from "./ChatMessage";
 import { getClientSchema } from "../amplify/schema";
 import { getCurrentUser, User, ListenData } from "../amplify/auth";
@@ -35,6 +35,16 @@ const Chat = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [responseLoading, setResponseLoading] = useState<boolean>(false);
+
+  // Add ref for auto-scrolling
+  const chatboxRef = useRef<HTMLDivElement | null>(null);
+
+  // Auto-scroll when new messages are added
+  useEffect(() => {
+    if (chatboxRef.current) {
+      chatboxRef.current.scrollTop = chatboxRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   // Listen for user and real time update
   useEffect(() => {
@@ -80,8 +90,24 @@ const Chat = () => {
     setCurrentMessage(event.target.value);
   };
 
+  // Handle Enter key press
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey &&
+      currentMessage.trim() &&
+      !responseLoading
+    ) {
+      e.preventDefault();
+      handleChatSubmit();
+    }
+  };
+
   // Handle chat submit
   const handleChatSubmit = async (): Promise<void> => {
+    // Don't submit if message is empty or already loading
+    if (!currentMessage.trim() || responseLoading) return;
+
     // Error or not => set to null, if there is an error, it will be set again at end of function
     setError(null);
     // Set response loading to true, locking send message button
@@ -93,7 +119,7 @@ const Chat = () => {
       // Add user message to messages array then set current message back to empty
       setMessages((prev) => [
         ...prev,
-        { role: "user", content: currentMessage },
+        { role: "user", content: currentMessage.trim() },
       ]);
       setCurrentMessage("");
 
@@ -120,58 +146,52 @@ const Chat = () => {
       console.error("Error fetching response:", error);
       // Set error and set response loading to false to unlock send message
       setError(`Error fetching response: ${error}`);
+    } finally {
+      // Set response loading to false to unlock send message
       setResponseLoading(false);
     }
-    // Set response loading to false to unlock send message
-    setResponseLoading(false);
   };
 
   return (
     <>
       <div className="fixed bottom-0 right-0 mb-4 mr-4 z-50">
         <button
-          onClick={() => {
-            toggleChatBox();
-          }}
+          onClick={toggleChatBox}
           id="open-chat"
           className="bg-primary-600 text-white py-2 px-4 rounded-md hover:bg-primary-700 transition duration-300 flex items-center"
         >
           {chatBoxOpen ? (
-            <>
-              <svg
-                className="w-6 h-6 text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm7.707-3.707a1 1 0 0 0-1.414 1.414L10.586 12l-2.293 2.293a1 1 0 1 0 1.414 1.414L12 13.414l2.293 2.293a1 1 0 0 0 1.414-1.414L13.414 12l2.293-2.293a1 1 0 0 0-1.414-1.414L12 10.586 9.707 8.293Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </>
+            <svg
+              className="w-6 h-6 text-white"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fillRule="evenodd"
+                d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm7.707-3.707a1 1 0 0 0-1.414 1.414L10.586 12l-2.293 2.293a1 1 0 1 0 1.414 1.414L12 13.414l2.293 2.293a1 1 0 0 0 1.414-1.414L13.414 12l2.293-2.293a1 1 0 0 0-1.414-1.414L12 10.586 9.707 8.293Z"
+                clipRule="evenodd"
+              />
+            </svg>
           ) : (
-            <>
-              <svg
-                className="w-6 h-6text-white"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6.616l-2.88 2.592C8.537 20.461 7 19.776 7 18.477V17H5a2 2 0 0 1-2-2V6Zm4 2a1 1 0 0 0 0 2h5a1 1 0 1 0 0-2H7Zm8 0a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2h-2Zm-8 3a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2H7Zm5 0a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2h-5Z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </>
+            <svg
+              className="w-6 h-6 text-white"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fillRule="evenodd"
+                d="M3 6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6.616l-2.88 2.592C8.537 20.461 7 19.776 7 18.477V17H5a2 2 0 0 1-2-2V6Zm4 2a1 1 0 0 0 0 2h5a1 1 0 1 0 0-2H7Zm8 0a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2h-2Zm-8 3a1 1 0 1 0 0 2h2a1 1 0 1 0 0-2H7Zm5 0a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2h-5Z"
+                clipRule="evenodd"
+              />
+            </svg>
           )}
         </button>
       </div>
@@ -208,7 +228,11 @@ const Chat = () => {
             <Spinner />
           ) : (
             <div>
-              <div id="chatbox" className="p-4 h-80 overflow-y-auto">
+              <div
+                ref={chatboxRef}
+                id="chatbox"
+                className="p-4 h-80 overflow-y-auto"
+              >
                 {currentUser ? (
                   <>
                     <ChatMessage
@@ -222,6 +246,13 @@ const Chat = () => {
                         message={message.content}
                       />
                     ))}
+                    {responseLoading && (
+                      <div className="flex justify-center py-2">
+                        <div className="animate-pulse text-gray-400">
+                          Thinking...
+                        </div>
+                      </div>
+                    )}
                     {error ? (
                       <ChatMessage role={"error"} message={error} />
                     ) : null}
@@ -240,6 +271,8 @@ const Chat = () => {
                 <input
                   value={currentMessage}
                   onChange={handleCurrentMessageChange}
+                  onKeyDown={handleKeyDown}
+                  disabled={responseLoading || !currentUser}
                   id="user-input"
                   type="text"
                   placeholder="Type a message"
