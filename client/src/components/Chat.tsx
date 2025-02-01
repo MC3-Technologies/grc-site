@@ -131,25 +131,19 @@ const Chat = () => {
 
   // Handle chat submit
   const handleChatSubmit = async (): Promise<void> => {
-    // Don't submit if message is empty or already loading
     if (!currentMessage.trim() || responseLoading) return;
 
-    // Error or not => set to null, if there is an error, it will be set again at end of function
     setError(null);
-    // Set response loading to true, locking send message button
     setResponseLoading(true);
     try {
-      // Set a copy of current messages to avoid race condition later
       const currentMessages = messages;
 
-      // Add user message to messages array then set current message back to empty
       setMessages((prev) => [
         ...prev,
         { role: "user", content: currentMessage.trim() },
       ]);
       setCurrentMessage("");
 
-      // Request response from GPT completion function using previous currentMessages copy
       const response = await client.queries.gptCompletion({
         messages: JSON.stringify([
           ...currentMessages,
@@ -157,23 +151,19 @@ const Chat = () => {
         ]),
       });
 
-      // If no response data, set error state
       if (!response.data) {
         setError("Error fetching response");
         return;
       }
 
-      // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
         JSON.parse(response.data as string)
       ) as ChatHistoryMessage[];
       setMessages(parsedMessages);
     } catch (error) {
       console.error("Error fetching response:", error);
-      // Set error and set response loading to false to unlock send message
       setError(`Error fetching response: ${error}`);
     } finally {
-      // Set response loading to false to unlock send message
       setResponseLoading(false);
     }
   };
