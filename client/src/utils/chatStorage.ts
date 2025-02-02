@@ -1,3 +1,5 @@
+// Path: src/utils/chatStorage.ts
+
 import { ChatHistoryMessage, STORAGE_KEY } from '../types/Chat';
 
 export const saveToLocalStorage = (messages: ChatHistoryMessage[]): void => {
