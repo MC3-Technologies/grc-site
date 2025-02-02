@@ -12,6 +12,7 @@ import { ChatHistoryMessage } from "../types/Chat";
 const Chat = () => {
   // Chat overlay open state
   const [chatBoxOpen, setChatBoxOpen] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Auth tracking state
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -212,12 +213,18 @@ const Chat = () => {
         </button>
       </div>
       <div
-        id="chat-container"
-        className={`fixed bottom-16 right-4 sm:w-96 w-max z-50  ${
-          chatBoxOpen ? `` : `hidden `
-        }`}
-      >
-        <div className="bg-gray-300 dark:bg-gray-800  rounded-lg max-w-lg shadow-2xl w-full">
+  id="chat-container"
+  className={`fixed bottom-16 right-4 ${
+    isExpanded 
+      ? 'w-[95%] sm:w-[85%] md:w-[75%] lg:w-[65%] xl:w-[60%]' 
+      : 'w-full sm:w-96'
+  } z-50 transition-all duration-300 ${
+    chatBoxOpen ? `` : `hidden`
+  }`}
+>
+<div className={`bg-gray-300 dark:bg-gray-800 rounded-lg shadow-2xl w-full ${
+  isExpanded ? 'max-w-none' : 'max-w-lg'
+}`}>
           <div className="px-3 py-2  bg-primary-600 dark:bg-primary-700  text-white rounded-t-lg flex justify-between items-center">
             <p className="text-lg font-semibold inline-flex items-center">
               <svg
@@ -239,29 +246,61 @@ const Chat = () => {
               </svg>
               MC3 Cyber Assistant
             </p>
-            {currentUser && messages.length > 1 && (
-              <button
-                onClick={handleClearChat}
-                className="text-white hover:text-gray-200 transition duration-300"
-                title="Clear Chat History"
-              >
-                <svg
-                  className="w-5 h-5"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
-                </svg>
-              </button>
-            )}
+            <div className="flex items-center space-x-2">
+  <button
+    onClick={() => setIsExpanded(!isExpanded)}
+    className="text-white hover:text-gray-200 transition duration-300"
+    title={isExpanded ? "Collapse Chat" : "Expand Chat"}
+  >
+    <svg
+      className="w-5 h-5"
+      aria-hidden="true"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      {isExpanded ? (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M9 9L4 4m0 0l5-5M4 4h16m-4 11l5 5m0 0l-5 5m5-5H4"
+        />
+      ) : (
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
+        />
+      )}
+    </svg>
+  </button>
+  {currentUser && messages.length > 1 && (
+    <button
+      onClick={handleClearChat}
+      className="text-white hover:text-gray-200 transition duration-300"
+      title="Clear Chat History"
+    >
+      <svg
+        className="w-5 h-5"
+        aria-hidden="true"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+        />
+      </svg>
+    </button>
+  )}
+</div>
           </div>
           {loading ? (
             <Spinner />
@@ -270,7 +309,9 @@ const Chat = () => {
               <div
                 ref={chatboxRef}
                 id="chatbox"
-                className="p-4 h-80 overflow-y-auto"
+                className={`p-4 overflow-y-auto ${
+                  isExpanded ? 'h-[70vh]' : 'h-80'
+                } transition-all duration-300`}
               >
                 {currentUser ? (
                   <>
@@ -278,7 +319,7 @@ const Chat = () => {
                       role="assistant"
                       message="Hello! How can I assist you today?"
                     />
-                    {messages.map((message, key) => (
+                    {messages.slice(1).map((message, key) => (
                       <ChatMessage
                         key={key}
                         role={message.role}
@@ -322,13 +363,13 @@ const Chat = () => {
                 !responseLoading ? (
                   <button
                     id="send-button"
-                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-r-md  transition duration-300"
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-r-md transition duration-300"
                     onClick={() => {
                       handleChatSubmit();
                     }}
                   >
                     <svg
-                      className="w-5 h-5 rotate-90 "
+                      className="w-5 h-5 rotate-90"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
@@ -346,11 +387,11 @@ const Chat = () => {
                 ) : (
                   <button
                     id="send-button"
-                    className="bg-gray-600  dark:bg-gray-600  text-white px-4 py-2 rounded-r-md  transition duration-300"
+                    className="bg-gray-600 dark:bg-gray-600 text-white px-4 py-2 rounded-r-md transition duration-300"
                     disabled={true}
                   >
                     <svg
-                      className="w-5 h-5 rotate-90 "
+                      className="w-5 h-5 rotate-90"
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       width="24"
