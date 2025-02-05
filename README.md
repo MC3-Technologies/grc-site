@@ -57,6 +57,60 @@ Inside the `client` folder, the following most used scripts are available:
 - `npm run build`: Builds the application for production.
 - `npm run lint`: Lints the codebase.
 
+### Chatting UI Function for Production
+
+Currently, our chatting UI is disabled to minimize calling to the function.
+
+In order to re-enable it, do the following in the client/src/components/Chat.tsx file
+
+1. Uncomment the getClientChema import on line 3 `import { getClientSchema } from "../amplify/schema";`
+2. Uncomment the client state on line 33 `const [client] = useState(getClientSchema());`
+3. Comment out the setTimeout function from line 165-175
+   ```javaScript
+   // setTimeout(() => {
+   //    setMessages((prev) => [
+   //      ...prev,
+   //      {
+   //        role: "assistant",
+   //        content:
+   //          "Our chat bot is currently disabled! Please check back later.",
+   //      },
+   //    ]);
+   //    setResponseLoading(false);
+   // }, 500);
+   ```
+4. Uncomment the try, catch and finally block from line 177-203
+
+   ```javaScript
+   try {
+      // Request response from GPT completion function using previous currentMessages copy
+      const response = await client.queries.gptCompletion({
+         messages: JSON.stringify([
+            ...messages,
+            { role: "user", content: currentMessage },
+         ]),
+      });
+      // If no response data, set error state
+      if (!response.data) {
+         setError("Error fetching response");
+         return;
+      }
+
+      // Otherwise double parse response for response messages array and set messages state
+      const parsedMessages = JSON.parse(
+         JSON.parse(response.data as string)
+      ) as ChatHistoryMessage[];
+      setMessages(parsedMessages);
+      } catch (error) {
+      console.error("Error fetching response:", error);
+      // Set error and set response loading to false to unlock send message
+      setError(`Error fetching response: ${error}`);
+      } finally {
+      // Set response loading to false to unlock send message
+      setResponseLoading(false);
+   }
+   ```
+
 ## Functions Overview
 
 We curently have two functions in plan -- one for GPT integration via OpenAI API and the OSINT scanning function which will use many different OSINT scanning APIs

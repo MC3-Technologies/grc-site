@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, KeyboardEvent } from "react";
 import ChatMessage from "./ChatMessage";
-import { getClientSchema } from "../amplify/schema";
+// import { getClientSchema } from "../amplify/schema";
 import { getCurrentUser, User, ListenData } from "../amplify/auth";
 import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
@@ -30,7 +30,7 @@ const Chat = () => {
   const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
 
   // Chatting functions related state
-  const [client] = useState(getClientSchema());
+  // const [client] = useState(getClientSchema());
   const [messages, setMessages] = useState<ChatHistoryMessage[]>([
     initialSystemMessage,
   ]);
@@ -161,33 +161,46 @@ const Chat = () => {
     ]);
     setCurrentMessage("");
 
-    try {
-      // Request response from GPT completion function using previous currentMessages copy
-      const response = await client.queries.gptCompletion({
-        messages: JSON.stringify([
-          ...messages,
-          { role: "user", content: currentMessage },
-        ]),
-      });
-      // If no response data, set error state
-      if (!response.data) {
-        setError("Error fetching response");
-        return;
-      }
-
-      // Otherwise double parse response for response messages array and set messages state
-      const parsedMessages = JSON.parse(
-        JSON.parse(response.data as string)
-      ) as ChatHistoryMessage[];
-      setMessages(parsedMessages);
-    } catch (error) {
-      console.error("Error fetching response:", error);
-      // Set error and set response loading to false to unlock send message
-      setError(`Error fetching response: ${error}`);
-    } finally {
-      // Set response loading to false to unlock send message
+    // TEMPORARY -- COMMENT OUT FOR PRODUCTION
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content:
+            "Our chat bot is currently disabled! Please check back later.",
+        },
+      ]);
       setResponseLoading(false);
-    }
+    }, 500);
+
+    // try {
+    //   // Request response from GPT completion function using previous currentMessages copy
+    //   const response = await client.queries.gptCompletion({
+    //     messages: JSON.stringify([
+    //       ...messages,
+    //       { role: "user", content: currentMessage },
+    //     ]),
+    //   });
+    //   // If no response data, set error state
+    //   if (!response.data) {
+    //     setError("Error fetching response");
+    //     return;
+    //   }
+
+    //   // Otherwise double parse response for response messages array and set messages state
+    //   const parsedMessages = JSON.parse(
+    //     JSON.parse(response.data as string)
+    //   ) as ChatHistoryMessage[];
+    //   setMessages(parsedMessages);
+    // } catch (error) {
+    //   console.error("Error fetching response:", error);
+    //   // Set error and set response loading to false to unlock send message
+    //   setError(`Error fetching response: ${error}`);
+    // } finally {
+    //   // Set response loading to false to unlock send message
+    //   setResponseLoading(false);
+    // }
   };
 
   return (
