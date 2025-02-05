@@ -86,7 +86,7 @@ export function Resources() {
 
     if (
       !["it-security", "hipaa-security", "pci-dss-security"].includes(
-        resourceParam as string
+        resourceParam as string,
       )
     ) {
       setResourceExist(false);
@@ -232,5 +232,5 @@ export function Resources() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Resources />
-  </StrictMode>
+  </StrictMode>,
 );

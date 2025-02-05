@@ -74,7 +74,7 @@ const AmplifyAuth = ({ initialTab }: Props) => {
               password,
               options: {
                 userAttributes: {
-                  'custom:role': "user",
+                  "custom:role": "user",
                 },
               },
             });

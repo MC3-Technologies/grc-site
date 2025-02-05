@@ -87,5 +87,5 @@ export function Assessment() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessment />
-  </StrictMode>
+  </StrictMode>,
 );

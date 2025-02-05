@@ -1,5 +1,5 @@
 export interface ChatHistoryMessage {
-  role: 'user' |  'system' | 'assistant' | 'error';
+  role: "user" | "system" | "assistant" | "error";
   content: string;
   timestamp?: number;
 }
@@ -10,8 +10,8 @@ export interface ChatState {
 
 export interface StoredMessage {
   message: string;
-  role: 'user' | 'bot' | 'error';
+  role: "user" | "bot" | "error";
   timestamp?: number;
 }
 
-export const STORAGE_KEY = 'mc3_chat_history';
+export const STORAGE_KEY = "mc3_chat_history";

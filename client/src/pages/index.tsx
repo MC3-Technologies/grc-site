@@ -406,5 +406,5 @@ export function Index() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Index />
-  </StrictMode>
+  </StrictMode>,
 );

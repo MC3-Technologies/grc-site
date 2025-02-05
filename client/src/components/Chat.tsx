@@ -127,7 +127,7 @@ const Chat = () => {
 
   // Handle input change.
   const handleCurrentMessageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setCurrentMessage(event.target.value);
   };
