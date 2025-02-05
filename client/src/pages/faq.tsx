@@ -29,5 +29,5 @@ export function Faq() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Faq />
-  </StrictMode>
+  </StrictMode>,
 );

@@ -52,5 +52,5 @@ export function Auth() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Auth />
-  </StrictMode>
+  </StrictMode>,
 );

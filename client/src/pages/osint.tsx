@@ -29,5 +29,5 @@ export function Osint() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Osint />
-  </StrictMode>
+  </StrictMode>,
 );
