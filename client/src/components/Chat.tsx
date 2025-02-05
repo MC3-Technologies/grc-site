@@ -6,7 +6,11 @@ import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
 import { getAmplify } from "../amplify/amplify";
 import Spinner from "./Spinner";
-import { saveToLocalStorage, loadFromLocalStorage, clearChatHistory } from "../utils/chatStorage";
+import {
+  saveToLocalStorage,
+  loadFromLocalStorage,
+  clearChatHistory,
+} from "../utils/chatStorage";
 import { ChatHistoryMessage } from "../types/Chat";
 
 // Define the initial system message separately.
@@ -27,7 +31,9 @@ const Chat = () => {
 
   // Chatting functions related state
   const [client] = useState(getClientSchema());
-  const [messages, setMessages] = useState<ChatHistoryMessage[]>([initialSystemMessage]);
+  const [messages, setMessages] = useState<ChatHistoryMessage[]>([
+    initialSystemMessage,
+  ]);
   const [currentMessage, setCurrentMessage] = useState<string>("");
 
   // Chat handling related state
@@ -120,13 +126,20 @@ const Chat = () => {
   };
 
   // Handle input change.
-  const handleCurrentMessageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCurrentMessageChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setCurrentMessage(event.target.value);
   };
 
   // Handle the Enter key for message submission.
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey && currentMessage.trim() && !responseLoading) {
+    if (
+      e.key === "Enter" &&
+      !e.shiftKey &&
+      currentMessage.trim() &&
+      !responseLoading
+    ) {
       e.preventDefault();
       handleChatSubmit();
     }
@@ -142,21 +155,30 @@ const Chat = () => {
     setResponseLoading(true);
 
     // Add user message to messages array then set current message back to empty
-    setMessages(prev => [...prev, { role: "user", content: currentMessage.trim() }]);
+    setMessages((prev) => [
+      ...prev,
+      { role: "user", content: currentMessage.trim() },
+    ]);
     setCurrentMessage("");
 
     try {
       // Request response from GPT completion function using previous currentMessages copy
       const response = await client.queries.gptCompletion({
-        messages: JSON.stringify([...messages, { role: "user", content: currentMessage }]),
+        messages: JSON.stringify([
+          ...messages,
+          { role: "user", content: currentMessage },
+        ]),
       });
       // If no response data, set error state
       if (!response.data) {
         setError("Error fetching response");
         return;
       }
+
       // Otherwise double parse response for response messages array and set messages state
-      const parsedMessages = JSON.parse(JSON.parse(response.data as string)) as ChatHistoryMessage[];
+      const parsedMessages = JSON.parse(
+        JSON.parse(response.data as string)
+      ) as ChatHistoryMessage[];
       setMessages(parsedMessages);
     } catch (error) {
       console.error("Error fetching response:", error);
@@ -284,7 +306,9 @@ const Chat = () => {
                   type="button"
                   disabled={!isClearEnabled}
                   // Only attach the popover trigger when enabled.
-                  {...(isClearEnabled ? { "data-popover-target": "popover-default" } : {})}
+                  {...(isClearEnabled
+                    ? { "data-popover-target": "popover-default" }
+                    : {})}
                   className={`text-white transition duration-300 ${
                     !isClearEnabled
                       ? "opacity-50 cursor-not-allowed"
@@ -320,14 +344,13 @@ const Chat = () => {
               role="tooltip"
               className="absolute z-10 invisible inline-block w-64 text-sm text-gray-500 transition-opacity duration-300 bg-white border border-gray-200 rounded-lg shadow-xs opacity-0 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-800"
             >
-<div className="px-3 py-2 bg-primary-600 dark:bg-primary-700 text-white border-b border-primary-600 rounded-t-lg">
-  <h3 className="font-semibold">
-    Clear Chat History?
-  </h3>
-</div>
+              <div className="px-3 py-2 bg-primary-600 dark:bg-primary-700 text-white border-b border-primary-600 rounded-t-lg">
+                <h3 className="font-semibold">Clear Chat History?</h3>
+              </div>
               <div className="px-3 py-2">
                 <p>
-                  Are you sure you want to clear all chat messages? This cannot be undone.
+                  Are you sure you want to clear all chat messages? This cannot
+                  be undone.
                 </p>
                 <div className="flex justify-end gap-2 mt-2">
                   <button
@@ -350,7 +373,9 @@ const Chat = () => {
               <div
                 ref={chatboxRef}
                 id="chatbox"
-                className={`p-4 overflow-y-auto ${isExpanded ? "h-[70vh]" : "h-80"} transition-all duration-300`}
+                className={`p-4 overflow-y-auto ${
+                  isExpanded ? "h-[70vh]" : "h-80"
+                } transition-all duration-300`}
               >
                 {currentUser ? (
                   <>
@@ -372,7 +397,7 @@ const Chat = () => {
                         </div>
                       </div>
                     )}
-                    {error && <ChatMessage role="assistant" message={error} />}
+                    {error && <ChatMessage role="error" message={error} />}
                   </>
                 ) : (
                   <ChatMessage
@@ -393,7 +418,9 @@ const Chat = () => {
                   placeholder="Type a message"
                   className="w-full px-3 py-2 rounded-l-md focus:outline-none dark:bg-gray-700 dark:text-white"
                 />
-                {currentMessage.length > 0 && currentUser && !responseLoading ? (
+                {currentMessage.length > 0 &&
+                currentUser &&
+                !responseLoading ? (
                   <button
                     id="send-button"
                     className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-r-md transition duration-300"

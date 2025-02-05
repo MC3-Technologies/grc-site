@@ -23,7 +23,7 @@ const ChatMessage = (props: {
       );
     case "error":
       return (
-        <div className="mb-1 text-right">
+        <div className="mb-1">
           <p className=" bg-red-500 text-white rounded-lg py-1 px-2 inline-block text-sm">
             {`Error! ${message}`}
           </p>
