@@ -4,7 +4,7 @@ import { ChatHistoryMessage } from "./src/textFunctions";
 import { Schema } from "../../data/resource";
 
 export const handler: Schema["gptCompletion"]["functionHandler"] = async (
-  event
+  event,
 ) => {
   try {
     const { messages } = event.arguments;
@@ -12,7 +12,7 @@ export const handler: Schema["gptCompletion"]["functionHandler"] = async (
       return JSON.stringify(new Error("Messages not found"));
     }
     const messagesResponse = await chatRequest(
-      messages as ChatHistoryMessage[]
+      messages as ChatHistoryMessage[],
     );
     return JSON.stringify(messagesResponse);
   } catch (error) {

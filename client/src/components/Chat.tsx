@@ -74,7 +74,7 @@ const Chat = () => {
   // Listen for user and real time update
   useEffect(() => {
     getAmplify();
-    Hub.listen("auth", (data: ListenData) => {
+    const hubListener = Hub.listen("auth", (data: ListenData) => {
       setAuthEvents(data);
     });
     const checkUser = async () => {
@@ -89,6 +89,11 @@ const Chat = () => {
     checkUser();
     initFlowbite();
     setLoading(false);
+
+    return () => {
+      // Stop listening for data memory leaks
+      hubListener();
+    };
   }, [authEvents]);
 
   // Add onclick listener to open chat button (if present elsewhere in the DOM)

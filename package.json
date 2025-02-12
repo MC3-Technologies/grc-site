@@ -4,7 +4,8 @@
   "description": "GRC-Site is a free MC3 Technologies Cyber Security assessment tool for businesses based on the CMMC Cyber Security Model.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "format-project" : "npm --prefix amplify run format && npm --prefix client run format"
   },
   "keywords": [],
   "author": "",

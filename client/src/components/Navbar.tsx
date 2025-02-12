@@ -5,6 +5,7 @@ import {
   signOutCurrentUser,
   User,
   ListenData,
+  isCurrentUserAdmin,
 } from "../amplify/auth";
 import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
@@ -15,17 +16,31 @@ const Navbar = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isUserAdmin, setIsUserAdmin] = useState<boolean>(false);
 
   useEffect(() => {
+    setLoading(true);
+    setIsUserAdmin(false);
     getAmplify();
-    Hub.listen("auth", (data: ListenData) => {
+    const hubListener = Hub.listen("auth", (data: ListenData) => {
       setAuthEvents(data);
     });
+
+    const checkUserAdmin = async () => {
+      try {
+        const isAdmin: boolean = await isCurrentUserAdmin();
+        setIsUserAdmin(isAdmin);
+      } catch (error) {
+        console.error("Error checking if user is admin:", error);
+        setIsUserAdmin(false);
+      }
+    };
 
     const checkUser = async () => {
       try {
         const user = await getCurrentUser();
         setCurrentUser(user);
+        checkUserAdmin();
       } catch (error) {
         console.error("Error checking user session:", error);
         setCurrentUser(null);
@@ -35,6 +50,11 @@ const Navbar = () => {
     checkUser();
     initFlowbite();
     setLoading(false);
+
+    return () => {
+      // Stop listening for data memory leaks
+      hubListener();
+    };
   }, [authEvents]);
 
   return (
@@ -82,6 +102,18 @@ const Navbar = () => {
                   </span>
                 </div>
                 <ul className="py-2">
+                  {isUserAdmin && (
+                    <>
+                      <li>
+                        <a
+                          href="#"
+                          className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
+                        >
+                          Admin
+                        </a>
+                      </li>
+                    </>
+                  )}
                   <li>
                     <a
                       href="#"

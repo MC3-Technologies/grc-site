@@ -1,6 +1,8 @@
 import { getAmplify } from "./amplify";
 import { getCurrentUser as amplifyGetCurrentUser } from "aws-amplify/auth";
 import { signOut } from "aws-amplify/auth";
+import { fetchUserAttributes } from "aws-amplify/auth";
+import { fetchAuthSession } from "aws-amplify/auth";
 
 type User = {
   email: string;
@@ -39,9 +41,36 @@ const isLoggedIn = async (): Promise<boolean> => {
   }
 };
 
+const isCurrentUserAdmin = async (): Promise<boolean> => {
+  const session = await fetchAuthSession();
+  if (!session || !session.tokens) {
+    throw new Error(
+      "No session tokens detected. Perhaps user is not logged in?",
+    );
+  }
+  const groups = (session.tokens.accessToken.payload["cognito:groups"] ||
+    []) as string[];
+  return groups.includes("GRC-Admin");
+};
+
+const isCurrentUserVerified = async (): Promise<boolean> => {
+  const loggedIn: boolean = await isLoggedIn();
+  if (!loggedIn) {
+    throw new Error("User is not logged in!");
+  }
+  const userAttributes = await fetchUserAttributes();
+  return userAttributes.email_verified === "true";
+};
+
 const signOutCurrentUser = async (): Promise<void> => {
   await signOut();
 };
 
-export { getCurrentUser, signOutCurrentUser, isLoggedIn };
+export {
+  getCurrentUser,
+  signOutCurrentUser,
+  isLoggedIn,
+  isCurrentUserAdmin,
+  isCurrentUserVerified,
+};
 export type { User, ListenData };
