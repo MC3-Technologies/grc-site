@@ -4,15 +4,11 @@ import { useEffect, useState } from "react";
 import Spinner from "./Spinner";
 import { Hub } from "aws-amplify/utils";
 import { getCurrentUser, ListenData } from "../amplify/auth";
-import { signUp } from "aws-amplify/auth";
+import { redirectHome } from "../utils/routing";
 
 interface Props {
   initialTab?: "signUp" | "forgotPassword";
 }
-
-const redirectHome = (): void => {
-  window.location.href = "/";
-};
 
 const AmplifyAuth = ({ initialTab }: Props) => {
   const [loading, setIsLoading] = useState<boolean>(true);
@@ -32,12 +28,17 @@ const AmplifyAuth = ({ initialTab }: Props) => {
     checkUser();
     getAmplify();
     setIsLoading(false);
-    Hub.listen("auth", (data: ListenData) => {
+    const hubListener = Hub.listen("auth", (data: ListenData) => {
       if (data.payload.event !== "signedIn") {
         setAuthEvents(data);
       }
       redirectHome();
     });
+
+    return () => {
+      // Stop listening for data memory leaks
+      hubListener();
+    };
   }, [authEvents]);
 
   const components = {
@@ -64,28 +65,6 @@ const AmplifyAuth = ({ initialTab }: Props) => {
     <Authenticator
       {...(initialTab ? { initialState: initialTab } : {})}
       components={components}
-      services={{
-        async handleSignUp(formData) {
-          const { username, password } = formData;
-
-          try {
-            const user = await signUp({
-              username,
-              password,
-              options: {
-                userAttributes: {
-                  "custom:role": "user",
-                },
-              },
-            });
-            console.info("Signed up as user.");
-            return user;
-          } catch (error) {
-            console.error("Sign Up Error:", error);
-            throw error;
-          }
-        },
-      }}
     >
       <Spinner />
     </Authenticator>
