@@ -59,13 +59,15 @@ Inside the `client` folder, the following most used scripts are available:
 
 ### Chatting UI Function for Production
 
+AWS ampx sandbox with function streaming `npx dotenvx run --env-file=.env.local -- ampx sandbox --stream-function-logs`
+
 Currently, our chatting UI is disabled to minimize calling to the function.
 
 In order to re-enable it, do the following in the client/src/components/Chat.tsx file
 
 1. Uncomment the getClientChema import on line 3 `import { getClientSchema } from "../amplify/schema";`
-2. Uncomment the client state on line 33 `const [client] = useState(getClientSchema());`
-3. Comment out the setTimeout function from line 165-175
+2. Uncomment the client state on line 45 `const [client] = useState(getClientSchema());`
+3. Comment out the setTimeout function from line 182-192
    ```javaScript
    // setTimeout(() => {
    //    setMessages((prev) => [
@@ -79,7 +81,7 @@ In order to re-enable it, do the following in the client/src/components/Chat.tsx
    //    setResponseLoading(false);
    // }, 500);
    ```
-4. Uncomment the try, catch and finally block from line 177-203
+4. Uncomment the try, catch and finally block from line 194-235
 
    ```javaScript
    try {

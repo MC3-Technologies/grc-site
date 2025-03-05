@@ -199,9 +199,23 @@ const Chat = () => {
     //       { role: "user", content: currentMessage },
     //     ]),
     //   });
+    //   console.info(response);
+    //   console.info();
     //   // If no response data, set error state
-    //   if (!response.data) {
-    //     setError("Error fetching response");
+    //   if (
+    //     !response.data ||
+    //     Object.keys(JSON.parse(JSON.parse(response.data as string))).length ===
+    //       0
+    //   ) {
+    //     console.error("Error fetching completion response.");
+    //     // setError("Error fetching response, please try again.");
+    //     setMessages((prev) => [
+    //       ...prev,
+    //       {
+    //         role: "error",
+    //         content: "Error fetching response, please try again.",
+    //       },
+    //     ]);
     //     return;
     //   }
 
@@ -209,6 +223,7 @@ const Chat = () => {
     //   const parsedMessages = JSON.parse(
     //     JSON.parse(response.data as string)
     //   ) as ChatHistoryMessage[];
+    //   console.info(parsedMessages);
     //   setMessages(parsedMessages);
     // } catch (error) {
     //   console.error("Error fetching response:", error);
@@ -413,13 +428,16 @@ const Chat = () => {
                       role="assistant"
                       message="Hello! How can I assist you today?"
                     />
-                    {messages.slice(1).map((message, key) => (
-                      <ChatMessage
-                        key={key}
-                        role={message.role === "user" ? "user" : "assistant"}
-                        message={message.content}
-                      />
-                    ))}
+                    {messages
+                      .filter((message) => message.role !== "system")
+                      .map((message, key) => (
+                        <ChatMessage
+                          key={key}
+                          role={message.role}
+                          message={message.content}
+                        />
+                      ))}
+
                     {responseLoading && (
                       <div className="flex justify-center py-2">
                         <div className="animate-pulse text-gray-400">
@@ -427,7 +445,6 @@ const Chat = () => {
                         </div>
                       </div>
                     )}
-                    {error && <ChatMessage role="error" message={error} />}
                   </>
                 ) : (
                   <ChatMessage
