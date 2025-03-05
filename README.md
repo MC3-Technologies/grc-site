@@ -82,32 +82,46 @@ In order to re-enable it, do the following in the client/src/components/Chat.tsx
    // }, 500);
    ```
 4. Uncomment the try, catch and finally block from line 194-235
-
    ```javaScript
    try {
       // Request response from GPT completion function using previous currentMessages copy
       const response = await client.queries.gptCompletion({
-         messages: JSON.stringify([
-            ...messages,
-            { role: "user", content: currentMessage },
-         ]),
+        messages: JSON.stringify([
+          ...messages,
+          { role: "user", content: currentMessage },
+        ]),
       });
+      console.info(response);
+      console.info();
       // If no response data, set error state
-      if (!response.data) {
-         setError("Error fetching response");
-         return;
+      if (
+        !response.data ||
+        Object.keys(JSON.parse(JSON.parse(response.data as string))).length ===
+          0
+      ) {
+        console.error("Error fetching completion response.");
+        // setError("Error fetching response, please try again.");
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "error",
+            content: "Error fetching response, please try again.",
+          },
+        ]);
+        return;
       }
 
       // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
-         JSON.parse(response.data as string)
+        JSON.parse(response.data as string)
       ) as ChatHistoryMessage[];
+      console.info(parsedMessages);
       setMessages(parsedMessages);
-      } catch (error) {
+    } catch (error) {
       console.error("Error fetching response:", error);
       // Set error and set response loading to false to unlock send message
       setError(`Error fetching response: ${error}`);
-      } finally {
+    } finally {
       // Set response loading to false to unlock send message
       setResponseLoading(false);
    }
