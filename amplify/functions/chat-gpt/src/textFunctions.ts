@@ -9,7 +9,6 @@ export interface ChatHistoryMessage {
 export const chatRequest = async (
   messages: ChatHistoryMessage[]
 ): Promise<ChatHistoryMessage[]> => {
-  console.log(env.OPEN_AI_API_KEY);
   if (!env.OPEN_AI_API_KEY) {
     console.error("Missing OpenAI API Key!");
     throw new Error("Missing OpenAI API Key!");
