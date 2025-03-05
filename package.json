@@ -21,6 +21,7 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
+    "@dotenvx/dotenvx": "^1.38.4",
     "aws-amplify": "^6.12.0",
     "openai": "^4.80.1"
   }

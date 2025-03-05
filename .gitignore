@@ -4,3 +4,4 @@ node_modules
 amplify_outputs*
 amplifyconfiguration*
 .env
+.env.local
