@@ -6,6 +6,22 @@ export interface ChatHistoryMessage {
   content: string;
 }
 
+const logNestedInfo = (obj: any, indent: number = 0): void => {
+  const indentation = " ".repeat(indent);
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = obj[key];
+      if (typeof value === "object" && value !== null) {
+        console.log(`${indentation}${key}: {`);
+        logNestedInfo(value, indent + 2);
+        console.log(`${indentation}}`);
+      } else {
+        console.log(`${indentation}${key}: ${value}`);
+      }
+    }
+  }
+};
+
 export const chatRequest = async (
   messages: ChatHistoryMessage[]
 ): Promise<ChatHistoryMessage[]> => {
@@ -19,7 +35,10 @@ export const chatRequest = async (
     const completion = await openai.chat.completions.create({
       messages: messages,
       model: "gpt-4o-mini",
+      store: true,
     });
+
+    logNestedInfo(completion);
 
     if (
       !completion ||
@@ -39,7 +58,6 @@ export const chatRequest = async (
     //   role: "assistant",
     //   content: "Hello there! 2+2=4!",
     // };
-
     return [...messages, assistantMessage];
   } catch (error) {
     console.error("OpenAI API Error:", error);

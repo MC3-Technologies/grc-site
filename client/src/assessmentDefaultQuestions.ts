@@ -74,6 +74,53 @@ const surveyJson = {
         },
       ],
     },
+    {
+      title: "Second page",
+      elements: [
+        {
+          name: "favorite-anime",
+          title: "What's your favorite animal?",
+          type: "comment",
+          isRequired: true,
+        },
+      ],
+    },
+    {
+      elements: [
+        {
+          name: "what-would-make-you-more-satisfied",
+          title: "What can we do to make your experience more satisfying?",
+          type: "comment",
+        },
+        {
+          name: "nps-score",
+          title:
+            "On a scale of zero to ten, how likely are you to recommend our product to a friend or colleague?",
+          type: "rating",
+          rateMin: 0,
+          rateMax: 10,
+        },
+      ],
+    },
+    {
+      elements: [
+        {
+          name: "how-can-we-improve",
+          title: "In your opinion, how could we improve our product?",
+          type: "comment",
+        },
+      ],
+    },
+    {
+      elements: [
+        {
+          name: "disappointing-experience",
+          title:
+            "Please let us know why you had such a disappointing experience with our product",
+          type: "comment",
+        },
+      ],
+    },
   ],
 };
 

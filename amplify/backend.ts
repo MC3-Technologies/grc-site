@@ -4,6 +4,8 @@ import { data } from "./data/resource";
 import { chatGptFunction } from "./functions/chat-gpt/resource";
 // import { osintFunction } from './functions/osint/resource';
 
+import { assessmentStorage } from "./storage/resource";
+
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
  */
@@ -12,4 +14,5 @@ defineBackend({
   data,
   chatGptFunction,
   // osintFunction
+  assessmentStorage,
 });

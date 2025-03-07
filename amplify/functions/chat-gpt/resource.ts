@@ -6,4 +6,5 @@ export const chatGptFunction = defineFunction({
   environment: {
     OPEN_AI_API_KEY: process.env.OPEN_AI_API_KEY || "",
   },
+  timeoutSeconds:30
 });
