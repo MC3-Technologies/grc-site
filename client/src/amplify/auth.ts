@@ -3,6 +3,7 @@ import { getCurrentUser as amplifyGetCurrentUser } from "aws-amplify/auth";
 import { signOut } from "aws-amplify/auth";
 import { fetchUserAttributes } from "aws-amplify/auth";
 import { fetchAuthSession } from "aws-amplify/auth";
+import { redirectHome } from "../utils/routing";
 
 type User = {
   email: string;
@@ -64,6 +65,7 @@ const isCurrentUserVerified = async (): Promise<boolean> => {
 
 const signOutCurrentUser = async (): Promise<void> => {
   await signOut();
+  redirectHome()
 };
 
 export {
