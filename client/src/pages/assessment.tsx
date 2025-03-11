@@ -1,3 +1,5 @@
+
+
 import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
@@ -62,6 +64,27 @@ export function Assessment() {
       window.removeEventListener("lightMode", handleLightMode);
     };
   }, [assessment]);
+
+  // const handleClick = async () => {
+  //   if (!file) {
+  //     console.log("No file found");
+  //     return;
+  //   }
+  //   const session = await fetchAuthSession();
+  //   try {
+  //     const res = await uploadData({
+  //       path: `assessments/${user?.userId}/in-progress/${file.name}`,
+  //       data: file,
+  //       options: {
+  //         bucket: "assessmentStorage",
+  //       },
+  //     }).result;
+
+  //     console.log("Succeeded: ", res);
+  //   } catch (e) {
+  //     console.error(e);
+  //   }
+  // };
 
   return (
     <>
