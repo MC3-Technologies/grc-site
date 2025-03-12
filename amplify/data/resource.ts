@@ -11,15 +11,14 @@ const schema = a.schema({
   CompletedAssessment: a
     .model({
       id: a.id().required(),
-      name:a.string().required(),
-      userId: a.string().required(),
+      name: a.string().required(),
       organizationName: a.string().required(),
       status: a.string().required(),
       completedAt: a.datetime().required(),
       complianceScore: a.integer().required(),
       isCompliant: a.boolean().required(),
-      jsonS3Path: a.string().required(),
-      jsonS3URL: a.url().required(),
+      storagePath: a.string().required(),
+      version: a.string().required(),
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
@@ -27,11 +26,10 @@ const schema = a.schema({
   InProgressAssessment: a
     .model({
       id: a.id().required(),
-      name:a.string().required(),
-      userId: a.string().required(),
+      name: a.string().required(),
       percentCompleted: a.integer().required(),
-      jsonS3Path: a.string().required(),
-      jsonS3URL: a.url().required(),
+      storagePath: a.string().required(),
+      version: a.string().required(),
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),

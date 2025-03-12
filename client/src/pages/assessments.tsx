@@ -12,21 +12,20 @@ import { isLoggedIn } from "../amplify/auth";
 import { redirectToSignIn } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
-import { getClientSchema } from "../amplify/schema";
+import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 
 export function Assessments() {
   const [completedAssessments, setCompletedAssessments] = useState<
     {
       id: string;
       name: string;
-      userId: string;
       organizationName: string;
       status: string;
       completedAt: string;
       isCompliant: boolean;
-      jsonS3Path: string;
-      jsonS3URL: string;
+      storagePath: string;
       complianceScore: number;
+      version: string;
       owner: string | null;
       readonly createdAt: string;
       readonly updatedAt: string;
@@ -36,11 +35,10 @@ export function Assessments() {
     {
       id: string;
       name: string;
-      userId: string;
       percentCompleted: number;
-      jsonS3Path: string;
-      jsonS3URL: string;
+      storagePath: string;
       owner: string | null;
+      version: string;
       readonly createdAt: string;
       readonly updatedAt: string;
     }[]
@@ -49,8 +47,6 @@ export function Assessments() {
   const [showNewAssessmentForm, setShowNewAssessmentForm] =
     useState<boolean>(false);
   const [newAssessmentName, setNewAssessmentName] = useState<string>("");
-
-  const [client] = useState(getClientSchema());
 
   const [loadingError, setLoadingError] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -69,28 +65,16 @@ export function Assessments() {
 
       try {
         // Fetch users in progress assessments
-        const inProgressAssessmentsQuery =
-          await client.models.InProgressAssessment.list();
-        if (inProgressAssessmentsQuery.errors) {
-          setLoadingError((prev) => [
-            ...prev,
-            `${completedAssessmentsQuery.errors}`,
-          ]);
-          return;
-        }
-        setInProgressAssessments(inProgressAssessmentsQuery.data);
+        const inProgressAssessmentInstance = new InProgressAssessment();
+        const inProgressAssessments =
+          await inProgressAssessmentInstance.getAllInProgressAssessments();
+        setInProgressAssessments(inProgressAssessments);
 
         // Fetch users completed assessments
-        const completedAssessmentsQuery =
-          await client.models.CompletedAssessment.list();
-        if (completedAssessmentsQuery.errors) {
-          setLoadingError((prev) => [
-            ...prev,
-            `${completedAssessmentsQuery.errors}`,
-          ]);
-          return;
-        }
-        setCompletedAssessments(completedAssessmentsQuery.data);
+        const completedAssessmentInstance = new CompletedAssessment();
+        const completedAssessments =
+          await completedAssessmentInstance.getAllInCompletedAssessments();
+        setCompletedAssessments(completedAssessments);
       } catch (e) {
         console.error(e);
         setLoadingError((prev) => [...prev, `${e}`]);
@@ -101,6 +85,11 @@ export function Assessments() {
       setLoading(false);
     });
   });
+
+  const handleCreateNewAssessment = async (name: string) => {
+    const assessment = new InProgressAssessment();
+    await assessment.createInProgressAssessment(name);
+  };
 
   return (
     <>
@@ -127,7 +116,7 @@ export function Assessments() {
                         CMMC Level 1 Assessments
                       </h1>
                       <button
-                        // onClick={() => setShowNewAssessmentForm(true)}
+                        onClick={() => setShowNewAssessmentForm(true)}
                         className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
                       >
                         New Assessment
@@ -155,7 +144,9 @@ export function Assessments() {
                         </div>
                         <div className="flex space-x-2">
                           <button
-                            // onClick={createNewAssessment}
+                            onClick={() => {
+                              handleCreateNewAssessment("test assessment");
+                            }}
                             disabled={!newAssessmentName.trim()}
                             className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
                               !newAssessmentName.trim()
