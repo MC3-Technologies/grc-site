@@ -91,6 +91,11 @@ export function Assessments() {
     await assessment.createInProgressAssessment(name);
   };
 
+  const handleDeleteInProgressAssessment = async (id: string) => {
+    const assessment = new InProgressAssessment();
+    await assessment.deleteInProgressAssessment(id);
+  };
+
   return (
     <>
       <Navbar />
@@ -145,7 +150,7 @@ export function Assessments() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
-                              handleCreateNewAssessment("test assessment");
+                              handleCreateNewAssessment(newAssessmentName);
                             }}
                             disabled={!newAssessmentName.trim()}
                             className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
@@ -199,20 +204,24 @@ export function Assessments() {
                                   <p>Started: {assessment.createdAt}</p>
                                   <p>Last updated: {assessment.updatedAt}</p>
                                 </div>
-                                {/* <div className="mt-4 flex space-x-2">
-                                <button
+                                <div className="mt-4 flex space-x-2">
+                                  {/* <button
                                   onClick={() => loadAssessment(assessment.id)}
                                   className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                                 >
                                   Continue
-                                </button>
-                                <button
-                                  onClick={() => deleteAssessment(assessment.id)}
-                                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                                >
-                                  Delete
-                                </button>
-                              </div> */}
+                                </button> */}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteInProgressAssessment(
+                                        assessment.id
+                                      )
+                                    }
+                                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
