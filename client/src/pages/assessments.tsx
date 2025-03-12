@@ -8,133 +8,294 @@ import "survey-core/defaultV2.min.css";
 import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
-
-import { surveyJson } from "../assessmentQuestions";
-import { Model, Survey } from "survey-react-ui";
-import { BorderlessDark, BorderlessLight } from "survey-core/themes";
-import { getCurrentUser } from "../amplify/auth";
-import { fetchAuthSession } from "aws-amplify/auth";
-import { uploadData } from "aws-amplify/storage";
-import { createRandomUrlSafeHash } from "../utils/assessmentHash";
 import { isLoggedIn } from "../amplify/auth";
 import { redirectToSignIn } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
+import { getClientSchema } from "../amplify/schema";
+
 export function Assessments() {
-  const [assessment, setAssessment] = useState<Model>(new Model(surveyJson));
+  const [completedAssessments, setCompletedAssessments] = useState<
+    {
+      id: string;
+      name: string;
+      userId: string;
+      organizationName: string;
+      status: string;
+      completedAt: string;
+      isCompliant: boolean;
+      jsonS3Path: string;
+      jsonS3URL: string;
+      complianceScore: number;
+      owner: string | null;
+      readonly createdAt: string;
+      readonly updatedAt: string;
+    }[]
+  >([]);
+  const [inProgressAssessments, setInProgressAssessments] = useState<
+    {
+      id: string;
+      name: string;
+      userId: string;
+      percentCompleted: number;
+      jsonS3Path: string;
+      jsonS3URL: string;
+      owner: string | null;
+      readonly createdAt: string;
+      readonly updatedAt: string;
+    }[]
+  >([]);
+
+  const [showNewAssessmentForm, setShowNewAssessmentForm] =
+    useState<boolean>(false);
+  const [newAssessmentName, setNewAssessmentName] = useState<string>("");
+
+  const [client] = useState(getClientSchema());
+
+  const [loadingError, setLoadingError] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // useEffect to handle assessment setting up and adding on completion handler
   useEffect(() => {
+    initFlowbite();
+
     const initialize = async () => {
+      // Check if user is logged in and if not, redirect to sign in page
       const loggedIn = await isLoggedIn();
       if (!loggedIn) {
         redirectToSignIn();
         return;
       }
 
-      // New assessment instance
-      const assessment = new Model(surveyJson);
-
-      // Get current user and associate user id with assessment
-      const user = await getCurrentUser();
-      assessment.setValue("userId", user.userId);
-
-      // Add assessment completion handler
-      assessment.onComplete.add(async (assessment, options) => {
-        // Show assessment uploading in progress
-        options.showSaveInProgress();
-
-        try {
-          // Turn assessment data json into a string -> blob -> File to be uploaded
-          const jsonString = JSON.stringify(assessment.data, null, 2);
-          const blob = new Blob([jsonString], { type: "application/json" });
-          const file = new File([blob], `${createRandomUrlSafeHash()}.json`, {
-            type: "application/json",
-          });
-
-          // Call upload assessment data file
-          await handleCompletedAssessmentUpload(file);
-
-          // Success of uploading assessment
-          options.showSaveSuccess();
-        } catch (e) {
-          options.showSaveError(`${e}`);
+      try {
+        // Fetch users in progress assessments
+        const inProgressAssessmentsQuery =
+          await client.models.InProgressAssessment.list();
+        if (inProgressAssessmentsQuery.errors) {
+          setLoadingError((prev) => [
+            ...prev,
+            `${completedAssessmentsQuery.errors}`,
+          ]);
+          return;
         }
-      });
+        setInProgressAssessments(inProgressAssessmentsQuery.data);
 
-      // Set assessment state
-      setAssessment(assessment);
+        // Fetch users completed assessments
+        const completedAssessmentsQuery =
+          await client.models.CompletedAssessment.list();
+        if (completedAssessmentsQuery.errors) {
+          setLoadingError((prev) => [
+            ...prev,
+            `${completedAssessmentsQuery.errors}`,
+          ]);
+          return;
+        }
+        setCompletedAssessments(completedAssessmentsQuery.data);
+      } catch (e) {
+        console.error(e);
+        setLoadingError((prev) => [...prev, `${e}`]);
+      }
     };
 
     initialize().then(() => {
       setLoading(false);
     });
-  }, []);
-
-  // useEffect to handle theme changes
-  useEffect(() => {
-    initFlowbite();
-
-    const storedDarkMode = localStorage.getItem("darkMode") === "true";
-    if (storedDarkMode) {
-      assessment.applyTheme(BorderlessDark);
-    } else {
-      assessment.applyTheme(BorderlessLight);
-    }
-
-    const handleDarkMode = () => assessment.applyTheme(BorderlessDark);
-    const handleLightMode = () => assessment.applyTheme(BorderlessLight);
-
-    window.addEventListener("darkMode", handleDarkMode);
-    window.addEventListener("lightMode", handleLightMode);
-
-    return () => {
-      window.removeEventListener("darkMode", handleDarkMode);
-      window.removeEventListener("lightMode", handleLightMode);
-    };
-  }, [assessment]);
-
-  const handleCompletedAssessmentUpload = async (
-    assessment: File
-  ): Promise<void> => {
-    if (!assessment) {
-      throw new Error("No assessment found");
-    }
-
-    // Fetch authentication session to upload with session id
-    const session = await fetchAuthSession();
-    try {
-      // Uploade JSON assessmet file
-      const res = await uploadData({
-        path: `assessments/${session.identityId}/completed/${assessment.name}`,
-        data: assessment,
-        options: {
-          bucket: "assessmentStorage",
-        },
-      }).result;
-
-      console.log("Assessment uploaded successfully", res);
-    } catch (e) {
-      if (e) {
-        throw new Error(`Error uploading assessment : ${e}`);
-      }
-    }
-  };
+  });
 
   return (
     <>
       <Navbar />
-      <section className="mt-20 bg-white dark:bg-gray-900">
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <Spinner />
-          </div>
-        ) : (
-          <>
-            <Survey model={assessment} />
-          </>
-        )}
+      <section className="mt-20 bg-white dark:bg-gray-900 px-4 py-8">
+        <div className="container mx-auto max-w-6xl">
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Spinner />
+            </div>
+          ) : (
+            <>
+              {loadingError.length > 0 ? (
+                <div>
+                  {loadingError.map((err, key) => (
+                    <p key={key}>{err}</p>
+                  ))}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                        CMMC Level 1 Assessments
+                      </h1>
+                      <button
+                        // onClick={() => setShowNewAssessmentForm(true)}
+                        className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                      >
+                        New Assessment
+                      </button>
+                    </div>
+
+                    {showNewAssessmentForm && (
+                      <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg mb-6">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                          Create New Assessment
+                        </h2>
+                        <div className="mb-4">
+                          <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                            Organization Name
+                          </label>
+                          <input
+                            type="text"
+                            value={newAssessmentName}
+                            onChange={(e) =>
+                              setNewAssessmentName(e.target.value)
+                            }
+                            className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
+                            placeholder="Enter organization name"
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            // onClick={createNewAssessment}
+                            disabled={!newAssessmentName.trim()}
+                            className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
+                              !newAssessmentName.trim()
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            Create
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowNewAssessmentForm(false);
+                              setNewAssessmentName("");
+                            }}
+                            className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-8">
+                      {/* In Progress Assessments */}
+                      <div>
+                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                          In Progress
+                        </h2>
+
+                        {inProgressAssessments.length === 0 ? (
+                          <p className="text-gray-500 dark:text-gray-400">
+                            No in-progress assessments found.
+                          </p>
+                        ) : (
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {inProgressAssessments.map((assessment) => (
+                              <div
+                                key={assessment.id}
+                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm"
+                              >
+                                <div className="flex justify-between">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {assessment.name}
+                                  </h3>
+                                  <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                                    In Progress
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                  <p>Started: {assessment.createdAt}</p>
+                                  <p>Last updated: {assessment.updatedAt}</p>
+                                </div>
+                                {/* <div className="mt-4 flex space-x-2">
+                                <button
+                                  onClick={() => loadAssessment(assessment.id)}
+                                  className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                >
+                                  Continue
+                                </button>
+                                <button
+                                  onClick={() => deleteAssessment(assessment.id)}
+                                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div> */}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Completed Assessments */}
+                      <div>
+                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                          Completed
+                        </h2>
+                        {completedAssessments.length === 0 ? (
+                          <p className="text-gray-500 dark:text-gray-400">
+                            No completed assessments found.
+                          </p>
+                        ) : (
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {completedAssessments.map((assessment) => (
+                              <div
+                                key={assessment.id}
+                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm"
+                              >
+                                <div className="flex justify-between">
+                                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                    {assessment.name}
+                                  </h3>
+                                  <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                                    Completed
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                  <p>Completed: {assessment.completedAt}</p>
+                                  <p>Score: {assessment.complianceScore}%</p>
+                                  <p>
+                                    Status:{" "}
+                                    <span
+                                      className={
+                                        assessment.isCompliant
+                                          ? "text-green-600"
+                                          : "text-red-600"
+                                      }
+                                    >
+                                      {assessment.isCompliant
+                                        ? "Compliant"
+                                        : "Non-Compliant"}
+                                    </span>
+                                  </p>
+                                </div>
+                                {/* <div className="mt-4 flex space-x-2">
+                                <button
+                                  onClick={() => loadAssessment(assessment.id)}
+                                  className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => deleteAssessment(assessment.id)}
+                                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                >
+                                  Delete
+                                </button>
+                              </div> */}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </div>
       </section>
       <Chat />
       <Footer />

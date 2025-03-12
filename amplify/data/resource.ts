@@ -11,11 +11,12 @@ const schema = a.schema({
   CompletedAssessment: a
     .model({
       id: a.id().required(),
+      name:a.string().required(),
       userId: a.string().required(),
       organizationName: a.string().required(),
       status: a.string().required(),
       completedAt: a.datetime().required(),
-      complianceScore: a.integer(),
+      complianceScore: a.integer().required(),
       isCompliant: a.boolean().required(),
       jsonS3Path: a.string().required(),
       jsonS3URL: a.url().required(),
@@ -26,6 +27,7 @@ const schema = a.schema({
   InProgressAssessment: a
     .model({
       id: a.id().required(),
+      name:a.string().required(),
       userId: a.string().required(),
       percentCompleted: a.integer().required(),
       jsonS3Path: a.string().required(),
