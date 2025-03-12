@@ -9,6 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
+        assessment: resolve(__dirname, "assessment/index.html"),
         assessments: resolve(__dirname, "assessments/index.html"),
         auth: resolve(__dirname, "auth/index.html"),
         faq: resolve(__dirname, "faq/index.html"),
