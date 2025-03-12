@@ -20,7 +20,7 @@ import { isLoggedIn } from "../amplify/auth";
 import { redirectToSignIn } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
-export function Assessment() {
+export function Assessments() {
   const [assessment, setAssessment] = useState<Model>(new Model(surveyJson));
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -144,6 +144,6 @@ export function Assessment() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Assessment />
+    <Assessments />
   </StrictMode>
 );
