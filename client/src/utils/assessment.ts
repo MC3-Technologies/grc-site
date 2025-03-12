@@ -41,7 +41,7 @@ class InProgressAssessment {
       if (errors) {
         throw new Error(`Error fetching in progress assessments : ${errors}`);
       }
-      if (data === null) {
+      if (!data || data === null) {
         throw new Error("No data found from query!");
       }
       return data.storagePath;
