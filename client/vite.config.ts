@@ -18,6 +18,7 @@ export default defineConfig({
         forgotPassword: resolve(__dirname, "forgot-password/index.html"),
         signIn: resolve(__dirname, "signin/index.html"),
         signUp: resolve(__dirname, "signup/index.html"),
+        completedAssessment: resolve(__dirname, "completed-assessment/index.html"),
         // example-page-directory: resolve(__dirname, 'path/to/page/index.html'),
       },
     },

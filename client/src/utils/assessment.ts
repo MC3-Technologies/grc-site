@@ -423,6 +423,61 @@ class CompletedAssessment extends Assessment {
     console.info("Successfully deleted assessment");
   };
 
+  // Fetch assessment data using assessment id (hash)
+  public static fetchAssessmentData = async (
+    id: string
+  ): Promise<{
+    id: string;
+    name: string;
+    completedAt: string;
+    complianceScore: number;
+    isCompliant: boolean;
+    storagePath: string;
+    version: string;
+    owner: string | null;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+  }> => {
+    try {
+      // Fetch data
+      const { data, errors } =
+        await this.client.models.CompletedAssessment.get({ id });
+
+      // If errors or data fromf fetching, throw errors
+      if (errors) {
+        throw new Error(`Error fetching completed assessments: ${errors}`);
+      }
+      if (!data) {
+        throw new Error("No data found from query!");
+      }
+      return data;
+    } catch (err) {
+      throw new Error(`Error fetching completed assessments: ${err}`);
+    }
+  };
+
+  // Fetch JSON assessment data from storage
+  public static fetchAssessmentStorageData = async <T = unknown>(
+    id: string
+  ): Promise<T> => {
+    // Fetch assessment storage path fromd database using id
+    const storagePath = await this._fetchAssessmentStoragePath(id).catch(
+      (err) => {
+        throw new Error(`Error getting storage path from database: ${err}`);
+      }
+    );
+
+    // Use storage path from above to call storage download
+    const assessmentJson = await this._fetchAssessmentStorageJson(
+      storagePath
+    ).catch((err) => {
+      throw new Error(`Error getting assessment storage: ${err}`);
+    });
+
+    // Return assessment data
+    return assessmentJson as T;
+  };
+
   // Fetch all completed assessments
   public static fetchAllCompletedAssessments = async (): Promise
     {
@@ -452,6 +507,8 @@ class CompletedAssessment extends Assessment {
       throw new Error(`Error fetching completed assessments: ${err}`);
     }
   };
+
+  // ** PRIVATE METHODS TO BE USED IN PUBLIC FUNCTIONS ** //
 
   // Create assessment database entry
   private static _createAssessmentEntry = async (
@@ -504,6 +561,25 @@ class CompletedAssessment extends Assessment {
       }
     } catch (err) {
       throw new Error(`Error deleting assessment: ${err}`);
+    }
+  };
+
+  // Return JSON assessment data from storage give storage path
+  private static _fetchAssessmentStorageJson = async (
+    path: string
+  ): Promise<unknown> => {
+    try {
+      // Fetch assessment json and parse into texty
+      const assessmentDownloadResult = await downloadData({
+        path,
+        options: { bucket: "assessmentStorage" },
+      }).result;
+      const assessmentJson = await assessmentDownloadResult.body.text();
+
+      // Return
+      return assessmentJson;
+    } catch (err) {
+      throw new Error(`Error downloading assessment data: ${err}`);
     }
   };
 
