@@ -88,13 +88,13 @@ export function Assessment() {
       try {
         // Get assessment database entry data -> current page, progress etc
         const assessmentEntryData =
-          await inProgressAssessmentInstance.getAssessmentDatabaseData(
+          await inProgressAssessmentInstance.fetchAssessmentData(
             assessmentIdParam
           );
 
         // Get assessment JSON data from storage
         const assessmentJsonData =
-          await inProgressAssessmentInstance.getAssessmentStorageData(
+          await inProgressAssessmentInstance.fetchAssessmentStorageData(
             assessmentIdParam
           );
 

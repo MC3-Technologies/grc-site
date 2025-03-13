@@ -73,13 +73,13 @@ export function Assessments() {
         // Fetch users in progress assessments
         const inProgressAssessmentInstance = new InProgressAssessment();
         const inProgressAssessments =
-          await inProgressAssessmentInstance.getAllInProgressAssessments();
+          await inProgressAssessmentInstance.fetchAllAssessments();
         setInProgressAssessments(inProgressAssessments);
 
         // Fetch users completed assessments
         const completedAssessmentInstance = new CompletedAssessment();
         const completedAssessments =
-          await completedAssessmentInstance.getAllInCompletedAssessments();
+          await completedAssessmentInstance.fetchAllCompletedAssessments();
         setCompletedAssessments(completedAssessments);
       } catch (e) {
         console.error(e);
@@ -96,13 +96,13 @@ export function Assessments() {
   // Creating new assessments handler
   const handleCreateNewAssessment = async (name: string) => {
     const assessment = new InProgressAssessment();
-    await assessment.createInProgressAssessment(name);
+    await assessment.createAssessment(name);
   };
 
   // Delete in progress assessment handler
   const handleDeleteInProgressAssessment = async (id: string) => {
     const assessment = new InProgressAssessment();
-    await assessment.deleteInProgressAssessment(id);
+    await assessment.deleteAssessment(id);
   };
 
   return (
