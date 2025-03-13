@@ -15,6 +15,7 @@ import {
   redirectToCompletedAssessment,
 } from "../utils/routing";
 import Spinner from "../components/Spinner";
+import { formatDateTime, getRelativeTimeString } from "../utils/dateUtils";
 
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 
@@ -75,7 +76,7 @@ interface Toast {
 
 export function Assessments() {
   // Completed assessments state
-  const [completedAssessments, setCompletedAssessments] = useState<
+  const [completedAssessments, setCompletedAssessments] = useState
     {
       id: string;
       name: string;
@@ -90,7 +91,7 @@ export function Assessments() {
     }[]
   >([]);
   // In progress assessments state
-  const [inProgressAssessments, setInProgressAssessments] = useState<
+  const [inProgressAssessments, setInProgressAssessments] = useState
     {
       id: string;
       name: string;
@@ -387,7 +388,7 @@ export function Assessments() {
                               </div>
                             </div>
                             <div className="mt-4 flex space-x-2">
-                              <a
+                              
                                 href={`/assessment/?assessment-id=${assessment.id}`}
                                 className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
