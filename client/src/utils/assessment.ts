@@ -34,6 +34,23 @@ class Assessment {
       throw new Error(`Error uploading assessment: ${e}`);
     }
   };
+
+  // Delete assessment from storage given the path
+  protected static _deleteAssessmentFromStorage = async (
+    path: string
+  ): Promise<void> => {
+    try {
+      // Delete from storage
+      await remove({
+        path,
+        options: { bucket: "assessmentStorage" },
+      });
+    } catch (error) {
+      throw new Error(
+        `Error deleting assessment JSON blob from storage: ${error}`
+      );
+    }
+  };
 }
 
 // In progress assessment class
@@ -325,23 +342,6 @@ class InProgressAssessment extends Assessment {
     }
   };
 
-  // Delete assessment from storage given the path
-  private static _deleteAssessmentFromStorage = async (
-    path: string
-  ): Promise<void> => {
-    try {
-      // Delete from storage
-      await remove({
-        path,
-        options: { bucket: "assessmentStorage" },
-      });
-    } catch (error) {
-      throw new Error(
-        `Error deleting assessment JSON blob from storage: ${error}`
-      );
-    }
-  };
-
   // Generate URL safe hash to use for assessment ids (negligable collision chances)
   private static _generateUrlSafeHash = (): string => {
     // Characters to use in hash
@@ -405,11 +405,58 @@ class CompletedAssessment extends Assessment {
     });
   };
 
+  // Delete assessment by id -> delete database entry and storage data
+  public static deleteAssessment = async (id: string): Promise<void> => {
+    // Temp copy of assessment storage path before we delete the entry
+    const path = await this._fetchAssessmentStoragePath(id);
+
+    // Delete assessment entry from database
+    await this._deleteAssessmentEntry(id).catch((err) => {
+      throw new Error(`Error deleting assessment from database: ${err}`);
+    });
+
+    // Delete assessment JSON from storage
+    await this._deleteAssessmentFromStorage(path).catch((err) => {
+      throw new Error(`Error deleting assessment JSON from storage: ${err}`);
+    });
+
+    console.info("Successfully deleted assessment");
+  };
+
+  // Fetch all completed assessments
+  public static fetchAllCompletedAssessments = async (): Promise<
+    {
+      id: string;
+      name: string;
+      completedAt: string;
+      complianceScore: number;
+      isCompliant: boolean;
+      storagePath: string;
+      version: string;
+      owner: string | null;
+      readonly createdAt: string;
+      readonly updatedAt: string;
+    }[]
+  > => {
+    try {
+      // Fetch all completed assessments
+      const { data, errors } =
+        await this.client.models.CompletedAssessment.list();
+      // If errors, throw error
+      if (errors) {
+        throw new Error(`Error fetching completed assessments: ${errors}`);
+      }
+      // Returned fetched data
+      return data;
+    } catch (err) {
+      throw new Error(`Error fetching completed assessments: ${err}`);
+    }
+  };
+
   // Create assessment database entry
   private static _createAssessmentEntry = async (
     id: string,
     name: string,
-
     path: string,
     complianceScore: number,
     isCompliant: boolean
@@ -442,33 +489,43 @@ class CompletedAssessment extends Assessment {
     }
   };
 
-  // Fetch all completed assessments
-  public static fetchAllCompletedAssessments = async (): Promise<
-    {
-      id: string;
-      name: string;
-      completedAt: string;
-      complianceScore: number;
-      isCompliant: boolean;
-      storagePath: string;
-      version: string;
-      owner: string | null;
-      readonly createdAt: string;
-      readonly updatedAt: string;
-    }[]
-  > => {
+  // Delete assessment entry from database by id
+  private static _deleteAssessmentEntry = async (id: string): Promise<void> => {
+    const toBeDeletedAssessment = { id };
+
     try {
-      // Fetch all completed assessments
-      const { data, errors } =
-        await this.client.models.CompletedAssessment.list();
-      // If errors, throw error
-      if (errors) {
-        throw new Error(`Error fetching completed assessments: ${errors}`);
+      // Delete database entry
+      const deleteResult = await this.client.models.CompletedAssessment.delete(
+        toBeDeletedAssessment
+      );
+      // Handle errors
+      if (deleteResult.errors) {
+        throw new Error(`Error deleting assessment: ${deleteResult.errors}`);
       }
-      // Returned fetched data
-      return data;
     } catch (err) {
-      throw new Error(`Error fetching completed assessments: ${err}`);
+      throw new Error(`Error deleting assessment: ${err}`);
+    }
+  };
+
+  // Get assessment storage path from database entry
+  private static _fetchAssessmentStoragePath = async (
+    id: string
+  ): Promise<string> => {
+    try {
+      const { data, errors } =
+        // Get assessment database entry
+        await this.client.models.CompletedAssessment.get({ id });
+      // If errors or no data, throw error
+      if (errors) {
+        throw new Error(`Error fetching in-progress assessments: ${errors}`);
+      }
+      if (!data) {
+        throw new Error("No data found from query!");
+      }
+      // Return storage path
+      return data.storagePath;
+    } catch (err) {
+      throw new Error(`Error fetching in-progress assessments: ${err}`);
     }
   };
 }

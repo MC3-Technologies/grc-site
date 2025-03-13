@@ -103,6 +103,11 @@ export function Assessments() {
     await InProgressAssessment.deleteAssessment(id);
   };
 
+  // Delete in progress assessment handler
+  const handleDeleteCompleteAssessment = async (id: string) => {
+    await CompletedAssessment.deleteAssessment(id);
+  };
+
   return (
     <>
       <Navbar />
@@ -277,20 +282,24 @@ export function Assessments() {
                                     </span>
                                   </p>
                                 </div>
-                                {/* <div className="mt-4 flex space-x-2">
-                                <button
+                                <div className="mt-4 flex space-x-2">
+                                  {/* <button
                                   onClick={() => loadAssessment(assessment.id)}
                                   className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                                 >
                                   View
-                                </button>
-                                <button
-                                  onClick={() => deleteAssessment(assessment.id)}
-                                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                                >
-                                  Delete
-                                </button>
-                              </div> */}
+                                </button> */}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteCompleteAssessment(
+                                        assessment.id
+                                      )
+                                    }
+                                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>
