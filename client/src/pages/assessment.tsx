@@ -200,8 +200,8 @@ export function Assessment() {
         <>
           <div>
             <div className="mb-6 flex justify-between items-center">
-              <a
-                href={`/assessments/`}
+              <button
+                onClick={() => redirectToAssessments()}
                 className="flex items-center text-primary-600 hover:text-primary-800 transition-colors"
               >
                 <svg
@@ -219,7 +219,7 @@ export function Assessment() {
                   ></path>
                 </svg>
                 Back to Assessments
-              </a>
+              </button>
               {saving && (
                 <span className="text-gray-500 dark:text-gray-400 flex items-center">
                   <svg
