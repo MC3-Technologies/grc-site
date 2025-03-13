@@ -9,11 +9,12 @@ import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
-import { InProgressAssessment } from "../utils/assessment";
+import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 import { surveyJson } from "../assessmentQuestions";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
+import { redirectToAssessments } from "../utils/routing";
 
 type PageData = {
   assessment: Model | null;
@@ -87,19 +88,15 @@ export function Assessment() {
 
       // Create local assessment id to use later
       const currentAssessmentId = assessmentIdParam;
-      // InProgressAssessment class instance to use methods
-      const inProgressAssessmentInstance = new InProgressAssessment();
 
       try {
         // Grab assessment data from database
         const assessmentEntryData =
-          await inProgressAssessmentInstance.fetchAssessmentData(
-            assessmentIdParam
-          );
+          await InProgressAssessment.fetchAssessmentData(assessmentIdParam);
 
         // Grab assessment storage json
         const assessmentJsonData =
-          await inProgressAssessmentInstance.fetchAssessmentStorageData(
+          await InProgressAssessment.fetchAssessmentStorageData(
             assessmentIdParam
           );
 
@@ -138,7 +135,7 @@ export function Assessment() {
             // Call update/save function
             (async () => {
               try {
-                await inProgressAssessmentInstance.updateAssessment(
+                await InProgressAssessment.updateAssessment(
                   currentAssessmentId,
                   updatedAssessment.currentPageNo,
                   updatedAssessment.progressValue,
@@ -157,8 +154,26 @@ export function Assessment() {
           });
         });
 
-        assessment.onComplete.add(async () => {
-          // IMPLEMENT ASSESSMENT COMPLETION LOGIC HERE
+        // Add on complete handler
+        assessment.onComplete.add(async (assessment) => {
+          // Create file to upload from assessment data
+          const jsonString = JSON.stringify(assessment.data, null, 2);
+          const blob = new Blob([jsonString], { type: "application/json" });
+          const file = new File([blob], `${currentAssessmentId}.json`, {
+            type: "application/json",
+          });
+          // Call complete in progress asssessment methgod
+          await CompletedAssessment.completeInProgressAssessment(
+            file,
+            currentAssessmentId
+          ).catch((err) => {
+            throw new Error(
+              `Error moving creating completed assessment : ${err}`
+            );
+          });
+          console.log("Successfully completed assessment");
+          // Redirect back to assessments page
+          redirectToAssessments();
         });
 
         setPageData((prev) => ({ ...prev, assessment }));

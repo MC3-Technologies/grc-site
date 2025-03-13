@@ -9,7 +9,10 @@ import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { isLoggedIn } from "../amplify/auth";
-import { redirectToSignIn } from "../utils/routing";
+import {
+  redirectToInProgressAssessment,
+  redirectToSignIn,
+} from "../utils/routing";
 import Spinner from "../components/Spinner";
 
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
@@ -20,8 +23,6 @@ export function Assessments() {
     {
       id: string;
       name: string;
-      organizationName: string;
-      status: string;
       completedAt: string;
       isCompliant: boolean;
       storagePath: string;
@@ -71,15 +72,13 @@ export function Assessments() {
 
       try {
         // Fetch users in progress assessments
-        const inProgressAssessmentInstance = new InProgressAssessment();
         const inProgressAssessments =
-          await inProgressAssessmentInstance.fetchAllAssessments();
+          await InProgressAssessment.fetchAllAssessments();
         setInProgressAssessments(inProgressAssessments);
 
         // Fetch users completed assessments
-        const completedAssessmentInstance = new CompletedAssessment();
         const completedAssessments =
-          await completedAssessmentInstance.fetchAllCompletedAssessments();
+          await CompletedAssessment.fetchAllCompletedAssessments();
         setCompletedAssessments(completedAssessments);
       } catch (e) {
         console.error(e);
@@ -91,18 +90,17 @@ export function Assessments() {
     initialize().then(() => {
       setLoading(false);
     });
-  });
+  }, []);
 
   // Creating new assessments handler
   const handleCreateNewAssessment = async (name: string) => {
-    const assessment = new InProgressAssessment();
-    await assessment.createAssessment(name);
+    const id = await InProgressAssessment.createAssessment(name);
+    redirectToInProgressAssessment(id);
   };
 
   // Delete in progress assessment handler
   const handleDeleteInProgressAssessment = async (id: string) => {
-    const assessment = new InProgressAssessment();
-    await assessment.deleteAssessment(id);
+    await InProgressAssessment.deleteAssessment(id);
   };
 
   return (
