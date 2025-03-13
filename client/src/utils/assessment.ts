@@ -159,7 +159,7 @@ class InProgressAssessment extends Assessment {
   };
 
   // Fetch all assessments (in progress)
-  public static fetchAllAssessments = async (): Promise<
+  public static fetchAllAssessments = async (): Promise
     {
       id: string;
       name: string;
@@ -377,7 +377,7 @@ class CompletedAssessment extends Assessment {
       await InProgressAssessment.fetchAssessmentData(assessmentId);
     const { name } = assessmentToComplete;
 
-    // CALL SCORE CALCULATION METHOD HERE (NOT YET IMPLEMENTED) -- WILL USE TEMPORARY VARIBALES FOR NOW
+    // CALL SCORE CALCULATION METHOD HERE (NOT YET IMPLEMENTED) -- WILL USE TEMPORARY VARIABLES FOR NOW
     const complianceScore: number = 0;
     const isCompliant: boolean = false;
 
@@ -424,7 +424,7 @@ class CompletedAssessment extends Assessment {
   };
 
   // Fetch all completed assessments
-  public static fetchAllCompletedAssessments = async (): Promise<
+  public static fetchAllCompletedAssessments = async (): Promise
     {
       id: string;
       name: string;
@@ -517,7 +517,7 @@ class CompletedAssessment extends Assessment {
         await this.client.models.CompletedAssessment.get({ id });
       // If errors or no data, throw error
       if (errors) {
-        throw new Error(`Error fetching in-progress assessments: ${errors}`);
+        throw new Error(`Error fetching completed assessments: ${errors}`);
       }
       if (!data) {
         throw new Error("No data found from query!");
@@ -525,7 +525,7 @@ class CompletedAssessment extends Assessment {
       // Return storage path
       return data.storagePath;
     } catch (err) {
-      throw new Error(`Error fetching in-progress assessments: ${err}`);
+      throw new Error(`Error fetching completed assessments: ${err}`);
     }
   };
 }
