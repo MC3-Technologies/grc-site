@@ -26,7 +26,12 @@ export function Assessment() {
     assessment: null,
     error: null,
   });
+
+  // Page ready or not
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Whether assessment is being saved right now state
+  const [saving, setSaving] = useState<boolean>(false);
 
   useEffect(() => {
     initFlowbite();
@@ -65,65 +70,107 @@ export function Assessment() {
         window.removeEventListener("lightMode", handleLightMode);
       };
     }
-  }, [pageData.assessment]);
+  });
 
   useEffect(() => {
     // Initialization function
     const initialize = async (): Promise<void> => {
-      // Get assessment id from url parameters
+      // Grab assessment id from parameter
       const params = new URLSearchParams(window.location.search);
-      const assessmentIdParam = params.get("assessment-id") as string | null;
+      const assessmentIdParam = params.get("assessment-id");
 
-      // If no assessment id found in URL, set error state
-      if (!assessmentIdParam || assessmentIdParam === null) {
-        setPageData((prev) => ({
-          ...prev,
-          error: "No assessment ID found!",
-        }));
+      // If no assessment id url param, set error state
+      if (!assessmentIdParam) {
+        setPageData((prev) => ({ ...prev, error: "No assessment ID found!" }));
         return;
       }
 
-      // In progress assessment class instance to use for methods
+      // Create local assessment id to use later
+      const currentAssessmentId = assessmentIdParam;
+      // InProgressAssessment class instance to use methods
       const inProgressAssessmentInstance = new InProgressAssessment();
+
       try {
-        // Get assessment database entry data -> current page, progress etc
+        // Grab assessment data from database
         const assessmentEntryData =
           await inProgressAssessmentInstance.fetchAssessmentData(
             assessmentIdParam
           );
 
-        // Get assessment JSON data from storage
+        // Grab assessment storage json
         const assessmentJsonData =
           await inProgressAssessmentInstance.fetchAssessmentStorageData(
             assessmentIdParam
           );
 
-        // Create new assessment instance
+        // Create assessment and give assessment data and current page
         const assessment = new Model(surveyJson);
+        assessment.data = JSON.parse(assessmentJsonData as string);
+        assessment.currentPageNo = assessmentEntryData.currentPage;
 
-        // Set assessment progress and current page from fetched database entry
-        assessment.data = assessmentJsonData;
-        assessment.currentPage = assessmentEntryData.currentPage;
+        // Save handler function
+        assessment.onValueChanged.add(async (updatedAssessment) => {
+          // Error out if assessment id doesnt exist
+          if (!currentAssessmentId) {
+            console.error("Cannot save assessment, no assessment ID found!");
+            return;
+          }
+          setSaving((prevSaving) => {
+            // If save in progress, just return
+            if (prevSaving) {
+              console.info("Assessment saving already in progress!");
+              return prevSaving;
+            }
 
-        // Set assessment state if all success above
-        setPageData((prev) => ({
-          ...prev,
-          assessment: assessment,
-        }));
+            // If no save in progress, start save progress
+            console.info("Saving assessment");
+            // Turn assessment data into blob and then file to upload
+            const jsonString = JSON.stringify(
+              updatedAssessment.getData(),
+              null,
+              2
+            );
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const file = new File([blob], `${currentAssessmentId}.json`, {
+              type: "application/json",
+            });
+
+            // Call update/save function
+            (async () => {
+              try {
+                await inProgressAssessmentInstance.updateAssessment(
+                  currentAssessmentId,
+                  updatedAssessment.currentPageNo,
+                  updatedAssessment.progressValue,
+                  file
+                );
+                console.info("Successfully saved assessment!");
+              } catch (err) {
+                console.error(`Error saving assessment: ${err}`);
+              } finally {
+                setSaving(false);
+              }
+            })();
+
+            // Return true for stale state prevent
+            return true;
+          });
+        });
+
+        assessment.onComplete.add(async () => {
+          // IMPLEMENT ASSESSMENT COMPLETION LOGIC HERE
+        });
+
+        setPageData((prev) => ({ ...prev, assessment }));
       } catch (e) {
-        // Set error state if fetching assessment state unsuccessful
         setPageData((prev) => ({
           ...prev,
-          error: `Error getting assessment from assessment ID : ${e}`,
+          error: `Error getting assessment from assessment ID: ${e}`,
         }));
-        return;
       }
     };
 
-    // Call initialize function then set loading to false
-    initialize().then(() => {
-      setLoading(false);
-    });
+    initialize().then(() => setLoading(false));
   }, []);
 
   // Get page data -> show assessment if assessment fetch success, if not show error to user
@@ -158,6 +205,31 @@ export function Assessment() {
                 </svg>
                 Back to Assessments
               </a>
+              {saving && (
+                <span className="text-gray-500 dark:text-gray-400 flex items-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary-600"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Autosaving...
+                </span>
+              )}
             </div>
 
             <Survey model={pageData.assessment} />

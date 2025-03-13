@@ -15,6 +15,35 @@ class InProgressAssessment {
 
   // ** PUBLIC METHODS TO BE USED IN OTHER FILES ** //
 
+  // Update assessment both in database entry and assessment data json storage
+  public updateAssessment = async (
+    id: string,
+    currentPage: number,
+    percentCompleted: number,
+    newAssessmentData: File
+  ): Promise<void> => {
+    // Get storage path of assessment data blob
+    const storagePath = await this._fetchAssessmentStoragePath(id).catch(
+      (err) => {
+        throw new Error(`Error deleting assessment from database: ${err}`);
+      }
+    );
+
+    // Replace storage path with new assessment data
+    await this._uploadAssessmentToStorage(newAssessmentData, storagePath).catch(
+      (err) => {
+        throw new Error(`Error uploading storage to storage: ${err}`);
+      }
+    );
+
+    // Update database entry with new current page and percent
+    await this._updateAssessmentEntry(id, currentPage, percentCompleted).catch(
+      (err) => {
+        throw new Error(`Error updating assessment database entry: ${err}`);
+      }
+    );
+  };
+
   // Delete assessment by id -> delete database entry and storage data
   public deleteAssessment = async (id: string): Promise<void> => {
     // Temp copy of assessment storage path before we delete the entry
@@ -115,6 +144,12 @@ class InProgressAssessment {
   };
 
   public createAssessment = async (name: string): Promise<void> => {
+    // Fetch session to use session id in storage path
+    const session = await fetchAuthSession();
+    if (!session.identityId) {
+      throw new Error(`No session identity found!`);
+    }
+
     // Create hash to use for id
     const idHash = this._generateUrlSafeHash();
 
@@ -126,11 +161,12 @@ class InProgressAssessment {
     });
 
     // Upload new assessment JSON and get back path
-    const storageUploadPath = await this._uploadAssessmentToStorage(file).catch(
-      (err) => {
-        throw new Error(`Error uploading new assessment to storage: ${err}`);
-      }
-    );
+    const storageUploadPath = await this._uploadAssessmentToStorage(
+      file,
+      `assessments/${session.identityId}/in-progress/${file.name}`
+    ).catch((err) => {
+      throw new Error(`Error uploading new assessment to storage: ${err}`);
+    });
 
     // Create new assessment database entry using storage upload path
     await this._createAssessmentEntry(idHash, name, storageUploadPath).catch(
@@ -142,12 +178,35 @@ class InProgressAssessment {
 
   // ** PRIVATE METHODS TO BE USED IN PUBLIC FUNCTIONS ** //
 
+  // Update assessment database entry, takes in ID, new current page and new percent completed
+  private _updateAssessmentEntry = async (
+    id: string,
+    currentPage: number,
+    percentCompleted: number
+  ): Promise<void> => {
+    // Assessment to be updated
+    const updatedAssessment = {
+      id,
+      currentPage,
+      percentCompleted,
+    };
+    // Updated database entry
+    const { data, errors } =
+      await this.client.models.InProgressAssessment.update(updatedAssessment);
+    // Throw errors if update failed
+    if (!data || errors) {
+      throw new Error(
+        `Error updating assessment with id ${id} : ${errors?.at(0)?.message}`
+      );
+    }
+  };
+
   // Create assessment database entry
   private _createAssessmentEntry = async (
     hash: string,
     name: string,
     path: string
-  ) => {
+  ): Promise<void> => {
     // New assessment entry obkect
     try {
       const newAssessment = {
@@ -230,23 +289,18 @@ class InProgressAssessment {
 
   // Upload assessment data file to storage
   private _uploadAssessmentToStorage = async (
-    assessment: File
+    assessment: File,
+    path: string
   ): Promise<string> => {
     // If no assessment found from param, throw error
     if (!assessment) {
       throw new Error("No assessment found");
     }
 
-    // Fetch session to use session id in storage path
-    const session = await fetchAuthSession();
-    if (!session.identityId) {
-      throw new Error(`No session identity found!`);
-    }
-
     try {
       // Upload data to bucket
       const res = await uploadData({
-        path: `assessments/${session.identityId}/in-progress/${assessment.name}`,
+        path,
         data: assessment,
         options: { bucket: "assessmentStorage" },
       }).result;
