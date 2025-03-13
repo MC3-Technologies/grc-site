@@ -1,4 +1,4 @@
-import { uploadData } from "aws-amplify/storage";
+import { uploadData, downloadData } from "aws-amplify/storage";
 import { fetchAuthSession } from "aws-amplify/auth";
 import { surveyJson } from "../assessmentQuestions";
 import { Model } from "survey-core";
@@ -14,7 +14,7 @@ class InProgressAssessment {
 
   public deleteInProgressAssessment = async (id: string): Promise<void> => {
     // Temp copy of assessment storage path before we delete the entry
-    const path = await this.getInProgressAssessmentStoragePath(id);
+    const path = await this.handleAssessmentStoragePathGet(id);
 
     // Delete assessment entry from database
     await this.handleDeleteAssessmentDatabaseEntry(id).catch((err) => {
@@ -29,10 +29,19 @@ class InProgressAssessment {
     console.info("Successfully deleted assessment");
   };
 
-  // Get assessment storage path by ID
-  public getInProgressAssessmentStoragePath = async (
+  public getAssessmentDatabaseData = async (
     id: string
-  ): Promise<string> => {
+  ): Promise<{
+    id: string;
+    name: string;
+    currentPage: number;
+    percentCompleted: number;
+    storagePath: string;
+    version: string;
+    owner: string | null;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+  }> => {
     try {
       const { data, errors } =
         await this.client.models.InProgressAssessment.get({
@@ -44,10 +53,29 @@ class InProgressAssessment {
       if (!data || data === null) {
         throw new Error("No data found from query!");
       }
-      return data.storagePath;
+      return data;
     } catch (err) {
       throw new Error(`Error fetching in progress assessments : ${err}`);
     }
+  };
+
+  // Get assessment storage data blob -> fetches storagepath from database entry and then fetches JSON blob from storage
+  public getAssessmentStorageData = async <T = unknown>(
+    id: string
+  ): Promise<T> => {
+    const storagePath = await this.handleAssessmentStoragePathGet(id).catch(
+      (err) => {
+        throw new Error(`Error getting storage path from database : ${err}`);
+      }
+    );
+
+    const assessmentJson = await this.handleAssessmentStorageJsonGet(
+      storagePath
+    ).catch((err) => {
+      throw new Error(`Error getting assessment storage: ${err}`);
+    });
+
+    return assessmentJson as T;
   };
 
   // Get All in progress assessments
@@ -115,6 +143,7 @@ class InProgressAssessment {
       const newAssessment = {
         id: hash,
         name,
+        currentPage: 0,
         percentCompleted: 0,
         storagePath: path,
         version: "1",
@@ -148,6 +177,44 @@ class InProgressAssessment {
           `Error fetching in progress assessments : ${deleteResult.errors}`
         );
       }
+    } catch (err) {
+      throw new Error(`Error fetching in progress assessments : ${err}`);
+    }
+  };
+
+  // Handle getting assessment storage JSON given a storage path on bucket
+  private handleAssessmentStorageJsonGet = async (
+    path: string
+  ): Promise<unknown> => {
+    try {
+      const assessmentDownloadResult = await downloadData({
+        path,
+        options: { bucket: "assessmentStorage" },
+      }).result;
+      const assessmentJson = await assessmentDownloadResult.body.text();
+      console.log(assessmentJson);
+      return assessmentJson;
+    } catch (err) {
+      throw new Error(`Error downloading assessment data: ${err}`);
+    }
+  };
+
+  // Get assessment storage path by ID
+  private handleAssessmentStoragePathGet = async (
+    id: string
+  ): Promise<string> => {
+    try {
+      const { data, errors } =
+        await this.client.models.InProgressAssessment.get({
+          id,
+        });
+      if (errors) {
+        throw new Error(`Error fetching in progress assessments : ${errors}`);
+      }
+      if (!data || data === null) {
+        throw new Error("No data found from query!");
+      }
+      return data.storagePath;
     } catch (err) {
       throw new Error(`Error fetching in progress assessments : ${err}`);
     }

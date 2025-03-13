@@ -1,153 +1,4 @@
-// import { StrictMode, useEffect, useState } from "react";
-// import { createRoot } from "react-dom/client";
-// import { initFlowbite } from "flowbite";
-
-// import "../index.css";
-// import "survey-core/defaultV2.min.css";
-
-// import Navbar from "../components/Navbar";
-// import Chat from "../components/Chat";
-// import Footer from "../components/Footer";
-
-// import { surveyJson } from "../assessmentQuestions";
-// import { Model, Survey } from "survey-react-ui";
-// import { BorderlessDark, BorderlessLight } from "survey-core/themes";
-// import { getCurrentUser } from "../amplify/auth";
-// import { fetchAuthSession } from "aws-amplify/auth";
-// import { uploadData } from "aws-amplify/storage";
-// import { isLoggedIn } from "../amplify/auth";
-// import { redirectToSignIn } from "../utils/routing";
-// import Spinner from "../components/Spinner";
-
-// export function Assessment() {
-//   const [assessment, setAssessment] = useState<Model>(new Model(surveyJson));
-//   const [loading, setLoading] = useState<boolean>(true);
-
-//   // useEffect to handle assessment setting up and adding on completion handler
-//   useEffect(() => {
-//     const initialize = async () => {
-//       const loggedIn = await isLoggedIn();
-//       if (!loggedIn) {
-//         redirectToSignIn();
-//         return;
-//       }
-
-//       // New assessment instance
-//       const assessment = new Model(surveyJson);
-
-//       // Get current user and associate user id with assessment
-//       const user = await getCurrentUser();
-//       assessment.setValue("userId", user.userId);
-
-//       // Add assessment completion handler
-//       assessment.onComplete.add(async (assessment, options) => {
-//         // Show assessment uploading in progress
-//         options.showSaveInProgress();
-
-//         try {
-//           // Turn assessment data json into a string -> blob -> File to be uploaded
-//           const jsonString = JSON.stringify(assessment.data, null, 2);
-//           const blob = new Blob([jsonString], { type: "application/json" });
-//           const file = new File([blob], `${createRandomUrlSafeHash()}.json`, {
-//             type: "application/json",
-//           });
-
-//           // Call upload assessment data file
-//           await handleCompletedAssessmentUpload(file);
-
-//           // Success of uploading assessment
-//           options.showSaveSuccess();
-//         } catch (e) {
-//           options.showSaveError(`${e}`);
-//         }
-//       });
-
-//       // Set assessment state
-//       setAssessment(assessment);
-//     };
-
-//     initialize().then(() => {
-//       setLoading(false);
-//     });
-//   }, []);
-
-//   // useEffect to handle theme changes
-//   useEffect(() => {
-//     initFlowbite();
-
-//     const storedDarkMode = localStorage.getItem("darkMode") === "true";
-//     if (storedDarkMode) {
-//       assessment.applyTheme(BorderlessDark);
-//     } else {
-//       assessment.applyTheme(BorderlessLight);
-//     }
-
-//     const handleDarkMode = () => assessment.applyTheme(BorderlessDark);
-//     const handleLightMode = () => assessment.applyTheme(BorderlessLight);
-
-//     window.addEventListener("darkMode", handleDarkMode);
-//     window.addEventListener("lightMode", handleLightMode);
-
-//     return () => {
-//       window.removeEventListener("darkMode", handleDarkMode);
-//       window.removeEventListener("lightMode", handleLightMode);
-//     };
-//   }, [assessment]);
-
-//   const handleCompletedAssessmentUpload = async (
-//     assessment: File
-//   ): Promise<void> => {
-//     if (!assessment) {
-//       throw new Error("No assessment found");
-//     }
-
-//     // Fetch authentication session to upload with session id
-//     const session = await fetchAuthSession();
-//     try {
-//       // Uploade JSON assessmet file
-//       const res = await uploadData({
-//         path: `assessments/${session.identityId}/completed/${assessment.name}`,
-//         data: assessment,
-//         options: {
-//           bucket: "assessmentStorage",
-//         },
-//       }).result;
-
-//       console.log("Assessment uploaded successfully", res);
-//     } catch (e) {
-//       if (e) {
-//         throw new Error(`Error uploading assessment : ${e}`);
-//       }
-//     }
-//   };
-
-//   return (
-//     <>
-//       <Navbar />
-//       <section className="mt-20 bg-white dark:bg-gray-900">
-//         {loading ? (
-//           <div className="flex justify-center py-20">
-//             <Spinner />
-//           </div>
-//         ) : (
-//           <>
-//             <Survey model={assessment} />
-//           </>
-//         )}
-//       </section>
-//       <Chat />
-//       <Footer />
-//     </>
-//   );
-// }
-
-// createRoot(document.getElementById("root")!).render(
-//   <StrictMode>
-//     <Assessment />
-//   </StrictMode>
-// );
-
-import { StrictMode, useEffect } from "react";
+import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
 
@@ -157,17 +8,180 @@ import "survey-core/defaultV2.min.css";
 import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
+import { Model } from "survey-core";
+import { InProgressAssessment } from "../utils/assessment";
+import { surveyJson } from "../assessmentQuestions";
+import { Survey } from "survey-react-ui";
+import Spinner from "../components/Spinner";
+import { BorderlessDark, BorderlessLight } from "survey-core/themes";
+
+type PageData = {
+  assessment: Model | null;
+  error: string | null;
+};
 
 export function Assessment() {
+  // Page data state
+  const [pageData, setPageData] = useState<PageData>({
+    assessment: null,
+    error: null,
+  });
+  const [loading, setLoading] = useState<boolean>(true);
+
   useEffect(() => {
     initFlowbite();
+
+    if (pageData.assessment !== null) {
+      const assessment = pageData.assessment;
+
+      // Set dark theme to use MC3 site theme colors
+      BorderlessDark.cssVariables = {
+        ...BorderlessDark.cssVariables,
+        "--sjs-primary-backcolor": "#a05243",
+      };
+
+      // Set light theme to use MC3 site theme colors
+      BorderlessLight.cssVariables = {
+        ...BorderlessLight.cssVariables,
+        "--sjs-primary-backcolor": "#a05243",
+      };
+
+      // Check if dark mode is stored in local storage
+      const storedDarkMode = localStorage.getItem("darkMode") === "true";
+      if (storedDarkMode) {
+        assessment.applyTheme(BorderlessDark);
+      } else {
+        assessment.applyTheme(BorderlessLight);
+      }
+
+      // Add handlers to events
+      const handleDarkMode = () => assessment.applyTheme(BorderlessDark);
+      const handleLightMode = () => assessment.applyTheme(BorderlessLight);
+      window.addEventListener("darkMode", handleDarkMode);
+      window.addEventListener("lightMode", handleLightMode);
+
+      return () => {
+        window.removeEventListener("darkMode", handleDarkMode);
+        window.removeEventListener("lightMode", handleLightMode);
+      };
+    }
+  }, [pageData.assessment]);
+
+  useEffect(() => {
+    // Initialization function
+    const initialize = async (): Promise<void> => {
+      // Get assessment id from url parameters
+      const params = new URLSearchParams(window.location.search);
+      const assessmentIdParam = params.get("assessment-id") as string | null;
+
+      // If no assessment id found in URL, set error state
+      if (!assessmentIdParam || assessmentIdParam === null) {
+        setPageData((prev) => ({
+          ...prev,
+          error: "No assessment ID found!",
+        }));
+        return;
+      }
+
+      // In progress assessment class instance to use for methods
+      const inProgressAssessmentInstance = new InProgressAssessment();
+      try {
+        // Get assessment database entry data -> current page, progress etc
+        const assessmentEntryData =
+          await inProgressAssessmentInstance.getAssessmentDatabaseData(
+            assessmentIdParam
+          );
+
+        // Get assessment JSON data from storage
+        const assessmentJsonData =
+          await inProgressAssessmentInstance.getAssessmentStorageData(
+            assessmentIdParam
+          );
+
+        // Create new assessment instance
+        const assessment = new Model(surveyJson);
+
+        // Set assessment progress and current page from fetched database entry
+        assessment.data = assessmentJsonData;
+        assessment.currentPage = assessmentEntryData.currentPage;
+
+        // Set assessment state if all success above
+        setPageData((prev) => ({
+          ...prev,
+          assessment: assessment,
+        }));
+      } catch (e) {
+        // Set error state if fetching assessment state unsuccessful
+        setPageData((prev) => ({
+          ...prev,
+          error: `Error getting assessment from assessment ID : ${e}`,
+        }));
+        return;
+      }
+    };
+
+    // Call initialize function then set loading to false
+    initialize().then(() => {
+      setLoading(false);
+    });
   }, []);
+
+  // Get page data -> show assessment if assessment fetch success, if not show error to user
+  const getPageData = (): JSX.Element => {
+    // If error fetching assessment
+    if (pageData.error) {
+      return <p>{`Error getting assessment! : ${pageData.error}`}</p>;
+    }
+    // If fetching assessment successful
+    if (pageData.assessment) {
+      return (
+        <>
+          <div>
+            <div className="mb-6 flex justify-between items-center">
+              <a
+                href={`/assessments/`}
+                className="flex items-center text-primary-600 hover:text-primary-800 transition-colors"
+              >
+                <svg
+                  className="w-5 h-5 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  ></path>
+                </svg>
+                Back to Assessments
+              </a>
+            </div>
+
+            <Survey model={pageData.assessment} />
+          </div>
+        </>
+      );
+    }
+    // If no conditions above met, it means fetching of any assessment never startedf
+    return (
+      <p>{`Error getting assessment, fetching operation never started!`}</p>
+    );
+  };
 
   return (
     <>
       <Navbar />
       <section className="mt-20 bg-white dark:bg-gray-900">
-        Take Assessment Page
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <Spinner />
+          </div>
+        ) : (
+          <div className="container mx-auto">{getPageData()}</div>
+        )}
       </section>
       <Chat />
       <Footer />

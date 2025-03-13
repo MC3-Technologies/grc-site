@@ -15,6 +15,7 @@ import Spinner from "../components/Spinner";
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 
 export function Assessments() {
+  // Completed assessments state
   const [completedAssessments, setCompletedAssessments] = useState<
     {
       id: string;
@@ -31,6 +32,7 @@ export function Assessments() {
       readonly updatedAt: string;
     }[]
   >([]);
+  // In progress assessments state
   const [inProgressAssessments, setInProgressAssessments] = useState<
     {
       id: string;
@@ -44,17 +46,21 @@ export function Assessments() {
     }[]
   >([]);
 
+  // Whether to show new assessment form
   const [showNewAssessmentForm, setShowNewAssessmentForm] =
     useState<boolean>(false);
+  // New assessment name state
   const [newAssessmentName, setNewAssessmentName] = useState<string>("");
-
+  // Error loading assessment(s) data
   const [loadingError, setLoadingError] = useState<string[]>([]);
+  // Is loading
   const [loading, setLoading] = useState<boolean>(true);
 
   // useEffect to handle assessment setting up and adding on completion handler
   useEffect(() => {
     initFlowbite();
 
+    // Initialize function
     const initialize = async () => {
       // Check if user is logged in and if not, redirect to sign in page
       const loggedIn = await isLoggedIn();
@@ -81,16 +87,19 @@ export function Assessments() {
       }
     };
 
+    // Call initialize function then set laoding to false
     initialize().then(() => {
       setLoading(false);
     });
   });
 
+  // Creating new assessments handler
   const handleCreateNewAssessment = async (name: string) => {
     const assessment = new InProgressAssessment();
     await assessment.createInProgressAssessment(name);
   };
 
+  // Delete in progress assessment handler
   const handleDeleteInProgressAssessment = async (id: string) => {
     const assessment = new InProgressAssessment();
     await assessment.deleteInProgressAssessment(id);
@@ -205,12 +214,12 @@ export function Assessments() {
                                   <p>Last updated: {assessment.updatedAt}</p>
                                 </div>
                                 <div className="mt-4 flex space-x-2">
-                                  {/* <button
-                                  onClick={() => loadAssessment(assessment.id)}
-                                  className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                                >
-                                  Continue
-                                </button> */}
+                                  <a
+                                    href={`/assessment/?assessment-id=${assessment.id}`}
+                                    className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                  >
+                                    Continue
+                                  </a>
                                   <button
                                     onClick={() =>
                                       handleDeleteInProgressAssessment(

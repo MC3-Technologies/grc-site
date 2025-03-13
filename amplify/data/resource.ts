@@ -27,6 +27,7 @@ const schema = a.schema({
     .model({
       id: a.id().required(),
       name: a.string().required(),
+      currentPage: a.integer().required(),
       percentCompleted: a.integer().required(),
       storagePath: a.string().required(),
       version: a.string().required(),
