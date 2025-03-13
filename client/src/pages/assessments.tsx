@@ -11,6 +11,7 @@ import Footer from "../components/Footer";
 import { isLoggedIn } from "../amplify/auth";
 import { redirectToSignIn } from "../utils/routing";
 import Spinner from "../components/Spinner";
+import { formatDateTime, getRelativeTimeString } from "../utils/dateUtils";
 
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 
@@ -210,8 +211,8 @@ export function Assessments() {
                                   </span>
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                                  <p>Started: {assessment.createdAt}</p>
-                                  <p>Last updated: {assessment.updatedAt}</p>
+                                  <p>Started: {formatDateTime(assessment.createdAt)}</p>
+                                  <p>Last updated: {getRelativeTimeString(assessment.updatedAt)}</p>
                                 </div>
                                 <div className="mt-4 flex space-x-2">
                                   <a
@@ -262,7 +263,7 @@ export function Assessments() {
                                   </span>
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                                  <p>Completed: {assessment.completedAt}</p>
+                                  <p>Completed: {formatDateTime(assessment.completedAt)}</p>
                                   <p>Score: {assessment.complianceScore}%</p>
                                   <p>
                                     Status:{" "}

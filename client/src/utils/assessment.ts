@@ -354,6 +354,59 @@ class CompletedAssessment {
 
   // ** PUBLIC METHODS TO BE USED IN OTHER FILES ** //
 
+  // Method to complete an assessment and move it from in-progress to completed
+  public completeAssessment = async (
+    inProgressAssessmentId: string,
+    assessmentData: File
+  ): Promise<void> => {
+    try {
+      // Get the in-progress assessment
+      const inProgressClient = new InProgressAssessment();
+      const assessmentInfo = await inProgressClient.fetchAssessmentData(inProgressAssessmentId);
+      
+      // Create a new storage path for the completed assessment
+      const session = await fetchAuthSession();
+      if (!session.identityId) {
+        throw new Error(`No session identity found!`);
+      }
+      
+      const completedStoragePath = `assessments/${session.identityId}/completed/${inProgressAssessmentId}.json`;
+      
+      // Upload the assessment data to the completed storage location
+      await uploadData({
+        path: completedStoragePath,
+        data: assessmentData,
+        options: { bucket: "assessmentStorage" }
+      });
+      
+      // Create a new completed assessment entry
+      const completedAssessment = {
+        id: inProgressAssessmentId,
+        name: assessmentInfo.name,
+        organizationName: "Your Organization", // You might want to extract this from assessment data
+        status: "Completed",
+        completedAt: new Date().toISOString(),
+        complianceScore: 0, // This would be calculated based on assessment answers
+        isCompliant: false, // This would be determined based on assessment answers
+        storagePath: completedStoragePath,
+        version: assessmentInfo.version
+      };
+      
+      const { errors } = await this.client.models.CompletedAssessment.create(completedAssessment);
+      
+      if (errors) {
+        throw new Error(`Error creating completed assessment: ${errors}`);
+      }
+      
+      // Delete the in-progress assessment
+      await inProgressClient.deleteAssessment(inProgressAssessmentId);
+      
+      console.log("Successfully moved assessment to completed status");
+    } catch (err) {
+      throw new Error(`Error completing assessment: ${err}`);
+    }
+  };
+
   // Fetch all completed assessments
   public fetchAllCompletedAssessments = async (): Promise<
     {

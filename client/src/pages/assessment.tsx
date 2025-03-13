@@ -404,7 +404,7 @@ export function Assessment() {
               type: "application/json",
             });
             
-            // Update assessment with 100% progress and final data
+            // First update with 100% progress
             await inProgressAssessmentInstance.updateAssessment(
               currentAssessmentId,
               assessment.currentPageNo,
@@ -412,8 +412,9 @@ export function Assessment() {
               file
             );
             
-            // No need to call CompletedAssessment as we're just marking this as complete
-            // The record is already updated with 100% progress above
+            // Now create a completed assessment record and remove from in-progress
+            const completedAssessmentInstance = new CompletedAssessment();
+            await completedAssessmentInstance.completeAssessment(currentAssessmentId, file);
             
             handleCompletionSuccess();
           } catch (err) {
