@@ -17,6 +17,54 @@ import Spinner from "../components/Spinner";
 
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 
+// Helper function to format dates
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
+// Helper function to calculate duration between two dates
+const calculateDuration = (startDate: string, endDate: string): string => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const durationMs = end.getTime() - start.getTime();
+  
+  const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  } else {
+    return `${hours}h`;
+  }
+};
+
+// Helper function to calculate time elapsed since a given date
+const getTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (diffDays > 0) {
+    return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  } else if (diffHours > 0) {
+    return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  } else if (diffMinutes > 0) {
+    return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+  } else {
+    return 'Just now';
+  }
+};
+
 export function Assessments() {
   // Completed assessments state
   const [completedAssessments, setCompletedAssessments] = useState<
@@ -212,9 +260,46 @@ export function Assessments() {
                                     In Progress
                                   </span>
                                 </div>
+                                
+                                {/* Version Information */}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
+                                    v{assessment.version}
+                                  </span>
+                                </div>
+                                
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                                  <p>Started: {assessment.createdAt}</p>
-                                  <p>Last updated: {assessment.updatedAt}</p>
+                                  <p>Started: {formatDate(assessment.createdAt)}</p>
+                                  <p>Last updated: {formatDate(assessment.updatedAt)}</p>
+                                  
+                                  {/* Time Since Last Update */}
+                                  <p className="text-sm italic mt-1">
+                                    Last activity: {getTimeAgo(assessment.updatedAt)}
+                                  </p>
+                                  
+                                  {/* Owner Details */}
+                                  {assessment.owner && (
+                                    <p className="flex items-center mt-1">
+                                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+                                      </svg>
+                                      Owner: {assessment.owner}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Progress bar */}
+                                  <div className="mt-3">
+                                    <div className="flex justify-between mb-1">
+                                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Progress</span>
+                                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{assessment.percentCompleted}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                      <div 
+                                        className="bg-primary-600 h-2.5 rounded-full" 
+                                        style={{ width: `${assessment.percentCompleted}%` }}
+                                      ></div>
+                                    </div>
+                                  </div>
                                 </div>
                                 <div className="mt-4 flex space-x-2">
                                   <a
@@ -264,31 +349,65 @@ export function Assessments() {
                                     Completed
                                   </span>
                                 </div>
+                                
+                                {/* Version Information */}
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
+                                    v{assessment.version}
+                                  </span>
+                                </div>
+                                
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                                  <p>Completed: {assessment.completedAt}</p>
+                                  <p>Completed: {formatDate(assessment.completedAt)}</p>
+                                  
+                                  {/* Duration Metrics */}
+                                  <p>Duration: {calculateDuration(assessment.createdAt, assessment.completedAt)}</p>
+                                  
+                                  {/* Owner Details */}
+                                  {assessment.owner && (
+                                    <p className="flex items-center">
+                                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+                                      </svg>
+                                      Owner: {assessment.owner}
+                                    </p>
+                                  )}
+                                  
                                   <p>Score: {assessment.complianceScore}%</p>
-                                  <p>
-                                    Status:{" "}
-                                    <span
-                                      className={
-                                        assessment.isCompliant
-                                          ? "text-green-600"
-                                          : "text-red-600"
-                                      }
-                                    >
-                                      {assessment.isCompliant
-                                        ? "Compliant"
-                                        : "Non-Compliant"}
-                                    </span>
-                                  </p>
+                                  
+                                  {/* Visual Compliance Indicator */}
+                                  <div className="mt-3">
+                                    <div className={`flex items-center p-2 rounded-md ${
+                                      assessment.isCompliant 
+                                        ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50' 
+                                        : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50'
+                                    }`}>
+                                      <div className={`p-1.5 rounded-full mr-2 ${
+                                        assessment.isCompliant 
+                                          ? 'bg-green-500 text-white' 
+                                          : 'bg-red-500 text-white'
+                                      }`}>
+                                        {assessment.isCompliant ? (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                                          </svg>
+                                        ) : (
+                                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                          </svg>
+                                        )}
+                                      </div>
+                                      <span className={`text-sm font-medium ${
+                                        assessment.isCompliant 
+                                          ? 'text-green-800 dark:text-green-200' 
+                                          : 'text-red-800 dark:text-red-200'
+                                      }`}>
+                                        {assessment.isCompliant ? 'CMMC Level 1 Compliant' : 'Not Compliant with CMMC Level 1'}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
                                 <div className="mt-4 flex space-x-2">
-                                  {/* <button
-                                  onClick={() => loadAssessment(assessment.id)}
-                                  className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                                >
-                                  View
-                                </button> */}
                                   <button
                                     onClick={() =>
                                       handleDeleteCompleteAssessment(
