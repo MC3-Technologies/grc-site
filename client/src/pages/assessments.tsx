@@ -9,7 +9,10 @@ import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { isLoggedIn } from "../amplify/auth";
-import { redirectToSignIn } from "../utils/routing";
+import {
+  redirectToInProgressAssessment,
+  redirectToSignIn,
+} from "../utils/routing";
 import Spinner from "../components/Spinner";
 import { formatDateTime, getRelativeTimeString } from "../utils/dateUtils";
 
@@ -21,8 +24,6 @@ export function Assessments() {
     {
       id: string;
       name: string;
-      organizationName: string;
-      status: string;
       completedAt: string;
       isCompliant: boolean;
       storagePath: string;
@@ -72,15 +73,13 @@ export function Assessments() {
 
       try {
         // Fetch users in progress assessments
-        const inProgressAssessmentInstance = new InProgressAssessment();
         const inProgressAssessments =
-          await inProgressAssessmentInstance.fetchAllAssessments();
+          await InProgressAssessment.fetchAllAssessments();
         setInProgressAssessments(inProgressAssessments);
 
         // Fetch users completed assessments
-        const completedAssessmentInstance = new CompletedAssessment();
         const completedAssessments =
-          await completedAssessmentInstance.fetchAllCompletedAssessments();
+          await CompletedAssessment.fetchAllCompletedAssessments();
         setCompletedAssessments(completedAssessments);
       } catch (e) {
         console.error(e);
@@ -92,18 +91,22 @@ export function Assessments() {
     initialize().then(() => {
       setLoading(false);
     });
-  });
+  }, []);
 
   // Creating new assessments handler
   const handleCreateNewAssessment = async (name: string) => {
-    const assessment = new InProgressAssessment();
-    await assessment.createAssessment(name);
+    const id = await InProgressAssessment.createAssessment(name);
+    redirectToInProgressAssessment(id);
   };
 
   // Delete in progress assessment handler
   const handleDeleteInProgressAssessment = async (id: string) => {
-    const assessment = new InProgressAssessment();
-    await assessment.deleteAssessment(id);
+    await InProgressAssessment.deleteAssessment(id);
+  };
+
+  // Delete in progress assessment handler
+  const handleDeleteCompleteAssessment = async (id: string) => {
+    await CompletedAssessment.deleteAssessment(id);
   };
 
   return (
@@ -145,7 +148,7 @@ export function Assessments() {
                         </h2>
                         <div className="mb-4">
                           <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
-                            Organization Name
+                            Assessment name
                           </label>
                           <input
                             type="text"
@@ -154,7 +157,7 @@ export function Assessments() {
                               setNewAssessmentName(e.target.value)
                             }
                             className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
-                            placeholder="Enter organization name"
+                            placeholder="Enter a name for your assessment"
                           />
                         </div>
                         <div className="flex space-x-2">
@@ -280,20 +283,24 @@ export function Assessments() {
                                     </span>
                                   </p>
                                 </div>
-                                {/* <div className="mt-4 flex space-x-2">
-                                <button
+                                <div className="mt-4 flex space-x-2">
+                                  {/* <button
                                   onClick={() => loadAssessment(assessment.id)}
                                   className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                                 >
                                   View
-                                </button>
-                                <button
-                                  onClick={() => deleteAssessment(assessment.id)}
-                                  className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                                >
-                                  Delete
-                                </button>
-                              </div> */}
+                                </button> */}
+                                  <button
+                                    onClick={() =>
+                                      handleDeleteCompleteAssessment(
+                                        assessment.id
+                                      )
+                                    }
+                                    className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                             ))}
                           </div>

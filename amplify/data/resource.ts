@@ -12,9 +12,7 @@ const schema = a.schema({
     .model({
       id: a.id().required(),
       name: a.string().required(),
-      organizationName: a.string().required(),
-      status: a.string().required(),
-      completedAt: a.datetime().required(),
+      completedAt: a.string().required(),
       complianceScore: a.integer().required(),
       isCompliant: a.boolean().required(),
       storagePath: a.string().required(),

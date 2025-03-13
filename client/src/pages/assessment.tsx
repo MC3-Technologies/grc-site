@@ -16,6 +16,7 @@ import { surveyJson } from "../assessmentQuestions";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
+import { redirectToAssessments } from "../utils/routing";
 
 type PageData = {
   assessment: Model | null;
@@ -308,13 +309,11 @@ export function Assessment() {
       try {
         // Grab assessment data from database
         const assessmentEntryData =
-          await inProgressAssessmentInstance.fetchAssessmentData(
-            assessmentIdParam
-          );
+          await InProgressAssessment.fetchAssessmentData(assessmentIdParam);
 
         // Grab assessment storage json
         const assessmentJsonData =
-          await inProgressAssessmentInstance.fetchAssessmentStorageData(
+          await InProgressAssessment.fetchAssessmentStorageData(
             assessmentIdParam
           );
 
