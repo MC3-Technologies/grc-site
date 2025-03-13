@@ -12,6 +12,7 @@ import { isLoggedIn } from "../amplify/auth";
 import {
   redirectToInProgressAssessment,
   redirectToSignIn,
+  redirectToCompletedAssessment,
 } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
@@ -492,6 +493,12 @@ export function Assessments() {
                               </div>
                             </div>
                             <div className="mt-4 flex space-x-2">
+                              <button
+                                onClick={() => redirectToCompletedAssessment(assessment.id)}
+                                className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                              >
+                                View
+                              </button>
                               <button
                                 onClick={() =>
                                   handleDeleteCompleteAssessment(
