@@ -11,7 +11,7 @@ import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
-import { InProgressAssessment } from "../utils/assessment";
+import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
 import { surveyJson } from "../assessmentQuestions";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
@@ -372,6 +372,22 @@ export function Assessment() {
           }, 1500); // Delay saving by 1.5 seconds to collect multiple changes
         });
 
+        // Error handling function to avoid repeating code
+        const handleCompletionError = (error: unknown): void => {
+          console.error(`Error completing assessment: ${error}`);
+          setErrorMessage("There was an error completing your assessment. Please try again.");
+          setShowErrorModal(true);
+          setSaving(false);
+        };
+
+        // Success handler function
+        const handleCompletionSuccess = (): void => {
+          console.info("Assessment completed successfully!");
+          setShowCompletionModal(true);
+          setSaving(false);
+        };
+
+        // In the onComplete handler - add reference to CompletedAssessment
         assessment.onComplete.add(async () => {
           // Mark assessment as complete and submit final data
           if (!currentAssessmentId) {
@@ -396,17 +412,12 @@ export function Assessment() {
               file
             );
             
-            console.info("Assessment completed successfully!");
+            // No need to call CompletedAssessment as we're just marking this as complete
+            // The record is already updated with 100% progress above
             
-           
-            setShowCompletionModal(true);
+            handleCompletionSuccess();
           } catch (err) {
-            console.error(`Error completing assessment: ${err}`);
-           
-            setErrorMessage("There was an error completing your assessment. Please try again.");
-            setShowErrorModal(true);
-          } finally {
-            setSaving(false);
+            handleCompletionError(err);
           }
         });
 
