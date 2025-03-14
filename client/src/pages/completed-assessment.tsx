@@ -157,7 +157,7 @@ export function CompletedAssessmentView() {
       }
     };
 
-    initialize().then(() => setLoading(false));
+    initialize().finally(() => setLoading(false));
   }, []);
 
   // Error component to show if errors

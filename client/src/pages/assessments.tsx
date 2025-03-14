@@ -204,7 +204,7 @@ export function Assessments() {
     };
 
     // Call initialize function then set laoding to false
-    initialize().then(() => {
+    initialize().finally(() => {
       setLoading(false);
     });
   }, [addToast]);
