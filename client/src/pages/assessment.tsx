@@ -126,7 +126,7 @@ export function Assessment() {
   // For redirect after user acknowledges completion
   const handleCompletionConfirm = () => {
     // Use safer navigation approach
-    safeNavigate("/assessments");
+    safeNavigate("/assessments/");
   };
 
   // For dismissing error modal
