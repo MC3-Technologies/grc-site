@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
 import DOMPurify from "dompurify"; // Import DOMPurify for XSS protection
 
-
 import "../index.css";
 import "survey-core/defaultV2.min.css";
 
@@ -31,13 +30,13 @@ type PageData = {
  */
 const sanitizeAssessmentData = (data: any): any => {
   if (!data) return data;
-  
+
   // For objects, recursively sanitize each property
-  if (typeof data === 'object' && data !== null) {
+  if (typeof data === "object" && data !== null) {
     if (Array.isArray(data)) {
-      return data.map(item => sanitizeAssessmentData(item));
+      return data.map((item) => sanitizeAssessmentData(item));
     }
-    
+
     const sanitized: Record<string, any> = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
@@ -46,16 +45,16 @@ const sanitizeAssessmentData = (data: any): any => {
     }
     return sanitized;
   }
-  
+
   // For strings, use DOMPurify with maximum restrictions to strip ALL HTML
-  if (typeof data === 'string') {
+  if (typeof data === "string") {
     // Completely strip all HTML and attributes for maximum security
-    return DOMPurify.sanitize(data, { 
+    return DOMPurify.sanitize(data, {
       ALLOWED_TAGS: [], // Allow no HTML tags
-      ALLOWED_ATTR: [] // Allow no HTML attributes
+      ALLOWED_ATTR: [], // Allow no HTML attributes
     });
   }
-  
+
   // Return unchanged for other data types
   return data;
 };
@@ -67,7 +66,7 @@ const sanitizeAssessmentId = (id: string): string => {
   // 2. Replaces all special characters with a single underscore (not just consecutive ones)
   // 3. Removes leading/trailing special characters
   // 4. Ensures ID is valid by checking for content and non-special-char-only
-  let sanitized = id
+  const sanitized = id
     .replace(/[^a-zA-Z0-9_-]/g, "") // Remove non-alphanumeric chars
     .replace(/[-_]+/g, "_") // Convert all special chars runs into a single "_"
     .replace(/^[-_]|[-_]$/g, ""); // Trim leading/trailing special chars
@@ -76,30 +75,24 @@ const sanitizeAssessmentId = (id: string): string => {
   // - sanitized is empty
   // - sanitized is just "_" (from special char normalization)
   // - sanitized has no alphanumeric characters (only special chars)
-  return sanitized && sanitized !== "_" && sanitized.match(/[a-zA-Z0-9]/) 
-    ? sanitized 
+  return sanitized && sanitized !== "_" && sanitized.match(/[a-zA-Z0-9]/)
+    ? sanitized
     : "default_id";
 };
 
 // Helper function for safe navigation
 const safeNavigate = (path: string): void => {
   // Ensure path starts with a slash, doesn't contain protocol/domain, and isn't the current path
-  if (path.startsWith('/') && !path.includes('://') && window.location.pathname !== path) {
+  if (
+    path.startsWith("/") &&
+    !path.includes("://") &&
+    window.location.pathname !== path
+  ) {
     window.location.href = path;
   } else {
-    console.warn(`Ignoring navigation attempt to ${path} (already on this page or unsafe)`);
-  }
-};
-
-// Handles both click and keyboard navigation events
-const handleSafeNavigate = (path: string) => (event: React.MouseEvent | React.KeyboardEvent) => {
-  // Only proceed for click events or Enter key presses for keyboard accessibility
-  if (
-    event.type === "click" ||
-    (event.type === "keydown" && (event as React.KeyboardEvent).key === "Enter")
-  ) {
-    event.preventDefault(); // Prevent default to avoid hash changes
-    safeNavigate(path);
+    console.warn(
+      `Ignoring navigation attempt to ${path} (already on this page or unsafe)`
+    );
   }
 };
 
@@ -117,50 +110,56 @@ export function Assessment() {
   const [saving, setSaving] = useState<boolean>(false);
 
   // Add state for completion modal
-  const [showCompletionModal, setShowCompletionModal] = useState<boolean>(false);
-  
+  const [showCompletionModal, setShowCompletionModal] =
+    useState<boolean>(false);
+
   // Add state for error modal
   const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
-  
+
   // Refs for modals to handle focus trapping
   const completionModalRef = useRef<HTMLDivElement>(null);
   const errorModalRef = useRef<HTMLDivElement>(null);
-  
+
   // For redirect after user acknowledges completion
   const handleCompletionConfirm = () => {
     // Use safer navigation approach
-    safeNavigate('/assessments');
+    safeNavigate("/assessments");
   };
-  
+
   // For dismissing error modal
   const handleErrorDismiss = () => {
     setShowErrorModal(false);
   };
 
   // Memoized tab key handler for modal focus trapping
-  const handleTabKey = useCallback((e: KeyboardEvent, modalRef: React.RefObject<HTMLDivElement>) => {
-    if (!modalRef.current) return;
-    
-    const focusableElements = modalRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    
-    if (focusableElements.length === 0) return;
-    
-    const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
-    
-    if (e.key === "Tab") {
-      if (e.shiftKey && document.activeElement === firstElement) {
-        e.preventDefault();
-        lastElement.focus();
-      } else if (!e.shiftKey && document.activeElement === lastElement) {
-        e.preventDefault();
-        firstElement.focus();
+  const handleTabKey = useCallback(
+    (e: KeyboardEvent, modalRef: React.RefObject<HTMLDivElement>) => {
+      if (!modalRef.current) return;
+
+      const focusableElements = modalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[
+        focusableElements.length - 1
+      ] as HTMLElement;
+
+      if (e.key === "Tab") {
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
       }
-    }
-  }, []);
+    },
+    []
+  );
 
   // Initialize Flowbite only once
   useEffect(() => {
@@ -171,27 +170,27 @@ export function Assessment() {
   useEffect(() => {
     // Skip effect entirely if no modals are open
     if (!showCompletionModal && !showErrorModal) return;
-    
+
     // Get the reference to the active modal
     const modalRef = showCompletionModal ? completionModalRef : errorModalRef;
     if (!modalRef?.current) return;
-    
+
     // Set initial focus on first focusable element
     const focusableElements = modalRef.current.querySelectorAll(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    
+
     if (focusableElements.length > 0) {
       (focusableElements[0] as HTMLElement).focus();
     }
-    
+
     // Create a single event handler for tab key navigation
     const handleTabKeyPress = (e: KeyboardEvent) => handleTabKey(e, modalRef);
-    window.addEventListener('keydown', handleTabKeyPress);
-    
+    window.addEventListener("keydown", handleTabKeyPress);
+
     // Clean up event listener
     return () => {
-      window.removeEventListener('keydown', handleTabKeyPress);
+      window.removeEventListener("keydown", handleTabKeyPress);
     };
   }, [showCompletionModal, showErrorModal, handleTabKey]);
 
@@ -199,18 +198,18 @@ export function Assessment() {
   useEffect(() => {
     // Skip if no modals are open - don't attach unnecessary listeners
     if (!showCompletionModal && !showErrorModal) return;
-    
+
     const handleEscapeKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         // Close whichever modal is open
         setShowCompletionModal(false);
         setShowErrorModal(false);
       }
     };
 
-    window.addEventListener('keydown', handleEscapeKey);
+    window.addEventListener("keydown", handleEscapeKey);
     return () => {
-      window.removeEventListener('keydown', handleEscapeKey);
+      window.removeEventListener("keydown", handleEscapeKey);
     };
   }, [showCompletionModal, showErrorModal]);
 
@@ -237,13 +236,17 @@ export function Assessment() {
           // Explicitly force a strict boolean return
           const storedValue = localStorage.getItem("darkMode");
           // Only accept exactly "true" or "false", with explicit fallback
-          return storedValue === "true" ? true : storedValue === "false" ? false : false;
+          return storedValue === "true"
+            ? true
+            : storedValue === "false"
+              ? false
+              : false;
         } catch (error) {
           console.error("Error accessing localStorage:", error);
           return false; // Default to light mode if localStorage is inaccessible
         }
       };
-      
+
       // Helper to safely store dark mode preference
       const setStoredDarkMode = (isDark: boolean): void => {
         try {
@@ -253,7 +256,7 @@ export function Assessment() {
           console.error("Error saving darkMode to localStorage:", error);
         }
       };
-      
+
       // Safely access localStorage with error handling
       const storedDarkMode = getStoredDarkMode();
       if (storedDarkMode) {
@@ -295,16 +298,16 @@ export function Assessment() {
 
       // Create local assessment id to use later
       const currentAssessmentId = sanitizeAssessmentId(assessmentIdParam ?? "");
-      
+
       // If ID is empty after sanitization or equals default_id, it was invalid
       if (currentAssessmentId === "default_id") {
-        setPageData((prev) => ({ ...prev, error: "Invalid assessment ID format!" }));
+        setPageData((prev) => ({
+          ...prev,
+          error: "Invalid assessment ID format!",
+        }));
         setLoading(false);
         return;
       }
-
-      // InProgressAssessment class instance to use methods
-      const inProgressAssessmentInstance = new InProgressAssessment();
 
       try {
         // Grab assessment data from database
@@ -332,18 +335,18 @@ export function Assessment() {
             console.error("Cannot save assessment, no assessment ID found!");
             return;
           }
-          
+
           // Clear any existing timeout to implement debounce pattern
           if (saveTimeout) {
             clearTimeout(saveTimeout);
           }
-          
+
           // Set a new timeout to delay the save operation
           saveTimeout = setTimeout(async () => {
             try {
               setSaving(true);
               console.info("Saving assessment");
-              
+
               // Turn assessment data into blob and then file to upload
               const jsonString = JSON.stringify(
                 sanitizeAssessmentData(updatedAssessment.getData()),
@@ -351,17 +354,21 @@ export function Assessment() {
                 2
               );
               const blob = new Blob([jsonString], { type: "application/json" });
-              const file = new File([blob], `${sanitizeAssessmentId(currentAssessmentId)}.json`, {
-                type: "application/json",
-              });
+              const file = new File(
+                [blob],
+                `${sanitizeAssessmentId(currentAssessmentId)}.json`,
+                {
+                  type: "application/json",
+                }
+              );
 
-              await inProgressAssessmentInstance.updateAssessment(
+              await InProgressAssessment.updateAssessment(
                 currentAssessmentId,
                 updatedAssessment.currentPageNo,
                 updatedAssessment.progressValue,
                 file
               );
-              
+
               console.info("Successfully saved assessment!");
             } catch (err) {
               console.error(`Error saving assessment: ${err}`);
@@ -374,7 +381,9 @@ export function Assessment() {
         // Error handling function to avoid repeating code
         const handleCompletionError = (error: unknown): void => {
           console.error(`Error completing assessment: ${error}`);
-          setErrorMessage("There was an error completing your assessment. Please try again.");
+          setErrorMessage(
+            "There was an error completing your assessment. Please try again."
+          );
           setShowErrorModal(true);
           setSaving(false);
         };
@@ -390,31 +399,41 @@ export function Assessment() {
         assessment.onComplete.add(async () => {
           // Mark assessment as complete and submit final data
           if (!currentAssessmentId) {
-            console.error("Cannot complete assessment, no assessment ID found!");
+            console.error(
+              "Cannot complete assessment, no assessment ID found!"
+            );
             return;
           }
-          
+
           try {
             // Get final assessment data
-            const finalAssessmentData = sanitizeAssessmentData(assessment.getData());
+            const finalAssessmentData = sanitizeAssessmentData(
+              assessment.getData()
+            );
             const jsonString = JSON.stringify(finalAssessmentData, null, 2);
             const blob = new Blob([jsonString], { type: "application/json" });
-            const file = new File([blob], `${sanitizeAssessmentId(currentAssessmentId)}.json`, {
-              type: "application/json",
-            });
-            
+            const file = new File(
+              [blob],
+              `${sanitizeAssessmentId(currentAssessmentId)}.json`,
+              {
+                type: "application/json",
+              }
+            );
+
             // First update with 100% progress
-            await inProgressAssessmentInstance.updateAssessment(
+            await InProgressAssessment.updateAssessment(
               currentAssessmentId,
               assessment.currentPageNo,
               100, // Set to 100% complete
               file
             );
-            
+
             // Now create a completed assessment record and remove from in-progress
-            const completedAssessmentInstance = new CompletedAssessment();
-            await completedAssessmentInstance.completeAssessment(currentAssessmentId, file);
-            
+            await CompletedAssessment.completeInProgressAssessment(
+              file,
+              currentAssessmentId
+            );
+
             handleCompletionSuccess();
           } catch (err) {
             handleCompletionError(err);
@@ -519,90 +538,152 @@ export function Assessment() {
       </section>
       <Chat />
       <Footer />
-      
+
       {/* Completion Success Modal */}
       {showCompletionModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50"
           role="dialog"
           aria-modal="true"
           aria-labelledby="completion-modal-title"
         >
-          <div className="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg dark:bg-gray-800 animate-fade-in-down" ref={completionModalRef}>
+          <div
+            className="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg dark:bg-gray-800 animate-fade-in-down"
+            ref={completionModalRef}
+          >
             <div className="flex flex-col items-center">
               {/* Success Icon */}
               <div className="inline-flex p-4 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900">
-                <svg className="w-12 h-12 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-12 h-12 text-green-600 dark:text-green-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
-              <h3 id="completion-modal-title" className="mb-4 text-xl font-medium text-gray-900 dark:text-white">Assessment Completed!</h3>
+              <h3
+                id="completion-modal-title"
+                className="mb-4 text-xl font-medium text-gray-900 dark:text-white"
+              >
+                Assessment Completed!
+              </h3>
               <p className="mb-6 text-base text-center text-gray-500 dark:text-gray-400">
                 Thank you! Your assessment has been completed successfully.
               </p>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleCompletionConfirm}
                 className="text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
               >
                 Continue
               </button>
-              
+
               {/* Close button */}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setShowCompletionModal(false)}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                 aria-label="Close"
                 tabIndex={0}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
                 </svg>
               </button>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Error Modal */}
       {showErrorModal && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50"
           role="dialog"
           aria-modal="true"
           aria-labelledby="error-modal-title"
         >
-          <div className="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg dark:bg-gray-800 animate-fade-in-down" ref={errorModalRef}>
+          <div
+            className="relative w-full max-w-md p-6 bg-white rounded-lg shadow-lg dark:bg-gray-800 animate-fade-in-down"
+            ref={errorModalRef}
+          >
             <div className="flex flex-col items-center">
               {/* Error Icon */}
               <div className="inline-flex p-4 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900">
-                <svg className="w-12 h-12 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  className="w-12 h-12 text-red-600 dark:text-red-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
               </div>
-              <h3 id="error-modal-title" className="mb-4 text-xl font-medium text-gray-900 dark:text-white">Error</h3>
+              <h3
+                id="error-modal-title"
+                className="mb-4 text-xl font-medium text-gray-900 dark:text-white"
+              >
+                Error
+              </h3>
               <p className="mb-6 text-base text-center text-gray-500 dark:text-gray-400">
                 {errorMessage}
               </p>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleErrorDismiss}
                 className="text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
               >
                 Close
               </button>
-              
+
               {/* Close button */}
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleErrorDismiss}
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
                 aria-label="Close"
                 tabIndex={0}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
                 </svg>
               </button>
             </div>

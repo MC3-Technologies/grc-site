@@ -159,7 +159,7 @@ class InProgressAssessment extends Assessment {
   };
 
   // Fetch all assessments (in progress)
-  public static fetchAllAssessments = async (): Promise
+  public static fetchAllAssessments = async (): Promise<
     {
       id: string;
       name: string;
@@ -440,8 +440,9 @@ class CompletedAssessment extends Assessment {
   }> => {
     try {
       // Fetch data
-      const { data, errors } =
-        await this.client.models.CompletedAssessment.get({ id });
+      const { data, errors } = await this.client.models.CompletedAssessment.get(
+        { id }
+      );
 
       // If errors or data fromf fetching, throw errors
       if (errors) {
@@ -479,7 +480,7 @@ class CompletedAssessment extends Assessment {
   };
 
   // Fetch all completed assessments
-  public static fetchAllCompletedAssessments = async (): Promise
+  public static fetchAllCompletedAssessments = async (): Promise<
     {
       id: string;
       name: string;
