@@ -36,12 +36,12 @@ type PageData = {
 // Helper function to format dates
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -50,10 +50,12 @@ const calculateDuration = (startDate: string, endDate: string): string => {
   const start = new Date(startDate);
   const end = new Date(endDate);
   const durationMs = end.getTime() - start.getTime();
-  
+
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  
+  const hours = Math.floor(
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+  );
+
   if (days > 0) {
     return `${days}d ${hours}h`;
   } else {
@@ -132,20 +134,20 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam
+            assessmentIdParam,
           );
 
         // Create assessment and give assessment data
         const assessment = new Model(surveyJson);
         assessment.data = JSON.parse(assessmentJsonData as string);
-        
+
         // Set survey to display mode (read-only)
         assessment.mode = "display";
 
-        setPageData((prev) => ({ 
-          ...prev, 
+        setPageData((prev) => ({
+          ...prev,
           assessment,
-          assessmentData: assessmentEntryData
+          assessmentData: assessmentEntryData,
         }));
       } catch (e) {
         setPageData((prev) => ({
@@ -162,12 +164,14 @@ export function CompletedAssessmentView() {
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return <p className="text-red-600 dark:text-red-400">{`Error getting assessment! : ${pageData.error}`}</p>;
+      return (
+        <p className="text-red-600 dark:text-red-400">{`Error getting assessment! : ${pageData.error}`}</p>
+      );
     }
     // If fetching assessment successful
     if (pageData.assessment && pageData.assessmentData) {
       const { assessmentData } = pageData;
-      
+
       return (
         <>
           <div>
@@ -197,64 +201,120 @@ export function CompletedAssessmentView() {
                   {assessmentData.name}
                 </h1>
               </div>
-              
+
               {/* Assessment Summary Card */}
               <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-5 shadow-sm mb-6">
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Completed:</span> {formatDate(assessmentData.completedAt)}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        Completed:
+                      </span>{" "}
+                      {formatDate(assessmentData.completedAt)}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Duration:</span> {calculateDuration(assessmentData.createdAt, assessmentData.completedAt)}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        Duration:
+                      </span>{" "}
+                      {calculateDuration(
+                        assessmentData.createdAt,
+                        assessmentData.completedAt,
+                      )}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Version:</span> {assessmentData.version}
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        Version:
+                      </span>{" "}
+                      {assessmentData.version}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      <span className="font-medium text-gray-700 dark:text-gray-300">Score:</span> {assessmentData.complianceScore}%
+                      <span className="font-medium text-gray-700 dark:text-gray-300">
+                        Score:
+                      </span>{" "}
+                      {assessmentData.complianceScore}%
                     </p>
                     {assessmentData.owner && (
                       <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                        <span className="font-medium text-gray-700 dark:text-gray-300 mr-1">Owner:</span>
-                        <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+                        <span className="font-medium text-gray-700 dark:text-gray-300 mr-1">
+                          Owner:
+                        </span>
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          ></path>
                         </svg>
                         {assessmentData.owner}
                       </p>
                     )}
                   </div>
                 </div>
-                
+
                 {/* Compliance Status */}
-                <div className={`flex items-center p-3 rounded-md ${
-                  assessmentData.isCompliant 
-                    ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50' 
-                    : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50'
-                }`}>
-                  <div className={`p-1.5 rounded-full mr-2 ${
-                    assessmentData.isCompliant 
-                      ? 'bg-green-500 text-white' 
-                      : 'bg-red-500 text-white'
-                  }`}>
+                <div
+                  className={`flex items-center p-3 rounded-md ${
+                    assessmentData.isCompliant
+                      ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50"
+                      : "bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50"
+                  }`}
+                >
+                  <div
+                    className={`p-1.5 rounded-full mr-2 ${
+                      assessmentData.isCompliant
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
+                  >
                     {assessmentData.isCompliant ? (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M5 13l4 4L19 7"
+                        ></path>
                       </svg>
                     ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        ></path>
                       </svg>
                     )}
                   </div>
-                  <span className={`text-sm font-medium ${
-                    assessmentData.isCompliant 
-                      ? 'text-green-800 dark:text-green-200' 
-                      : 'text-red-800 dark:text-red-200'
-                  }`}>
-                    {assessmentData.isCompliant ? 'CMMC Level 1 Compliant' : 'Not Compliant with CMMC Level 1'}
+                  <span
+                    className={`text-sm font-medium ${
+                      assessmentData.isCompliant
+                        ? "text-green-800 dark:text-green-200"
+                        : "text-red-800 dark:text-red-200"
+                    }`}
+                  >
+                    {assessmentData.isCompliant
+                      ? "CMMC Level 1 Compliant"
+                      : "Not Compliant with CMMC Level 1"}
                   </span>
                 </div>
               </div>
@@ -286,9 +346,7 @@ export function CompletedAssessmentView() {
             <Spinner />
           </div>
         ) : (
-          <div className="container mx-auto px-4 py-8">
-            {getPageData()}
-          </div>
+          <div className="container mx-auto px-4 py-8">{getPageData()}</div>
         )}
       </section>
       <Chat />
@@ -300,5 +358,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>
-); 
+  </StrictMode>,
+);

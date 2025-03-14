@@ -13,7 +13,7 @@ class Assessment {
   // Upload assessment data file to storage
   protected static _uploadAssessmentToStorage = async (
     assessment: File,
-    path: string
+    path: string,
   ): Promise<string> => {
     // If no assessment found from param, throw error
     if (!assessment) {
@@ -37,7 +37,7 @@ class Assessment {
 
   // Delete assessment from storage given the path
   protected static _deleteAssessmentFromStorage = async (
-    path: string
+    path: string,
   ): Promise<void> => {
     try {
       // Delete from storage
@@ -47,7 +47,7 @@ class Assessment {
       });
     } catch (error) {
       throw new Error(
-        `Error deleting assessment JSON blob from storage: ${error}`
+        `Error deleting assessment JSON blob from storage: ${error}`,
       );
     }
   };
@@ -62,27 +62,27 @@ class InProgressAssessment extends Assessment {
     id: string,
     currentPage: number,
     percentCompleted: number,
-    newAssessmentData: File
+    newAssessmentData: File,
   ): Promise<void> => {
     // Get storage path of assessment data blob
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
         throw new Error(`Error deleting assessment from database: ${err}`);
-      }
+      },
     );
 
     // Replace storage path with new assessment data
     await this._uploadAssessmentToStorage(newAssessmentData, storagePath).catch(
       (err) => {
         throw new Error(`Error uploading storage to storage: ${err}`);
-      }
+      },
     );
 
     // Update database entry with new current page and percent
     await this._updateAssessmentEntry(id, currentPage, percentCompleted).catch(
       (err) => {
         throw new Error(`Error updating assessment database entry: ${err}`);
-      }
+      },
     );
   };
 
@@ -106,7 +106,7 @@ class InProgressAssessment extends Assessment {
 
   // Fetch assessment data using assessment id (hash)
   public static fetchAssessmentData = async (
-    id: string
+    id: string,
   ): Promise<{
     id: string;
     name: string;
@@ -138,18 +138,18 @@ class InProgressAssessment extends Assessment {
 
   // Fetch JSON assessment data from storage
   public static fetchAssessmentStorageData = async <T = unknown>(
-    id: string
+    id: string,
   ): Promise<T> => {
     // Fetch assessment storage path fromd database using id
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
         throw new Error(`Error getting storage path from database: ${err}`);
-      }
+      },
     );
 
     // Use storage path from above to call storage download
     const assessmentJson = await this._fetchAssessmentStorageJson(
-      storagePath
+      storagePath,
     ).catch((err) => {
       throw new Error(`Error getting assessment storage: ${err}`);
     });
@@ -205,7 +205,7 @@ class InProgressAssessment extends Assessment {
     // Upload new assessment JSON and get back path
     const storageUploadPath = await this._uploadAssessmentToStorage(
       file,
-      `assessments/${session.identityId}/in-progress/${file.name}`
+      `assessments/${session.identityId}/in-progress/${file.name}`,
     ).catch((err) => {
       throw new Error(`Error uploading new assessment to storage: ${err}`);
     });
@@ -214,7 +214,7 @@ class InProgressAssessment extends Assessment {
     const newAssessmentId = await this._createAssessmentEntry(
       idHash,
       name,
-      storageUploadPath
+      storageUploadPath,
     ).catch((err) => {
       throw new Error(`Error creating new assessment entry: ${err}`);
     });
@@ -229,7 +229,7 @@ class InProgressAssessment extends Assessment {
   private static _updateAssessmentEntry = async (
     id: string,
     currentPage: number,
-    percentCompleted: number
+    percentCompleted: number,
   ): Promise<void> => {
     // Assessment to be updated
     const updatedAssessment = {
@@ -243,7 +243,7 @@ class InProgressAssessment extends Assessment {
     // Throw errors if update failed
     if (!data || errors) {
       throw new Error(
-        `Error updating assessment with id ${id} : ${errors?.at(0)?.message}`
+        `Error updating assessment with id ${id} : ${errors?.at(0)?.message}`,
       );
     }
   };
@@ -252,7 +252,7 @@ class InProgressAssessment extends Assessment {
   private static _createAssessmentEntry = async (
     hash: string,
     name: string,
-    path: string
+    path: string,
   ): Promise<string> => {
     // New assessment entry obkect
     try {
@@ -273,7 +273,7 @@ class InProgressAssessment extends Assessment {
       }
       if (!data) {
         throw new Error(
-          `No data recieved from creating new assessment entry: ${errors}`
+          `No data recieved from creating new assessment entry: ${errors}`,
         );
       }
       console.log(`Successfully created new assessment: ${data}`);
@@ -290,7 +290,7 @@ class InProgressAssessment extends Assessment {
     try {
       // Delete database entry
       const deleteResult = await this.client.models.InProgressAssessment.delete(
-        toBeDeletedAssessment
+        toBeDeletedAssessment,
       );
       // Handle errors
       if (deleteResult.errors) {
@@ -303,7 +303,7 @@ class InProgressAssessment extends Assessment {
 
   // Return JSON assessment data from storage give storage path
   private static _fetchAssessmentStorageJson = async (
-    path: string
+    path: string,
   ): Promise<unknown> => {
     try {
       // Fetch assessment json and parse into texty
@@ -322,7 +322,7 @@ class InProgressAssessment extends Assessment {
 
   // Get assessment storage path from database entry
   private static _fetchAssessmentStoragePath = async (
-    id: string
+    id: string,
   ): Promise<string> => {
     try {
       const { data, errors } =
@@ -364,7 +364,7 @@ class CompletedAssessment extends Assessment {
   // Complete an assessment, transition in progress assessment to a completed one
   public static completeInProgressAssessment = async (
     file: File,
-    assessmentId: string
+    assessmentId: string,
   ): Promise<void> => {
     // Fetch session to use session id in storage path
     const session = await fetchAuthSession();
@@ -385,7 +385,7 @@ class CompletedAssessment extends Assessment {
     const completedAssessmentStoragePath =
       await this._uploadAssessmentToStorage(
         file,
-        `assessments/${session.identityId}/completed/${file.name}`
+        `assessments/${session.identityId}/completed/${file.name}`,
       );
 
     // Create new completedAssessment database entry
@@ -394,7 +394,7 @@ class CompletedAssessment extends Assessment {
       name,
       completedAssessmentStoragePath,
       complianceScore,
-      isCompliant
+      isCompliant,
     ).catch((err) => {
       throw new Error(`Error creating completed assessment entry : ${err}`);
     });
@@ -425,7 +425,7 @@ class CompletedAssessment extends Assessment {
 
   // Fetch assessment data using assessment id (hash)
   public static fetchAssessmentData = async (
-    id: string
+    id: string,
   ): Promise<{
     id: string;
     name: string;
@@ -441,7 +441,7 @@ class CompletedAssessment extends Assessment {
     try {
       // Fetch data
       const { data, errors } = await this.client.models.CompletedAssessment.get(
-        { id }
+        { id },
       );
 
       // If errors or data fromf fetching, throw errors
@@ -459,18 +459,18 @@ class CompletedAssessment extends Assessment {
 
   // Fetch JSON assessment data from storage
   public static fetchAssessmentStorageData = async <T = unknown>(
-    id: string
+    id: string,
   ): Promise<T> => {
     // Fetch assessment storage path fromd database using id
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
         throw new Error(`Error getting storage path from database: ${err}`);
-      }
+      },
     );
 
     // Use storage path from above to call storage download
     const assessmentJson = await this._fetchAssessmentStorageJson(
-      storagePath
+      storagePath,
     ).catch((err) => {
       throw new Error(`Error getting assessment storage: ${err}`);
     });
@@ -517,7 +517,7 @@ class CompletedAssessment extends Assessment {
     name: string,
     path: string,
     complianceScore: number,
-    isCompliant: boolean
+    isCompliant: boolean,
   ): Promise<void> => {
     try {
       // Get completed at date
@@ -554,7 +554,7 @@ class CompletedAssessment extends Assessment {
     try {
       // Delete database entry
       const deleteResult = await this.client.models.CompletedAssessment.delete(
-        toBeDeletedAssessment
+        toBeDeletedAssessment,
       );
       // Handle errors
       if (deleteResult.errors) {
@@ -567,7 +567,7 @@ class CompletedAssessment extends Assessment {
 
   // Return JSON assessment data from storage give storage path
   private static _fetchAssessmentStorageJson = async (
-    path: string
+    path: string,
   ): Promise<unknown> => {
     try {
       // Fetch assessment json and parse into texty
@@ -586,7 +586,7 @@ class CompletedAssessment extends Assessment {
 
   // Get assessment storage path from database entry
   private static _fetchAssessmentStoragePath = async (
-    id: string
+    id: string,
   ): Promise<string> => {
     try {
       const { data, errors } =
