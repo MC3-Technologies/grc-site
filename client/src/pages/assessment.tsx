@@ -458,13 +458,16 @@ export function Assessment() {
 
   // Error component to show if errors
   const errorFeedback = (message: string): React.JSX.Element => {
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        window.location.href = "/assessments/";
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }, []);
+    
     return (
       <>
-        {(() => {
-          setTimeout(() => {
-            window.location.href = "/assessments/";
-          }, 5000);
-        })()}
         <section className="bg-white dark:bg-gray-900">
           <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
             <div className="mx-auto max-w-screen-sm text-center">
