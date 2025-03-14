@@ -515,7 +515,43 @@ export function Assessment() {
               )}
             </div>
 
+            {/* Top Progress Bar */}
+            <div className="mb-6">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Progress
+                </span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {Math.round(pageData.assessment.progressValue)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                <div
+                  className="bg-primary-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${pageData.assessment.progressValue}%` }}
+                ></div>
+              </div>
+            </div>
+
             <Survey model={pageData.assessment} />
+            
+            {/* Bottom Progress Bar */}
+            <div className="mt-6">
+              <div className="flex justify-between mb-1">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Progress
+                </span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  {Math.round(pageData.assessment.progressValue)}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                <div
+                  className="bg-primary-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${pageData.assessment.progressValue}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
         </>
       );
