@@ -145,7 +145,7 @@ const Chat = () => {
 
   // Handle input change.
   const handleCurrentMessageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setCurrentMessage(event.target.value);
   };
@@ -214,7 +214,7 @@ const Chat = () => {
 
       // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
-        JSON.parse(response.data as string)
+        JSON.parse(response.data as string),
       ) as ChatHistoryMessage[];
       // console.info(parsedMessages);
       setMessages(parsedMessages);

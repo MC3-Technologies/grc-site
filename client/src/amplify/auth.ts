@@ -65,7 +65,7 @@ const isCurrentUserVerified = async (): Promise<boolean> => {
 
 const signOutCurrentUser = async (): Promise<void> => {
   await signOut();
-  redirectHome()
+  redirectHome();
 };
 
 export {
