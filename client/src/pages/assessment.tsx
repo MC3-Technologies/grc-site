@@ -28,7 +28,7 @@ type PageData = {
  * and event handlers like onerror, onclick, etc.
  * Strips ALL HTML elements and attributes for maximum security.
  */
-const sanitizeAssessmentData = (data: any): any => {
+const sanitizeAssessmentData = (data: unknown): unknown => {
   if (!data) return data;
 
   // For objects, recursively sanitize each property
@@ -37,10 +37,12 @@ const sanitizeAssessmentData = (data: any): any => {
       return data.map((item) => sanitizeAssessmentData(item));
     }
 
-    const sanitized: Record<string, any> = {};
+    const sanitized: Record<string, unknown> = {};
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
-        sanitized[key] = sanitizeAssessmentData(data[key]);
+        sanitized[key] = sanitizeAssessmentData(
+          (data as Record<string, unknown>)[key]
+        );
       }
     }
     return sanitized;
