@@ -19,6 +19,19 @@ import { redirectToAssessments } from "../utils/routing";
 
 type PageData = {
   assessment: Model | null;
+  assessmentData: {
+    id: string;
+    name: string;
+    completedAt: string;
+    complianceScore: number;
+    isCompliant: boolean;
+    storagePath: string;
+    version: string;
+    owner: string | null;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+    duration: number;
+  } | null;
   error: string | null;
 };
 
@@ -102,6 +115,7 @@ export function Assessment() {
   // Page data state
   const [pageData, setPageData] = useState<PageData>({
     assessment: null,
+    assessmentData: null,
     error: null,
   });
 
@@ -458,13 +472,13 @@ export function Assessment() {
 
   // Error component to show if errors
   const errorFeedback = (message: string): React.JSX.Element => {
+    // Set up redirect without rendering in JSX
+    setTimeout(() => {
+      window.location.href = "/assessments/";
+    }, 5000);
+    
     return (
       <>
-        {(() => {
-          setTimeout(() => {
-            window.location.href = "/assessments/";
-          }, 5000);
-        })()}
         <section className="bg-white dark:bg-gray-900">
           <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
             <div className="mx-auto max-w-screen-sm text-center">

@@ -4,4 +4,9 @@ export default {
   transform: {
     "^.+.tsx?$": ["ts-jest", {}],
   },
+  // Ignore setup files when looking for test suites
+  testPathIgnorePatterns: ["/node_modules/", "setup.ts"],
+  // Make sure TypeScript is properly configured for tests
+  preset: "ts-jest",
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };

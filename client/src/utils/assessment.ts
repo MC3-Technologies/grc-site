@@ -452,6 +452,7 @@ class CompletedAssessment extends Assessment {
     owner: string | null;
     readonly createdAt: string;
     readonly updatedAt: string;
+    duration: number;
   }> => {
     try {
       // Fetch data
@@ -507,6 +508,7 @@ class CompletedAssessment extends Assessment {
       owner: string | null;
       readonly createdAt: string;
       readonly updatedAt: string;
+      duration: number;
     }[]
   > => {
     try {
