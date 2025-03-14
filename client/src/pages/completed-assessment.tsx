@@ -53,7 +53,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
 
   if (days > 0) {
@@ -134,7 +134,7 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam,
+            assessmentIdParam
           );
 
         // Create assessment and give assessment data
@@ -160,12 +160,44 @@ export function CompletedAssessmentView() {
     initialize().then(() => setLoading(false));
   }, []);
 
+  // Error component to show if errors
+  const errorFeedback = (message: string): React.JSX.Element => {
+    return (
+      <>
+        {(() => {
+          setTimeout(() => {
+            window.location.href = "/assessments/";
+          }, 5000);
+        })()}
+        <section className="bg-white dark:bg-gray-900">
+          <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
+            <div className="mx-auto max-w-screen-sm text-center">
+              <h1 className="mb-4 text-7xl tracking-tight font-extrabold lg:text-9xl text-primary-600 dark:text-primary-500">
+                Error
+              </h1>
+              <p className="mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl dark:text-white">
+                Something went wrong.
+              </p>
+
+              <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
+                There was an error fetching your assessment : {`${message}`}
+              </p>
+              <p className="mb-4 text-lg  text-gray-500 dark:text-gray-400 font-bold">
+                Redirecting you back to the assessments page in 5 seconds.
+              </p>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  };
+
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return (
-        <p className="text-red-600 dark:text-red-400">{`Error getting assessment! : ${pageData.error}`}</p>
+      return errorFeedback(
+        `There was an error fetching your completed assessment : ${pageData.error}`
       );
     }
     // If fetching assessment successful
@@ -218,7 +250,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {calculateDuration(
                         assessmentData.createdAt,
-                        assessmentData.completedAt,
+                        assessmentData.completedAt
                       )}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -332,8 +364,8 @@ export function CompletedAssessmentView() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return (
-      <p>{`Error getting assessment, fetching operation never started!`}</p>
+    return errorFeedback(
+      "Error getting assessment, fetching operation never started!"
     );
   };
 
@@ -358,5 +390,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>,
+  </StrictMode>
 );

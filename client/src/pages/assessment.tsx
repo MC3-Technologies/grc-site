@@ -41,7 +41,7 @@ const sanitizeAssessmentData = (data: unknown): unknown => {
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
         sanitized[key] = sanitizeAssessmentData(
-          (data as Record<string, unknown>)[key],
+          (data as Record<string, unknown>)[key]
         );
       }
     }
@@ -93,7 +93,7 @@ const safeNavigate = (path: string): void => {
     window.location.href = path;
   } else {
     console.warn(
-      `Ignoring navigation attempt to ${path} (already on this page or unsafe)`,
+      `Ignoring navigation attempt to ${path} (already on this page or unsafe)`
     );
   }
 };
@@ -140,7 +140,7 @@ export function Assessment() {
       if (!modalRef.current) return;
 
       const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
 
       if (focusableElements.length === 0) return;
@@ -160,7 +160,7 @@ export function Assessment() {
         }
       }
     },
-    [],
+    []
   );
 
   // Initialize Flowbite only once
@@ -179,7 +179,7 @@ export function Assessment() {
 
     // Set initial focus on first focusable element
     const focusableElements = modalRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
 
     if (focusableElements.length > 0) {
@@ -319,7 +319,7 @@ export function Assessment() {
         // Grab assessment storage json
         const assessmentJsonData =
           await InProgressAssessment.fetchAssessmentStorageData(
-            assessmentIdParam,
+            assessmentIdParam
           );
 
         // Create assessment and give assessment data and current page
@@ -353,7 +353,7 @@ export function Assessment() {
               const jsonString = JSON.stringify(
                 sanitizeAssessmentData(updatedAssessment.getData()),
                 null,
-                2,
+                2
               );
               const blob = new Blob([jsonString], { type: "application/json" });
               const file = new File(
@@ -361,14 +361,14 @@ export function Assessment() {
                 `${sanitizeAssessmentId(currentAssessmentId)}.json`,
                 {
                   type: "application/json",
-                },
+                }
               );
 
               await InProgressAssessment.updateAssessment(
                 currentAssessmentId,
                 updatedAssessment.currentPageNo,
                 updatedAssessment.progressValue,
-                file,
+                file
               );
 
               console.info("Successfully saved assessment!");
@@ -384,7 +384,7 @@ export function Assessment() {
         const handleCompletionError = (error: unknown): void => {
           console.error(`Error completing assessment: ${error}`);
           setErrorMessage(
-            "There was an error completing your assessment. Please try again.",
+            "There was an error completing your assessment. Please try again."
           );
           setShowErrorModal(true);
           setSaving(false);
@@ -402,7 +402,7 @@ export function Assessment() {
           // Mark assessment as complete and submit final data
           if (!currentAssessmentId) {
             console.error(
-              "Cannot complete assessment, no assessment ID found!",
+              "Cannot complete assessment, no assessment ID found!"
             );
             return;
           }
@@ -410,7 +410,7 @@ export function Assessment() {
           try {
             // Get final assessment data
             const finalAssessmentData = sanitizeAssessmentData(
-              assessment.getData(),
+              assessment.getData()
             );
             const jsonString = JSON.stringify(finalAssessmentData, null, 2);
             const blob = new Blob([jsonString], { type: "application/json" });
@@ -419,7 +419,7 @@ export function Assessment() {
               `${sanitizeAssessmentId(currentAssessmentId)}.json`,
               {
                 type: "application/json",
-              },
+              }
             );
 
             // First update with 100% progress
@@ -427,13 +427,13 @@ export function Assessment() {
               currentAssessmentId,
               assessment.currentPageNo,
               100, // Set to 100% complete
-              file,
+              file
             );
 
             // Now create a completed assessment record and remove from in-progress
             await CompletedAssessment.completeInProgressAssessment(
               file,
-              currentAssessmentId,
+              currentAssessmentId
             );
 
             handleCompletionSuccess();
@@ -451,14 +451,48 @@ export function Assessment() {
       }
     };
 
-    initialize().then(() => setLoading(false));
+    initialize().finally(() => {
+      setLoading(false);
+    });
   }, []);
+
+  // Error component to show if errors
+  const errorFeedback = (message: string): React.JSX.Element => {
+    return (
+      <>
+        {(() => {
+          setTimeout(() => {
+            window.location.href = "/assessments/";
+          }, 5000);
+        })()}
+        <section className="bg-white dark:bg-gray-900">
+          <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
+            <div className="mx-auto max-w-screen-sm text-center">
+              <h1 className="mb-4 text-7xl tracking-tight font-extrabold lg:text-9xl text-primary-600 dark:text-primary-500">
+                Error
+              </h1>
+              <p className="mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl dark:text-white">
+                Something went wrong.
+              </p>
+
+              <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
+                There was an error fetching your assessment : {`${message}`}
+              </p>
+              <p className="mb-4 text-lg  text-gray-500 dark:text-gray-400 font-bold">
+                Redirecting you back to the assessments page in 5 seconds.
+              </p>
+            </div>
+          </div>
+        </section>
+      </>
+    );
+  };
 
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return <p>{`Error getting assessment! : ${pageData.error}`}</p>;
+      return errorFeedback(pageData.error);
     }
     // If fetching assessment successful
     if (pageData.assessment) {
@@ -521,9 +555,7 @@ export function Assessment() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return (
-      <p>{`Error getting assessment, fetching operation never started! No assessment found. Please try again later.`}</p>
-    );
+    return errorFeedback("Assessment fetching operation never initialized");
   };
 
   return (
@@ -699,5 +731,5 @@ export function Assessment() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessment />
-  </StrictMode>,
+  </StrictMode>
 );
