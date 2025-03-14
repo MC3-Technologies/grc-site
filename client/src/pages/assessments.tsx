@@ -77,6 +77,44 @@ interface Toast {
   type: "error" | "success" | "info";
 }
 
+type DeleteAssessmentButtonProps = {
+  handler: (id: string) => Promise<void>;
+  assessmentId: string;
+};
+
+const DeleteAssessmentButton: React.FC<DeleteAssessmentButtonProps> = ({
+  handler,
+  assessmentId,
+}): React.JSX.Element => {
+  const [deleting, setDeleting] = useState<boolean>(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await handler(assessmentId)
+      .catch((err) => {
+        console.error(`Error deleting assessment : ${err}`);
+      })
+      .finally(() => {
+        setDeleting(false);
+      });
+  };
+
+  return (
+    <>
+      {deleting ? (
+        <Spinner />
+      ) : (
+        <button
+          onClick={handleDelete}
+          className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+        >
+          Delete
+        </button>
+      )}
+    </>
+  );
+};
+
 export function Assessments() {
   // Completed assessments state
   const [completedAssessments, setCompletedAssessments] = useState<
@@ -166,7 +204,7 @@ export function Assessments() {
     };
 
     // Call initialize function then set laoding to false
-    initialize().then(() => {
+    initialize().finally(() => {
       setLoading(false);
     });
   }, [addToast]);
@@ -452,16 +490,10 @@ export function Assessments() {
                               >
                                 Continue
                               </a>
-                              <button
-                                onClick={() =>
-                                  handleDeleteInProgressAssessment(
-                                    assessment.id,
-                                  )
-                                }
-                                className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                              >
-                                Delete
-                              </button>
+                              <DeleteAssessmentButton
+                                handler={handleDeleteInProgressAssessment}
+                                assessmentId={assessment.id}
+                              />
                             </div>
                           </div>
                         ))}
@@ -607,14 +639,10 @@ export function Assessments() {
                               >
                                 View
                               </button>
-                              <button
-                                onClick={() =>
-                                  handleDeleteCompleteAssessment(assessment.id)
-                                }
-                                className="bg-red-600 hover:bg-red-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                              >
-                                Delete
-                              </button>
+                              <DeleteAssessmentButton
+                                handler={handleDeleteCompleteAssessment}
+                                assessmentId={assessment.id}
+                              />
                             </div>
                           </div>
                         ))}
