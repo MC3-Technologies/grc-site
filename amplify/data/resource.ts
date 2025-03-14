@@ -17,6 +17,7 @@ const schema = a.schema({
       isCompliant: a.boolean().required(),
       storagePath: a.string().required(),
       version: a.string().required(),
+      duration: a.integer().required(),
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
@@ -29,6 +30,7 @@ const schema = a.schema({
       percentCompleted: a.integer().required(),
       storagePath: a.string().required(),
       version: a.string().required(),
+      startedAt: a.string().required(),
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),

@@ -117,6 +117,7 @@ class InProgressAssessment extends Assessment {
     owner: string | null;
     readonly createdAt: string;
     readonly updatedAt: string;
+    startedAt: string;
   }> => {
     try {
       // Fetch data
@@ -254,7 +255,7 @@ class InProgressAssessment extends Assessment {
     name: string,
     path: string,
   ): Promise<string> => {
-    // New assessment entry obkect
+    // New assessment entry object
     try {
       const newAssessment = {
         id: hash,
@@ -263,6 +264,7 @@ class InProgressAssessment extends Assessment {
         percentCompleted: 0,
         storagePath: path,
         version: "1",
+        startedAt: new Date().toISOString(),
       };
 
       // If errors, handle
@@ -375,7 +377,18 @@ class CompletedAssessment extends Assessment {
     // Get in progress assessment to complete data
     const assessmentToComplete =
       await InProgressAssessment.fetchAssessmentData(assessmentId);
-    const { name } = assessmentToComplete;
+    const { name, startedAt } = assessmentToComplete;
+
+    // Get current time for completedAt
+    const completedAt = new Date().toISOString();
+    
+    // Calculate duration in minutes
+    let duration = -1;
+    if (startedAt) {
+      const startTime = new Date(startedAt).getTime();
+      const endTime = new Date(completedAt).getTime();
+      duration = Math.max(0, Math.floor((endTime - startTime) / (1000 * 60)));
+    }
 
     // CALL SCORE CALCULATION METHOD HERE (NOT YET IMPLEMENTED) -- WILL USE TEMPORARY VARIABLES FOR NOW
     const complianceScore: number = 0;
@@ -395,6 +408,8 @@ class CompletedAssessment extends Assessment {
       completedAssessmentStoragePath,
       complianceScore,
       isCompliant,
+      duration,
+      completedAt
     ).catch((err) => {
       throw new Error(`Error creating completed assessment entry : ${err}`);
     });
@@ -518,15 +533,16 @@ class CompletedAssessment extends Assessment {
     path: string,
     complianceScore: number,
     isCompliant: boolean,
+    duration: number = -1,
+    completedAtTime?: string
   ): Promise<void> => {
     try {
       // Get completed at date
       const getCurrentDateTime = (): string => {
-        const now = new Date();
-        return now.toISOString();
+        return completedAtTime || new Date().toISOString();
       };
 
-      // New assessment entry objectect
+      // New assessment entry object
       const { errors, data } =
         await this.client.models.CompletedAssessment.create({
           id,
@@ -536,6 +552,7 @@ class CompletedAssessment extends Assessment {
           isCompliant,
           storagePath: path,
           version: "1",
+          duration,
         });
       // If errors, handle
       if (errors) {
