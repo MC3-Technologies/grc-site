@@ -57,7 +57,7 @@ export function Index() {
 
           <div className="grid md:grid-cols-2 gap-5 my-10 md:mx-0 mx-2">
             <a
-              href="/assessment/"
+              href="/assessments/"
               className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
               <div className="flex flex-col justify-between p-4 leading-normal">
