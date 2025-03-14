@@ -67,7 +67,7 @@ class InProgressAssessment extends Assessment {
     // Get storage path of assessment data blob
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
-        throw new Error(`Error deleting assessment from database: ${err}`);
+        throw new Error(`Error fetching assessment storage path: ${err}`);
       },
     );
 
@@ -346,7 +346,7 @@ class InProgressAssessment extends Assessment {
   private static _generateUrlSafeHash = (): string => {
     // Characters to use in hash
     const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let result = "";
     // Build random hash string
     for (let i = 0; i < 16; i++) {
