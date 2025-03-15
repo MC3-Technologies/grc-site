@@ -2,15 +2,52 @@ import { resetAllMocks, createTestAssessmentFile } from "./setup";
 import { __setMockIdentity } from "../../__mocks__/aws-amplify/auth";
 import { __setMockStorageItem } from "../../__mocks__/aws-amplify/storage";
 
+// Define types for the assessment classes
+interface IAssessmentBase {
+  __resetMockData: () => void;
+  __setMockAssessment: (assessment: AssessmentData) => void;
+}
+
+interface InProgressAssessmentData {
+  id: string;
+  name: string;
+  currentPage: number;
+  percentCompleted: number;
+  storagePath: string;
+  version: string;
+  startedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: string;
+  [key: string]: unknown;
+}
+
+interface CompletedAssessmentData {
+  id: string;
+  name: string;
+  completedAt: string;
+  complianceScore: number;
+  isCompliant: boolean;
+  storagePath: string;
+  version: string;
+  duration: number;
+  createdAt: string;
+  updatedAt: string;
+  owner: string;
+  [key: string]: unknown;
+}
+
+type AssessmentData = InProgressAssessmentData | CompletedAssessmentData;
+
 // Mock the assessment module
 jest.mock("../../utils/assessment", () => {
   // Create mock data storage
-  const inProgressAssessments = new Map();
-  const completedAssessments = new Map();
+  const inProgressAssessments = new Map<string, InProgressAssessmentData>();
+  const completedAssessments = new Map<string, CompletedAssessmentData>();
 
   // Create mock implementations
   const InProgressAssessment = {
-    createAssessment: jest.fn(async (name) => {
+    createAssessment: jest.fn(async (name: string) => {
       const id = `mock-id-${Date.now()}`;
       inProgressAssessments.set(id, {
         id,
@@ -31,7 +68,7 @@ jest.mock("../../utils/assessment", () => {
       return Array.from(inProgressAssessments.values());
     }),
 
-    fetchAssessmentData: jest.fn(async (id) => {
+    fetchAssessmentData: jest.fn(async (id: string) => {
       const assessment = inProgressAssessments.get(id);
       if (!assessment) {
         throw new Error("Error fetching in-progress assessments");
@@ -39,7 +76,7 @@ jest.mock("../../utils/assessment", () => {
       return assessment;
     }),
 
-    fetchAssessmentStorageData: jest.fn(async (id) => {
+    fetchAssessmentStorageData: jest.fn(async (id: string) => {
       const assessment = inProgressAssessments.get(id);
       if (!assessment) {
         throw new Error("Error getting assessment storage");
@@ -49,7 +86,9 @@ jest.mock("../../utils/assessment", () => {
     }),
 
     updateAssessment: jest.fn(
-      async (id, currentPage, percentCompleted, _file) => {
+      //_file is not used in the test, but is required by the function signature
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      async (id: string, currentPage: number, percentCompleted: number, _file: File) => {
         const assessment = inProgressAssessments.get(id);
         if (!assessment) {
           throw new Error("Error updating assessment");
@@ -66,7 +105,7 @@ jest.mock("../../utils/assessment", () => {
       },
     ),
 
-    deleteAssessment: jest.fn(async (id) => {
+    deleteAssessment: jest.fn(async (id: string) => {
       if (!inProgressAssessments.has(id)) {
         throw new Error("Error deleting assessment");
       }
@@ -78,7 +117,7 @@ jest.mock("../../utils/assessment", () => {
       inProgressAssessments.clear();
     },
 
-    __setMockAssessment: (assessment: Record<string, any>) => {
+    __setMockAssessment: (assessment: InProgressAssessmentData) => {
       inProgressAssessments.set(assessment.id, assessment);
     },
   };
@@ -88,7 +127,7 @@ jest.mock("../../utils/assessment", () => {
       return Array.from(completedAssessments.values());
     }),
 
-    fetchAssessmentData: jest.fn(async (id) => {
+    fetchAssessmentData: jest.fn(async (id: string) => {
       const assessment = completedAssessments.get(id);
       if (!assessment) {
         throw new Error("Error fetching completed assessments");
@@ -96,7 +135,7 @@ jest.mock("../../utils/assessment", () => {
       return assessment;
     }),
 
-    fetchAssessmentStorageData: jest.fn(async (id) => {
+    fetchAssessmentStorageData: jest.fn(async (id: string) => {
       const assessment = completedAssessments.get(id);
       if (!assessment) {
         throw new Error("Error getting assessment storage");
@@ -105,21 +144,21 @@ jest.mock("../../utils/assessment", () => {
       return JSON.stringify({ id, data: `Mock data for ${id}` });
     }),
 
-    deleteAssessment: jest.fn(async (id) => {
+    deleteAssessment: jest.fn(async (id: string) => {
       if (!completedAssessments.has(id)) {
         throw new Error("Error deleting assessment");
       }
       completedAssessments.delete(id);
     }),
 
-    completeInProgressAssessment: jest.fn(async (_file, assessmentId) => {
+    completeInProgressAssessment: jest.fn(async (_file: File, assessmentId: string) => {
       const inProgressAssessment = inProgressAssessments.get(assessmentId);
       if (!inProgressAssessment) {
         throw new Error("Error completing assessment - not found");
       }
 
       // Create completed assessment
-      const completedAssessment = {
+      const completedAssessment: CompletedAssessmentData = {
         id: assessmentId,
         name: inProgressAssessment.name,
         completedAt: new Date().toISOString(),
@@ -143,7 +182,7 @@ jest.mock("../../utils/assessment", () => {
       completedAssessments.clear();
     },
 
-    __setMockAssessment: (assessment: Record<string, any>) => {
+    __setMockAssessment: (assessment: CompletedAssessmentData) => {
       completedAssessments.set(assessment.id, assessment);
     },
   };
@@ -157,14 +196,18 @@ jest.mock("../../utils/assessment", () => {
 // Import after mocking
 import { InProgressAssessment, CompletedAssessment } from "../assessment";
 
+// Create typings for the mocked assessment classes with their test-specific methods
+type InProgressAssessmentWithMockMethods = typeof InProgressAssessment & IAssessmentBase;
+type CompletedAssessmentWithMockMethods = typeof CompletedAssessment & IAssessmentBase;
+
 // Reset mocks before each test
 beforeEach(() => {
   resetAllMocks();
   __setMockIdentity("test-user-id");
 
   // Also reset our assessment mocks' data
-  (InProgressAssessment as any).__resetMockData();
-  (CompletedAssessment as any).__resetMockData();
+  (InProgressAssessment as InProgressAssessmentWithMockMethods).__resetMockData();
+  (CompletedAssessment as CompletedAssessmentWithMockMethods).__resetMockData();
 });
 
 describe("InProgressAssessment", () => {
@@ -188,7 +231,7 @@ describe("InProgressAssessment", () => {
   describe("fetchAllAssessments", () => {
     test("should return all in-progress assessments", async () => {
       // Arrange
-      const testData = [
+      const testData: InProgressAssessmentData[] = [
         {
           id: "test-id-1",
           name: "Test Assessment 1",
@@ -217,7 +260,7 @@ describe("InProgressAssessment", () => {
 
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (InProgressAssessment as any).__setMockAssessment(assessment),
+        (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(assessment),
       );
 
       // Act
@@ -234,7 +277,7 @@ describe("InProgressAssessment", () => {
     test("should return assessment data by id", async () => {
       // Arrange
       const testId = "test-id-1";
-      const testAssessment = {
+      const testAssessment: InProgressAssessmentData = {
         id: testId,
         name: "Test Assessment",
         currentPage: 3,
@@ -247,7 +290,7 @@ describe("InProgressAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as any).__setMockAssessment(testAssessment);
+      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(testAssessment);
 
       // Act
       const result = await InProgressAssessment.fetchAssessmentData(testId);
@@ -270,7 +313,7 @@ describe("InProgressAssessment", () => {
     test("should update an existing assessment", async () => {
       // Arrange
       const testId = "test-id-1";
-      const testAssessment = {
+      const testAssessment: InProgressAssessmentData = {
         id: testId,
         name: "Test Assessment",
         currentPage: 0,
@@ -283,7 +326,7 @@ describe("InProgressAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as any).__setMockAssessment(testAssessment);
+      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         question1: "answer1",
       });
@@ -308,7 +351,7 @@ describe("InProgressAssessment", () => {
     test("should delete an assessment and its storage", async () => {
       // Arrange
       const testId = "test-id-1";
-      const testAssessment = {
+      const testAssessment: InProgressAssessmentData = {
         id: testId,
         name: "Test Assessment",
         currentPage: 0,
@@ -321,7 +364,7 @@ describe("InProgressAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as any).__setMockAssessment(testAssessment);
+      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         question1: "answer1",
       });
@@ -345,7 +388,7 @@ describe("CompletedAssessment", () => {
   describe("fetchAllCompletedAssessments", () => {
     test("should return all completed assessments", async () => {
       // Arrange
-      const testData = [
+      const testData: CompletedAssessmentData[] = [
         {
           id: "completed-id-1",
           name: "Completed Assessment 1",
@@ -376,7 +419,7 @@ describe("CompletedAssessment", () => {
 
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (CompletedAssessment as any).__setMockAssessment(assessment),
+        (CompletedAssessment as CompletedAssessmentWithMockMethods).__setMockAssessment(assessment),
       );
 
       // Act
@@ -395,7 +438,7 @@ describe("CompletedAssessment", () => {
     test("should transition an in-progress assessment to completed", async () => {
       // Arrange
       const testId = "test-id-to-complete";
-      const inProgressAssessment = {
+      const inProgressAssessment: InProgressAssessmentData = {
         id: testId,
         name: "Test Assessment to Complete",
         currentPage: 10,
@@ -408,7 +451,7 @@ describe("CompletedAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as any).__setMockAssessment(inProgressAssessment);
+      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(inProgressAssessment);
       __setMockStorageItem(inProgressAssessment.storagePath, {
         allAnswersCompleted: true,
       });
@@ -446,7 +489,7 @@ describe("CompletedAssessment", () => {
     test("should return completed assessment data by id", async () => {
       // Arrange
       const testId = "completed-test-id";
-      const testAssessment = {
+      const testAssessment: CompletedAssessmentData = {
         id: testId,
         name: "Completed Test Assessment",
         completedAt: new Date().toISOString(),
@@ -460,7 +503,7 @@ describe("CompletedAssessment", () => {
         owner: "test-user-id",
       };
 
-      (CompletedAssessment as any).__setMockAssessment(testAssessment);
+      (CompletedAssessment as CompletedAssessmentWithMockMethods).__setMockAssessment(testAssessment);
 
       // Act
       const result = await CompletedAssessment.fetchAssessmentData(testId);
@@ -477,7 +520,7 @@ describe("CompletedAssessment", () => {
     test("should delete a completed assessment and its storage", async () => {
       // Arrange
       const testId = "completed-test-id";
-      const testAssessment = {
+      const testAssessment: CompletedAssessmentData = {
         id: testId,
         name: "Completed Test Assessment",
         completedAt: new Date().toISOString(),
@@ -491,7 +534,7 @@ describe("CompletedAssessment", () => {
         owner: "test-user-id",
       };
 
-      (CompletedAssessment as any).__setMockAssessment(testAssessment);
+      (CompletedAssessment as CompletedAssessmentWithMockMethods).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         allAnswersCompleted: true,
       });

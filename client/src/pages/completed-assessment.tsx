@@ -161,6 +161,7 @@ export function CompletedAssessmentView() {
   }, []);
 
   // Error component to show if errors
+<<<<<<< Updated upstream
   type ErrorFeedbackProps = {
     message: string;
   };
@@ -176,6 +177,15 @@ export function CompletedAssessmentView() {
       return () => clearTimeout(timer);
     }, []);
 
+=======
+  const errorFeedback = (message: string): React.JSX.Element => {
+    // Instead of using useEffect, we'll use setTimeout directly
+    // and render the component with a message about redirection
+    setTimeout(() => {
+      window.location.href = "/assessments/";
+    }, 5000);
+    
+>>>>>>> Stashed changes
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
@@ -187,11 +197,10 @@ export function CompletedAssessmentView() {
               <p className="mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl dark:text-white">
                 Something went wrong.
               </p>
-
               <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
-                There was an error fetching your assessment : {`${message}`}
+                There was an error fetching your assessment: {message}
               </p>
-              <p className="mb-4 text-lg  text-gray-500 dark:text-gray-400 font-bold">
+              <p className="mb-4 text-lg text-gray-500 dark:text-gray-400 font-bold">
                 Redirecting you back to the assessments page in 5 seconds.
               </p>
             </div>

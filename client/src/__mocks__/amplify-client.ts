@@ -1,33 +1,58 @@
 // Mock implementation for the Amplify client schema models
 
+// Define types for assessments
+interface BaseAssessment {
+  id: string;
+  name: string;
+  storagePath: string;
+  version: string;
+  owner: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
+}
+
+interface InProgressAssessmentModel extends BaseAssessment {
+  currentPage: number;
+  percentCompleted: number;
+  startedAt: string;
+}
+
+interface CompletedAssessmentModel extends BaseAssessment {
+  completedAt: string;
+  complianceScore: number;
+  isCompliant: boolean;
+  duration: number;
+}
+
+// Type for database model items
+type ModelItem = InProgressAssessmentModel | CompletedAssessmentModel;
+
 // Mock storage for database records
-const mockInProgressAssessments = new Map<string, any>();
-const mockCompletedAssessments = new Map<string, any>();
+const mockInProgressAssessments = new Map<string, InProgressAssessmentModel>();
+const mockCompletedAssessments = new Map<string, CompletedAssessmentModel>();
 
-// Define a type that matches what our tests are expecting
-type ModelItem = Record<string, any>;
-
-const createMockModel = (storage: Map<string, ModelItem>) => {
+const createMockModel = <T extends ModelItem>(storage: Map<string, T>) => {
   return {
-    create: jest.fn(async (item: ModelItem) => {
+    create: jest.fn(async (item: T) => {
       storage.set(item.id, {
         ...item,
         createdAt: item.createdAt || new Date().toISOString(),
         updatedAt: item.updatedAt || new Date().toISOString(),
-      });
+      } as T);
       return { data: storage.get(item.id), errors: null };
     }),
 
-    update: jest.fn(async (item: ModelItem) => {
+    update: jest.fn(async (item: Partial<T> & { id: string }) => {
       if (!storage.has(item.id)) {
         return { data: null, errors: [{ message: "Item not found" }] };
       }
-      const existingItem = storage.get(item.id);
+      const existingItem = storage.get(item.id)!;
       const updatedItem = {
         ...existingItem,
         ...item,
         updatedAt: new Date().toISOString(),
-      };
+      } as T;
       storage.set(item.id, updatedItem);
       return { data: updatedItem, errors: null };
     }),
@@ -57,8 +82,8 @@ const createMockModel = (storage: Map<string, ModelItem>) => {
 // Create mock client with models
 export const MockClient = {
   models: {
-    InProgressAssessment: createMockModel(mockInProgressAssessments),
-    CompletedAssessment: createMockModel(mockCompletedAssessments),
+    InProgressAssessment: createMockModel<InProgressAssessmentModel>(mockInProgressAssessments),
+    CompletedAssessment: createMockModel<CompletedAssessmentModel>(mockCompletedAssessments),
   },
 };
 
@@ -82,17 +107,17 @@ export const __resetMockClient = () => {
 };
 
 // Add test data
-export const __setMockInProgressAssessment = (assessment: any) => {
+export const __setMockInProgressAssessment = (assessment: Partial<InProgressAssessmentModel> & { id: string }) => {
   mockInProgressAssessments.set(assessment.id, {
-    ...assessment,
+    ...assessment as InProgressAssessmentModel,
     createdAt: assessment.createdAt || new Date().toISOString(),
     updatedAt: assessment.updatedAt || new Date().toISOString(),
   });
 };
 
-export const __setMockCompletedAssessment = (assessment: any) => {
+export const __setMockCompletedAssessment = (assessment: Partial<CompletedAssessmentModel> & { id: string }) => {
   mockCompletedAssessments.set(assessment.id, {
-    ...assessment,
+    ...assessment as CompletedAssessmentModel,
     createdAt: assessment.createdAt || new Date().toISOString(),
     updatedAt: assessment.updatedAt || new Date().toISOString(),
   });
