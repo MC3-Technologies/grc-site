@@ -23,7 +23,7 @@ const logNestedInfo = (obj: any, indent: number = 0): void => {
 };
 
 export const chatRequest = async (
-  messages: ChatHistoryMessage[]
+  messages: ChatHistoryMessage[],
 ): Promise<ChatHistoryMessage[]> => {
   if (!env.OPEN_AI_API_KEY) {
     console.error("Missing OpenAI API Key!");
