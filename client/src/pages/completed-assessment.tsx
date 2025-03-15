@@ -162,6 +162,7 @@ export function CompletedAssessmentView() {
 
   // Error component to show if errors
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
   type ErrorFeedbackProps = {
     message: string;
   };
@@ -178,6 +179,8 @@ export function CompletedAssessmentView() {
     }, []);
 
 =======
+=======
+>>>>>>> Stashed changes
   const errorFeedback = (message: string): React.JSX.Element => {
     // Instead of using useEffect, we'll use setTimeout directly
     // and render the component with a message about redirection
@@ -185,6 +188,9 @@ export function CompletedAssessmentView() {
       window.location.href = "/assessments/";
     }, 5000);
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     return (
       <>
