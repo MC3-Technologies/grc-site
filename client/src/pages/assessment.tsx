@@ -456,8 +456,12 @@ export function Assessment() {
     });
   }, []);
 
+
+  type ErrorFeedbackProps = {
+    message:string
+  }
   // Error component to show if errors
-  const errorFeedback = (message: string): React.JSX.Element => {
+  const ErrorFeedback:React.FC<ErrorFeedbackProps> = ({message}): React.JSX.Element => {
     useEffect(() => {
       const timer = setTimeout(() => {
         window.location.href = "/assessments/";
@@ -495,7 +499,7 @@ export function Assessment() {
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return errorFeedback(pageData.error);
+      return <ErrorFeedback message={pageData.error}/>
     }
     // If fetching assessment successful
     if (pageData.assessment) {
@@ -594,7 +598,7 @@ export function Assessment() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return errorFeedback("Assessment fetching operation never initialized");
+    return <ErrorFeedback message="Assessment fetching operation never initialized"/>
   };
 
   return (
