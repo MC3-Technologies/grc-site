@@ -199,13 +199,4 @@ To create new tests that use the mocking infrastructure:
 6. **Isolated Storage**: Each test should set up its own storage items and not rely on side effects from other tests.
 
 7. **Realistic Test Data**: Create test data that closely resembles real data structures.
-
----
-
-By implementing this mocking strategy, you can thoroughly test AWS Amplify-dependent code without:
-- Incurring AWS charges
-- Requiring network connectivity
-- Creating external test dependencies
-- Suffering slow test execution
-
-The tests will run quickly, reliably, and without any external AWS infrastructure requirements. 
+ 
