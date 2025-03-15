@@ -53,7 +53,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
 
   if (days > 0) {
@@ -134,7 +134,7 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam,
+            assessmentIdParam
           );
 
         // Create assessment and give assessment data
@@ -161,13 +161,18 @@ export function CompletedAssessmentView() {
   }, []);
 
   // Error component to show if errors
-  const errorFeedback = (message: string): React.JSX.Element => {
+  type ErrorFeedbackProps = {
+    message: string;
+  };
+  // Error component to show if errors
+  const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
+    message,
+  }): React.JSX.Element => {
     useEffect(() => {
       const timer = setTimeout(() => {
         window.location.href = "/assessments/";
       }, 5000);
 
-      // Clean up the timer on unmount
       return () => clearTimeout(timer);
     }, []);
 
@@ -200,8 +205,10 @@ export function CompletedAssessmentView() {
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`,
+      return (
+        <ErrorFeedback
+          message={`There was an error fetching your completed assessment : ${pageData.error}`}
+        />
       );
     }
     // If fetching assessment successful
@@ -254,7 +261,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {calculateDuration(
                         assessmentData.createdAt,
-                        assessmentData.completedAt,
+                        assessmentData.completedAt
                       )}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -368,8 +375,8 @@ export function CompletedAssessmentView() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return errorFeedback(
-      "Error getting assessment, fetching operation never started!",
+    return (
+      <ErrorFeedback message="Error getting assessment, fetching operation never started!" />
     );
   };
 
@@ -394,5 +401,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>,
+  </StrictMode>
 );
