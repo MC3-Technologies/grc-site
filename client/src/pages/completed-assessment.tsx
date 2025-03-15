@@ -166,11 +166,11 @@ export function CompletedAssessmentView() {
       const timer = setTimeout(() => {
         window.location.href = "/assessments/";
       }, 5000);
-      
+
       // Clean up the timer on unmount
       return () => clearTimeout(timer);
     }, []);
-    
+
     return (
       <>
         <section className="bg-white dark:bg-gray-900">

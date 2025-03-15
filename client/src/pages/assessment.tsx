@@ -476,7 +476,7 @@ export function Assessment() {
     setTimeout(() => {
       window.location.href = "/assessments/";
     }, 5000);
-    
+
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
@@ -582,7 +582,7 @@ export function Assessment() {
             </div>
 
             <Survey model={pageData.assessment} />
-            
+
             {/* Bottom Progress Bar */}
             <div className="mt-6">
               <div className="flex justify-between mb-1">

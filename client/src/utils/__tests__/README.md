@@ -1,6 +1,7 @@
 # AWS Amplify Testing Documentation
 
 ## Table of Contents
+
 1. [Overview](#overview)
 2. [Mocking Strategy](#mocking-strategy)
 3. [Test Coverage](#test-coverage)
@@ -17,15 +18,18 @@ This documentation describes the unit testing approach implemented for the asses
 
 The testing framework mocks three key AWS/Amplify service categories:
 
-1. **AWS Amplify Client (DataStore)**: 
+1. **AWS Amplify Client (DataStore)**:
+
    - Location: `client/src/__mocks__/amplify-client.ts`
    - Purpose: Mocks all database interactions without requiring actual DynamoDB connections
 
 2. **AWS Storage (S3)**:
+
    - Location: `client/src/__mocks__/aws-amplify/storage.ts`
    - Purpose: Mocks file storage operations (upload, download, delete) using in-memory Maps
 
 3. **AWS Authentication (Cognito)**:
+
    - Location: `client/src/__mocks__/aws-amplify/auth.ts`
    - Purpose: Mocks user authentication and identity management
 
@@ -38,6 +42,7 @@ The testing framework mocks three key AWS/Amplify service categories:
 #### 1. AWS Amplify Client Mock
 
 The mock client implementation:
+
 - Creates in-memory Maps to store assessment data
 - Handles CRUD operations (create, read, update, delete)
 - Provides helper methods for test setup (`__resetMockClient`, `__setMockInProgressAssessment`, etc.)
@@ -46,6 +51,7 @@ The mock client implementation:
 #### 2. Storage Mock
 
 The storage mock:
+
 - Uses a `Map<string, Blob>` to store file data in memory
 - Implements `uploadData`, `downloadData`, and `remove` functions
 - Simulates S3 bucket operations locally
@@ -54,13 +60,15 @@ The storage mock:
 #### 3. Authentication Mock
 
 The auth mock:
-- Simulates user identity with `fetchAuthSession` 
+
+- Simulates user identity with `fetchAuthSession`
 - Returns test identity IDs and tokens
 - Provides a helper method `__setMockIdentity` to customize test user identity
 
 #### 4. Assessment Module Mock
 
 The test directly mocks the assessment module with:
+
 - In-memory storage for in-progress and completed assessments
 - Full implementations of all assessment methods (create, fetch, update, delete)
 - Helper methods for test setup and assertions
@@ -69,6 +77,7 @@ The test directly mocks the assessment module with:
 ### Setup Integration
 
 All mocks are integrated through the `setup.ts` file, which:
+
 - Configures the Jest test environment
 - Applies all required mocks using `jest.mock()`
 - Provides utility functions for resetting test state
@@ -79,16 +88,20 @@ All mocks are integrated through the `setup.ts` file, which:
 The test suite covers the following assessment functionality:
 
 ### InProgressAssessment Tests
+
 1. **Creating Assessments**
+
    - Creating new assessments with proper metadata
    - Verifying generated IDs and timestamps
 
 2. **Fetching Assessments**
+
    - Retrieving all in-progress assessments
    - Fetching specific assessment data by ID
    - Error handling for non-existent assessments
 
 3. **Updating Assessments**
+
    - Updating progress information (currentPage, percentCompleted)
    - Ensuring proper timestamps are updated
 
@@ -97,15 +110,19 @@ The test suite covers the following assessment functionality:
    - Verifying both database and storage deletion
 
 ### CompletedAssessment Tests
+
 1. **Fetching Completed Assessments**
+
    - Retrieving all completed assessments
    - Fetching specific completed assessment data
 
 2. **Completing Assessments**
+
    - Converting in-progress to completed assessments
    - Verifying completion metadata (compliance score, completion time)
 
 3. **Storage Operations**
+
    - Testing storage data retrieval
    - Verifying proper file paths and content
 
@@ -115,12 +132,14 @@ The test suite covers the following assessment functionality:
 ## Setup Instructions
 
 ### Prerequisites
+
 - Node.js (v16+)
 - npm or yarn
 
 ### Installation
 
 1. Install dependencies:
+
    ```bash
    cd client
    npm install
@@ -133,11 +152,13 @@ The test suite covers the following assessment functionality:
 ### Running Tests
 
 1. Run the entire test suite:
+
    ```bash
    npm test
    ```
 
 2. Run tests in watch mode (for development):
+
    ```bash
    npm run test:watch
    ```
@@ -152,29 +173,33 @@ The test suite covers the following assessment functionality:
 To create new tests that use the mocking infrastructure:
 
 1. Import helpers from setup:
+
    ```typescript
-   import { resetAllMocks } from './setup';
+   import { resetAllMocks } from "./setup";
    ```
 
 2. Import any required mock setup functions:
+
    ```typescript
-   import { __setMockIdentity } from '../../__mocks__/aws-amplify/auth';
-   import { __setMockStorageItem } from '../../__mocks__/aws-amplify/storage';
+   import { __setMockIdentity } from "../../__mocks__/aws-amplify/auth";
+   import { __setMockStorageItem } from "../../__mocks__/aws-amplify/storage";
    ```
 
 3. Reset mocks before each test:
+
    ```typescript
    beforeEach(() => {
      resetAllMocks();
-     __setMockIdentity('test-user-id');
+     __setMockIdentity("test-user-id");
    });
    ```
 
 4. Create test data:
+
    ```typescript
    const testAssessment = {
-     id: 'test-id-1',
-     name: 'Test Assessment',
+     id: "test-id-1",
+     name: "Test Assessment",
      // other required properties
    };
    ```
@@ -199,4 +224,3 @@ To create new tests that use the mocking infrastructure:
 6. **Isolated Storage**: Each test should set up its own storage items and not rely on side effects from other tests.
 
 7. **Realistic Test Data**: Create test data that closely resembles real data structures.
- 
