@@ -456,20 +456,21 @@ export function Assessment() {
     });
   }, []);
 
-
   type ErrorFeedbackProps = {
-    message:string
-  }
+    message: string;
+  };
   // Error component to show if errors
-  const ErrorFeedback:React.FC<ErrorFeedbackProps> = ({message}): React.JSX.Element => {
+  const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
+    message,
+  }): React.JSX.Element => {
     useEffect(() => {
       const timer = setTimeout(() => {
         window.location.href = "/assessments/";
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }, []);
-    
+
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
@@ -499,7 +500,7 @@ export function Assessment() {
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return <ErrorFeedback message={pageData.error}/>
+      return <ErrorFeedback message={pageData.error} />;
     }
     // If fetching assessment successful
     if (pageData.assessment) {
@@ -575,7 +576,7 @@ export function Assessment() {
             </div>
 
             <Survey model={pageData.assessment} />
-            
+
             {/* Bottom Progress Bar */}
             <div className="mt-6">
               <div className="flex justify-between mb-1">
@@ -598,7 +599,9 @@ export function Assessment() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return <ErrorFeedback message="Assessment fetching operation never initialized"/>
+    return (
+      <ErrorFeedback message="Assessment fetching operation never initialized" />
+    );
   };
 
   return (

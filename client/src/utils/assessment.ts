@@ -381,7 +381,7 @@ class CompletedAssessment extends Assessment {
 
     // Get current time for completedAt
     const completedAt = new Date().toISOString();
-    
+
     // Calculate duration in minutes
     let duration = -1;
     if (startedAt) {
@@ -409,7 +409,7 @@ class CompletedAssessment extends Assessment {
       complianceScore,
       isCompliant,
       duration,
-      completedAt
+      completedAt,
     ).catch((err) => {
       throw new Error(`Error creating completed assessment entry : ${err}`);
     });
@@ -534,7 +534,7 @@ class CompletedAssessment extends Assessment {
     complianceScore: number,
     isCompliant: boolean,
     duration: number = -1,
-    completedAtTime?: string
+    completedAtTime?: string,
   ): Promise<void> => {
     try {
       // Get completed at date
