@@ -1,14 +1,14 @@
 // Mock implementation for auth functions
 export const fetchAuthSession = jest.fn(async () => {
   return {
-    identityId: 'test-identity-id',
+    identityId: "test-identity-id",
     tokens: {
       accessToken: {
         payload: {
-          'cognito:groups': ['test-group']
-        }
-      }
-    }
+          "cognito:groups": ["test-group"],
+        },
+      },
+    },
   };
 });
 
@@ -25,10 +25,10 @@ export const __setMockIdentity = (identityId: string) => {
       tokens: {
         accessToken: {
           payload: {
-            'cognito:groups': ['test-group']
-          }
-        }
-      }
+            "cognito:groups": ["test-group"],
+          },
+        },
+      },
     };
   });
-}; 
+};
