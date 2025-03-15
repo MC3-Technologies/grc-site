@@ -162,14 +162,6 @@ export function CompletedAssessmentView() {
 
   // Error component to show if errors
   const errorFeedback = (message: string): React.JSX.Element => {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        window.location.href = "/assessments/";
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }, []);
-    
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
@@ -194,6 +186,17 @@ export function CompletedAssessmentView() {
       </>
     );
   };
+
+  // Add redirection effect when there's an error
+  useEffect(() => {
+    if (pageData.error) {
+      const timer = setTimeout(() => {
+        window.location.href = "/assessments/";
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [pageData.error]);
 
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {

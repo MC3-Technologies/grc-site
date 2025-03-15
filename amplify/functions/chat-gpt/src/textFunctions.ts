@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { env } from "$amplify/env/chat-gpt";
+import { env } from "$amplify/env/chat-gpt1";
 
 export interface ChatHistoryMessage {
   role: "system" | "user" | "assistant";
@@ -25,11 +25,11 @@ const logNestedInfo = (obj: any, indent: number = 0): void => {
 export const chatRequest = async (
   messages: ChatHistoryMessage[]
 ): Promise<ChatHistoryMessage[]> => {
-  if (!env.OPEN_AI_API_KEY) {
+  if (!env.OPENAI_API_KEY) {
     console.error("Missing OpenAI API Key!");
     throw new Error("Missing OpenAI API Key!");
   }
-  const openai = new OpenAI({ apiKey: env.OPEN_AI_API_KEY });
+  const openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
 
   try {
     const completion = await openai.chat.completions.create({
