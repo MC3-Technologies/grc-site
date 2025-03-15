@@ -161,12 +161,10 @@ export function CompletedAssessmentView() {
   }, []);
 
   // Error component to show if errors
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
   type ErrorFeedbackProps = {
     message: string;
   };
+  
   // Error component to show if errors
   const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
     message,
@@ -179,25 +177,6 @@ export function CompletedAssessmentView() {
       return () => clearTimeout(timer);
     }, []);
 
-=======
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-  const errorFeedback = (message: string): React.JSX.Element => {
-    // Instead of using useEffect, we'll use setTimeout directly
-    // and render the component with a message about redirection
-    setTimeout(() => {
-      window.location.href = "/assessments/";
-    }, 5000);
-    
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
