@@ -88,7 +88,12 @@ jest.mock("../../utils/assessment", () => {
     updateAssessment: jest.fn(
       //_file is not used in the test, but is required by the function signature
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      async (id: string, currentPage: number, percentCompleted: number, _file: File) => {
+      async (
+        id: string,
+        currentPage: number,
+        percentCompleted: number,
+        _file: File,
+      ) => {
         const assessment = inProgressAssessments.get(id);
         if (!assessment) {
           throw new Error("Error updating assessment");
@@ -151,31 +156,33 @@ jest.mock("../../utils/assessment", () => {
       completedAssessments.delete(id);
     }),
 
-    completeInProgressAssessment: jest.fn(async (_file: File, assessmentId: string) => {
-      const inProgressAssessment = inProgressAssessments.get(assessmentId);
-      if (!inProgressAssessment) {
-        throw new Error("Error completing assessment - not found");
-      }
+    completeInProgressAssessment: jest.fn(
+      async (_file: File, assessmentId: string) => {
+        const inProgressAssessment = inProgressAssessments.get(assessmentId);
+        if (!inProgressAssessment) {
+          throw new Error("Error completing assessment - not found");
+        }
 
-      // Create completed assessment
-      const completedAssessment: CompletedAssessmentData = {
-        id: assessmentId,
-        name: inProgressAssessment.name,
-        completedAt: new Date().toISOString(),
-        complianceScore: 85,
-        isCompliant: true,
-        storagePath: `assessments/test-user-id/completed/${assessmentId}.json`,
-        version: "1",
-        duration: 60,
-        owner: "test-user-id",
-        createdAt: inProgressAssessment.createdAt,
-        updatedAt: new Date().toISOString(),
-      };
+        // Create completed assessment
+        const completedAssessment: CompletedAssessmentData = {
+          id: assessmentId,
+          name: inProgressAssessment.name,
+          completedAt: new Date().toISOString(),
+          complianceScore: 85,
+          isCompliant: true,
+          storagePath: `assessments/test-user-id/completed/${assessmentId}.json`,
+          version: "1",
+          duration: 60,
+          owner: "test-user-id",
+          createdAt: inProgressAssessment.createdAt,
+          updatedAt: new Date().toISOString(),
+        };
 
-      // Add to completed, remove from in-progress
-      completedAssessments.set(assessmentId, completedAssessment);
-      inProgressAssessments.delete(assessmentId);
-    }),
+        // Add to completed, remove from in-progress
+        completedAssessments.set(assessmentId, completedAssessment);
+        inProgressAssessments.delete(assessmentId);
+      },
+    ),
 
     // For testing purposes - not in original
     __resetMockData: () => {
@@ -197,8 +204,10 @@ jest.mock("../../utils/assessment", () => {
 import { InProgressAssessment, CompletedAssessment } from "../assessment";
 
 // Create typings for the mocked assessment classes with their test-specific methods
-type InProgressAssessmentWithMockMethods = typeof InProgressAssessment & IAssessmentBase;
-type CompletedAssessmentWithMockMethods = typeof CompletedAssessment & IAssessmentBase;
+type InProgressAssessmentWithMockMethods = typeof InProgressAssessment &
+  IAssessmentBase;
+type CompletedAssessmentWithMockMethods = typeof CompletedAssessment &
+  IAssessmentBase;
 
 // Reset mocks before each test
 beforeEach(() => {
@@ -206,7 +215,9 @@ beforeEach(() => {
   __setMockIdentity("test-user-id");
 
   // Also reset our assessment mocks' data
-  (InProgressAssessment as InProgressAssessmentWithMockMethods).__resetMockData();
+  (
+    InProgressAssessment as InProgressAssessmentWithMockMethods
+  ).__resetMockData();
   (CompletedAssessment as CompletedAssessmentWithMockMethods).__resetMockData();
 });
 
@@ -260,7 +271,9 @@ describe("InProgressAssessment", () => {
 
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(assessment),
+        (
+          InProgressAssessment as InProgressAssessmentWithMockMethods
+        ).__setMockAssessment(assessment),
       );
 
       // Act
@@ -290,7 +303,9 @@ describe("InProgressAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(testAssessment);
+      (
+        InProgressAssessment as InProgressAssessmentWithMockMethods
+      ).__setMockAssessment(testAssessment);
 
       // Act
       const result = await InProgressAssessment.fetchAssessmentData(testId);
@@ -326,7 +341,9 @@ describe("InProgressAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(testAssessment);
+      (
+        InProgressAssessment as InProgressAssessmentWithMockMethods
+      ).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         question1: "answer1",
       });
@@ -364,7 +381,9 @@ describe("InProgressAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(testAssessment);
+      (
+        InProgressAssessment as InProgressAssessmentWithMockMethods
+      ).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         question1: "answer1",
       });
@@ -419,7 +438,9 @@ describe("CompletedAssessment", () => {
 
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (CompletedAssessment as CompletedAssessmentWithMockMethods).__setMockAssessment(assessment),
+        (
+          CompletedAssessment as CompletedAssessmentWithMockMethods
+        ).__setMockAssessment(assessment),
       );
 
       // Act
@@ -451,7 +472,9 @@ describe("CompletedAssessment", () => {
         owner: "test-user-id",
       };
 
-      (InProgressAssessment as InProgressAssessmentWithMockMethods).__setMockAssessment(inProgressAssessment);
+      (
+        InProgressAssessment as InProgressAssessmentWithMockMethods
+      ).__setMockAssessment(inProgressAssessment);
       __setMockStorageItem(inProgressAssessment.storagePath, {
         allAnswersCompleted: true,
       });
@@ -503,7 +526,9 @@ describe("CompletedAssessment", () => {
         owner: "test-user-id",
       };
 
-      (CompletedAssessment as CompletedAssessmentWithMockMethods).__setMockAssessment(testAssessment);
+      (
+        CompletedAssessment as CompletedAssessmentWithMockMethods
+      ).__setMockAssessment(testAssessment);
 
       // Act
       const result = await CompletedAssessment.fetchAssessmentData(testId);
@@ -534,7 +559,9 @@ describe("CompletedAssessment", () => {
         owner: "test-user-id",
       };
 
-      (CompletedAssessment as CompletedAssessmentWithMockMethods).__setMockAssessment(testAssessment);
+      (
+        CompletedAssessment as CompletedAssessmentWithMockMethods
+      ).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         allAnswersCompleted: true,
       });

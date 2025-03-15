@@ -53,7 +53,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
 
   if (days > 0) {
@@ -134,7 +134,7 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam
+            assessmentIdParam,
           );
 
         // Create assessment and give assessment data
@@ -164,7 +164,7 @@ export function CompletedAssessmentView() {
   type ErrorFeedbackProps = {
     message: string;
   };
-  
+
   // Error component to show if errors
   const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
     message,
@@ -261,7 +261,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {calculateDuration(
                         assessmentData.createdAt,
-                        assessmentData.completedAt
+                        assessmentData.completedAt,
                       )}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -401,5 +401,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>
+  </StrictMode>,
 );

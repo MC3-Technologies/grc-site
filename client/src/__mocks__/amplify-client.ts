@@ -82,8 +82,12 @@ const createMockModel = <T extends ModelItem>(storage: Map<string, T>) => {
 // Create mock client with models
 export const MockClient = {
   models: {
-    InProgressAssessment: createMockModel<InProgressAssessmentModel>(mockInProgressAssessments),
-    CompletedAssessment: createMockModel<CompletedAssessmentModel>(mockCompletedAssessments),
+    InProgressAssessment: createMockModel<InProgressAssessmentModel>(
+      mockInProgressAssessments,
+    ),
+    CompletedAssessment: createMockModel<CompletedAssessmentModel>(
+      mockCompletedAssessments,
+    ),
   },
 };
 
@@ -107,17 +111,21 @@ export const __resetMockClient = () => {
 };
 
 // Add test data
-export const __setMockInProgressAssessment = (assessment: Partial<InProgressAssessmentModel> & { id: string }) => {
+export const __setMockInProgressAssessment = (
+  assessment: Partial<InProgressAssessmentModel> & { id: string },
+) => {
   mockInProgressAssessments.set(assessment.id, {
-    ...assessment as InProgressAssessmentModel,
+    ...(assessment as InProgressAssessmentModel),
     createdAt: assessment.createdAt || new Date().toISOString(),
     updatedAt: assessment.updatedAt || new Date().toISOString(),
   });
 };
 
-export const __setMockCompletedAssessment = (assessment: Partial<CompletedAssessmentModel> & { id: string }) => {
+export const __setMockCompletedAssessment = (
+  assessment: Partial<CompletedAssessmentModel> & { id: string },
+) => {
   mockCompletedAssessments.set(assessment.id, {
-    ...assessment as CompletedAssessmentModel,
+    ...(assessment as CompletedAssessmentModel),
     createdAt: assessment.createdAt || new Date().toISOString(),
     updatedAt: assessment.updatedAt || new Date().toISOString(),
   });
