@@ -86,14 +86,13 @@ jest.mock("../../utils/assessment", () => {
     }),
 
     updateAssessment: jest.fn(
-      //_file is not used in the test, but is required by the function signature
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       async (
         id: string,
         currentPage: number,
         percentCompleted: number,
-        _file: File,
+        _file: File
       ) => {
+        console.info(`File ${_file.name} recieved.`);
         const assessment = inProgressAssessments.get(id);
         if (!assessment) {
           throw new Error("Error updating assessment");
@@ -107,7 +106,7 @@ jest.mock("../../utils/assessment", () => {
         });
 
         return;
-      },
+      }
     ),
 
     deleteAssessment: jest.fn(async (id: string) => {
@@ -181,7 +180,7 @@ jest.mock("../../utils/assessment", () => {
         // Add to completed, remove from in-progress
         completedAssessments.set(assessmentId, completedAssessment);
         inProgressAssessments.delete(assessmentId);
-      },
+      }
     ),
 
     // For testing purposes - not in original
@@ -273,7 +272,7 @@ describe("InProgressAssessment", () => {
       testData.forEach((assessment) =>
         (
           InProgressAssessment as InProgressAssessmentWithMockMethods
-        ).__setMockAssessment(assessment),
+        ).__setMockAssessment(assessment)
       );
 
       // Act
@@ -319,7 +318,7 @@ describe("InProgressAssessment", () => {
     test("should throw error for non-existent id", async () => {
       // Act & Assert
       await expect(
-        InProgressAssessment.fetchAssessmentData("non-existent-id"),
+        InProgressAssessment.fetchAssessmentData("non-existent-id")
       ).rejects.toThrow("Error fetching in-progress assessments");
     });
   });
@@ -350,7 +349,7 @@ describe("InProgressAssessment", () => {
 
       const newFile = createTestAssessmentFile(
         { question1: "updated-answer" },
-        `${testId}.json`,
+        `${testId}.json`
       );
 
       // Act
@@ -397,7 +396,7 @@ describe("InProgressAssessment", () => {
 
       // Check storage was deleted
       await expect(
-        InProgressAssessment.fetchAssessmentStorageData(testId),
+        InProgressAssessment.fetchAssessmentStorageData(testId)
       ).rejects.toThrow("Error getting assessment storage");
     });
   });
@@ -440,7 +439,7 @@ describe("CompletedAssessment", () => {
       testData.forEach((assessment) =>
         (
           CompletedAssessment as CompletedAssessmentWithMockMethods
-        ).__setMockAssessment(assessment),
+        ).__setMockAssessment(assessment)
       );
 
       // Act
@@ -481,13 +480,13 @@ describe("CompletedAssessment", () => {
 
       const completedFile = createTestAssessmentFile(
         { allAnswersCompleted: true },
-        `${testId}.json`,
+        `${testId}.json`
       );
 
       // Act
       await CompletedAssessment.completeInProgressAssessment(
         completedFile,
-        testId,
+        testId
       );
 
       // Assert
