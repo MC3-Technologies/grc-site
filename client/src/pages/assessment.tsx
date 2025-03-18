@@ -19,6 +19,19 @@ import { redirectToAssessments } from "../utils/routing";
 
 type PageData = {
   assessment: Model | null;
+  assessmentData: {
+    id: string;
+    name: string;
+    completedAt: string;
+    complianceScore: number;
+    isCompliant: boolean;
+    storagePath: string;
+    version: string;
+    owner: string | null;
+    readonly createdAt: string;
+    readonly updatedAt: string;
+    duration: number;
+  } | null;
   error: string | null;
 };
 
@@ -102,6 +115,7 @@ export function Assessment() {
   // Page data state
   const [pageData, setPageData] = useState<PageData>({
     assessment: null,
+    assessmentData: null,
     error: null,
   });
 
@@ -456,20 +470,12 @@ export function Assessment() {
     });
   }, []);
 
-  type ErrorFeedbackProps = {
-    message: string;
-  };
   // Error component to show if errors
-  const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
-    message,
-  }): React.JSX.Element => {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        window.location.href = "/assessments/";
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }, []);
+  const errorFeedback = (message: string): React.JSX.Element => {
+    // Set up redirect without rendering in JSX
+    setTimeout(() => {
+      window.location.href = "/assessments/";
+    }, 5000);
 
     return (
       <>
@@ -500,7 +506,7 @@ export function Assessment() {
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return <ErrorFeedback message={pageData.error} />;
+      return errorFeedback(pageData.error);
     }
     // If fetching assessment successful
     if (pageData.assessment) {
@@ -599,9 +605,7 @@ export function Assessment() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return (
-      <ErrorFeedback message="Assessment fetching operation never initialized" />
-    );
+    return errorFeedback("Assessment fetching operation never initialized");
   };
 
   return (

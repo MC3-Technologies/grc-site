@@ -8,5 +8,5 @@ export const assessmentStorage = defineStorage({
     ],
   }),
   isDefault: true,
-  versioned:true
+  versioned: true,
 });

@@ -161,14 +161,24 @@ export function CompletedAssessmentView() {
   }, []);
 
   // Error component to show if errors
-  const errorFeedback = (message: string): React.JSX.Element => {
+  type ErrorFeedbackProps = {
+    message: string;
+  };
+
+  // Error component to show if errors
+  const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
+    message,
+  }): React.JSX.Element => {
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        window.location.href = "/assessments/";
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }, []);
+
     return (
       <>
-        {(() => {
-          setTimeout(() => {
-            window.location.href = "/assessments/";
-          }, 5000);
-        })()}
         <section className="bg-white dark:bg-gray-900">
           <div className="py-8 px-4 mx-auto max-w-screen-xl lg:py-16 lg:px-6">
             <div className="mx-auto max-w-screen-sm text-center">
@@ -178,11 +188,10 @@ export function CompletedAssessmentView() {
               <p className="mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl dark:text-white">
                 Something went wrong.
               </p>
-
               <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
-                There was an error fetching your assessment : {`${message}`}
+                There was an error fetching your assessment: {message}
               </p>
-              <p className="mb-4 text-lg  text-gray-500 dark:text-gray-400 font-bold">
+              <p className="mb-4 text-lg text-gray-500 dark:text-gray-400 font-bold">
                 Redirecting you back to the assessments page in 5 seconds.
               </p>
             </div>
@@ -196,8 +205,10 @@ export function CompletedAssessmentView() {
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`,
+      return (
+        <ErrorFeedback
+          message={`There was an error fetching your completed assessment : ${pageData.error}`}
+        />
       );
     }
     // If fetching assessment successful
@@ -364,8 +375,8 @@ export function CompletedAssessmentView() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return errorFeedback(
-      "Error getting assessment, fetching operation never started!",
+    return (
+      <ErrorFeedback message="Error getting assessment, fetching operation never started!" />
     );
   };
 
