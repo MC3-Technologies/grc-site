@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, KeyboardEvent } from "react";
 import ChatMessage from "./ChatMessage";
-// import { getClientSchema } from "../amplify/schema";
+import { getClientSchema } from "../amplify/schema";
 import { getCurrentUser, User, ListenData } from "../amplify/auth";
 import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
@@ -29,7 +29,8 @@ const initialSystemMessage: ChatHistoryMessage = {
   You prioritize clear, actionable guidance tailored to small businesses and non-technical users. \
   You do provide assistance on general cybersecurity, IT support. \
   If a request does not pertain to *CMMC Level 1, Level 2,  Level 3, or cybersecurity related matters*, politely decline and redirect the user to official CMMC resources at https://dodcio.defense.gov/CMMC/. \
-  Ensure responses are *clear, concise, and aligned with official DoD requirements*.",
+  Ensure responses are *clear, concise, and aligned with official DoD requirements*. \
+  Make sure you responses are concise and users are able to understand the answer to their question with the least amount of reading. ",
 };
 
 const Chat = () => {
@@ -42,7 +43,7 @@ const Chat = () => {
   const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
 
   // Chatting functions related state
-  // const [client] = useState(getClientSchema());
+  const [client] = useState(getClientSchema());
   const [messages, setMessages] = useState<ChatHistoryMessage[]>([
     initialSystemMessage,
   ]);
@@ -144,7 +145,7 @@ const Chat = () => {
 
   // Handle input change.
   const handleCurrentMessageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setCurrentMessage(event.target.value);
   };
@@ -179,60 +180,52 @@ const Chat = () => {
     setCurrentMessage("");
 
     // TEMPORARY -- COMMENT OUT FOR PRODUCTION
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Our chat bot is currently disabled! Please check back later.",
-        },
-      ]);
-      setResponseLoading(false);
-    }, 500);
-
-    // try {
-    //   // Request response from GPT completion function using previous currentMessages copy
-    //   const response = await client.queries.gptCompletion({
-    //     messages: JSON.stringify([
-    //       ...messages,
-    //       { role: "user", content: currentMessage },
-    //     ]),
-    //   });
-    //   console.info(response);
-    //   console.info();
-    //   // If no response data, set error state
-    //   if (
-    //     !response.data ||
-    //     Object.keys(JSON.parse(JSON.parse(response.data as string))).length ===
-    //       0
-    //   ) {
-    //     console.error("Error fetching completion response.");
-    //     // setError("Error fetching response, please try again.");
-    //     setMessages((prev) => [
-    //       ...prev,
-    //       {
-    //         role: "error",
-    //         content: "Error fetching response, please try again.",
-    //       },
-    //     ]);
-    //     return;
-    //   }
-
-    //   // Otherwise double parse response for response messages array and set messages state
-    //   const parsedMessages = JSON.parse(
-    //     JSON.parse(response.data as string)
-    //   ) as ChatHistoryMessage[];
-    //   console.info(parsedMessages);
-    //   setMessages(parsedMessages);
-    // } catch (error) {
-    //   console.error("Error fetching response:", error);
-    //   // Set error and set response loading to false to unlock send message
-    //   setError(`Error fetching response: ${error}`);
-    // } finally {
-    //   // Set response loading to false to unlock send message
+    // setTimeout(() => {
+    //   setMessages((prev) => [
+    //     ...prev,
+    //     {
+    //       role: "assistant",
+    //       content:
+    //         "Our chat bot is currently disabled! Please check back later.",
+    //     },
+    //   ]);
     //   setResponseLoading(false);
-    // }
+    // }, 500);
+
+    try {
+      // Request response from GPT completion function using previous currentMessages copy
+      const response = await client.queries.gptCompletion({
+        messages: JSON.stringify([
+          ...messages,
+          { role: "user", content: currentMessage },
+        ]),
+      });
+
+      // If no response data, set error state
+      if (
+        !response.data ||
+        Object.keys(JSON.parse(JSON.parse(response.data as string))).length ===
+          0
+      ) {
+        console.error("Error fetching completion response.");
+        setError("Error fetching response, please try again.");
+        return;
+      }
+
+      // Otherwise double parse response for response messages array and set messages state
+      const parsedMessages = JSON.parse(
+        JSON.parse(response.data as string),
+      ) as ChatHistoryMessage[];
+      // console.info(parsedMessages);
+      setMessages(parsedMessages);
+    } catch (error) {
+      console.error("Error fetching response:", error);
+      // Set error and set response loading to false to unlock send message
+      setError(`Error fetching response: ${error}`);
+    } finally {
+      // Set response loading to false to unlock send message
+      setResponseLoading(false);
+    }
   };
 
   return (
@@ -443,6 +436,12 @@ const Chat = () => {
                         <div className="animate-pulse text-gray-400">
                           Thinking...
                         </div>
+                      </div>
+                    )}
+
+                    {error && (
+                      <div>
+                        <ChatMessage role="error" message={error} />
                       </div>
                     )}
                   </>

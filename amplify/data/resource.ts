@@ -8,6 +8,33 @@ specifies that any unauthenticated user can "create", "read", "update",
 and "delete" any "Todo" records.
 =========================================================================*/
 const schema = a.schema({
+  CompletedAssessment: a
+    .model({
+      id: a.id().required(),
+      name: a.string().required(),
+      completedAt: a.string().required(),
+      complianceScore: a.integer().required(),
+      isCompliant: a.boolean().required(),
+      storagePath: a.string().required(),
+      version: a.string().required(),
+      duration: a.integer().required(),
+    })
+    .authorization((allow) => [
+      allow.owner().to(["read", "create", "update", "delete"]),
+    ]),
+  InProgressAssessment: a
+    .model({
+      id: a.id().required(),
+      name: a.string().required(),
+      currentPage: a.integer().required(),
+      percentCompleted: a.integer().required(),
+      storagePath: a.string().required(),
+      version: a.string().required(),
+      startedAt: a.string().required(),
+    })
+    .authorization((allow) => [
+      allow.owner().to(["read", "create", "update", "delete"]),
+    ]),
   gptCompletion: a
     .query()
     .arguments({
