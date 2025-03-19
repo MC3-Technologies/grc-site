@@ -93,13 +93,21 @@ jest.mock("../../amplify/schema", () => ({
     },
     mutations: {
       // @ts-expect-error - Jest mock resolution
-      approveUser: jest.fn().mockResolvedValue(true),
+      approveUser: jest.fn().mockResolvedValue({
+        data: JSON.stringify(true),
+      }),
       // @ts-expect-error - Jest mock resolution
-      rejectUser: jest.fn().mockResolvedValue(true),
+      rejectUser: jest.fn().mockResolvedValue({
+        data: JSON.stringify(true),
+      }),
       // @ts-expect-error - Jest mock resolution
-      suspendUser: jest.fn().mockResolvedValue(true),
+      suspendUser: jest.fn().mockResolvedValue({
+        data: JSON.stringify(true),
+      }),
       // @ts-expect-error - Jest mock resolution
-      reactivateUser: jest.fn().mockResolvedValue(true),
+      reactivateUser: jest.fn().mockResolvedValue({
+        data: JSON.stringify(true),
+      }),
       // @ts-expect-error - Jest mock resolution
       createUser: jest.fn().mockResolvedValue({
         data: JSON.stringify(mockCreatedUser),
