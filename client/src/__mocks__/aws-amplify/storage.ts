@@ -45,7 +45,7 @@ export const __resetMockStorage = () => {
 };
 
 // Utility to pre-populate mock storage with test data
-export const __setMockStorageItem = (path: string, data: any) => {
+export const __setMockStorageItem = (path: string, data: unknown) => {
   const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
   mockStorageData.set(path, blob);
 }; 
