@@ -14,9 +14,9 @@ const AdminQuestionnaire = () => {
     surveyJson.pages.map((page: any, index: number) => ({
       ...page,
       id: `page-${index}`,
-    }))
+    })),
   );
-  
+
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
 
@@ -37,7 +37,7 @@ const AdminQuestionnaire = () => {
   };
 
   // Find the selected page object
-  const selectedPageObj = pages.find(page => page.id === selectedPage);
+  const selectedPageObj = pages.find((page) => page.id === selectedPage);
 
   // Format the element type
   const formatElementType = (type: string) => {
@@ -76,7 +76,8 @@ const AdminQuestionnaire = () => {
               >
                 <div className="font-medium">{page.title}</div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {page.elements.length} question{page.elements.length !== 1 ? "s" : ""}
+                  {page.elements.length} question
+                  {page.elements.length !== 1 ? "s" : ""}
                 </div>
               </button>
             ))}
@@ -101,9 +102,7 @@ const AdminQuestionnaire = () => {
                     >
                       Cancel
                     </button>
-                    <button
-                      className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
-                    >
+                    <button className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
                       Save Changes
                     </button>
                   </>
@@ -121,7 +120,8 @@ const AdminQuestionnaire = () => {
             {editMode ? (
               <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
-                  Note: In future milestones, we'll implement a visual editor for questions and their logic.
+                  Note: In future milestones, we'll implement a visual editor
+                  for questions and their logic.
                 </p>
                 <textarea
                   className="w-full h-80 p-2 border border-gray-300 rounded-lg dark:bg-gray-800 dark:border-gray-600 dark:text-white"
@@ -132,8 +132,8 @@ const AdminQuestionnaire = () => {
             ) : (
               <div className="space-y-4">
                 {selectedPageObj?.elements.map((element, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="p-4 border border-gray-200 rounded-lg dark:border-gray-700"
                   >
                     <div className="flex justify-between">
@@ -163,18 +163,25 @@ const AdminQuestionnaire = () => {
                           Options:
                         </div>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
-                          {element.choices.map((choice: any, choiceIndex: number) => (
-                            <li key={choiceIndex}>
-                              {typeof choice === 'object' ? choice.text : choice}
-                            </li>
-                          ))}
+                          {element.choices.map(
+                            (choice: any, choiceIndex: number) => (
+                              <li key={choiceIndex}>
+                                {typeof choice === "object"
+                                  ? choice.text
+                                  : choice}
+                              </li>
+                            ),
+                          )}
                         </ul>
                       </div>
                     )}
 
                     {element.visibleIf && (
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        <span className="font-medium">Conditional Display:</span> {element.visibleIf}
+                        <span className="font-medium">
+                          Conditional Display:
+                        </span>{" "}
+                        {element.visibleIf}
                       </div>
                     )}
                   </div>
@@ -184,19 +191,31 @@ const AdminQuestionnaire = () => {
           </div>
         ) : (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 p-8 text-center">
-            <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            <svg
+              className="w-12 h-12 mx-auto mb-4 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              ></path>
             </svg>
             <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
               Select a Section
             </h3>
             <p className="text-gray-500 dark:text-gray-400">
-              Choose a questionnaire section from the list to view its questions.
+              Choose a questionnaire section from the list to view its
+              questions.
             </p>
           </div>
         )}
       </div>
-      
+
       {/* Version Control UI - For future implementation */}
       <div className="w-full mt-6">
         <div className="p-4 text-center bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">

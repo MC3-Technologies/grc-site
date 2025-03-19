@@ -34,18 +34,18 @@ export const userStatusOperations = {
         role: "user",
         registrationDate: new Date().toISOString(),
       };
-      
+
       // Define the table name from environment or default
       const tableName = amplifyEnv.USER_STATUS_TABLE || "UserStatus";
-      
+
       // Write directly to DynamoDB
       const putCommand = new PutCommand({
         TableName: tableName,
         Item: userStatusData,
       });
-      
+
       await docClient.send(putCommand);
-      
+
       console.log(`Created UserStatus record for ${email} with pending status`);
       return true;
     } catch (error) {
@@ -53,5 +53,5 @@ export const userStatusOperations = {
       // If this is not critical for the sign-up flow, we can continue
       return false;
     }
-  }
-}; 
+  },
+};

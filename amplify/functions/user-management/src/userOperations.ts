@@ -1,6 +1,6 @@
 // File: amplify/functions/user-management/src/userOperations.ts
-import { 
-  CognitoIdentityProviderClient, 
+import {
+  CognitoIdentityProviderClient,
   AdminAddUserToGroupCommand,
   AdminRemoveUserFromGroupCommand,
   AdminDisableUserCommand,
@@ -10,7 +10,7 @@ import {
   ListUsersCommand,
   MessageActionType,
   UserType,
-  AttributeType
+  AttributeType,
 } from "@aws-sdk/client-cognito-identity-provider";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { env } from "$amplify/env/user-management";
@@ -27,7 +27,11 @@ interface EmailOptions {
 }
 
 // Helper to send email notifications
-const sendEmail = async ({ to, subject, message }: EmailOptions): Promise<boolean> => {
+const sendEmail = async ({
+  to,
+  subject,
+  message,
+}: EmailOptions): Promise<boolean> => {
   try {
     const command = new SendEmailCommand({
       Destination: {
@@ -47,7 +51,7 @@ const sendEmail = async ({ to, subject, message }: EmailOptions): Promise<boolea
       },
       Source: env.EMAIL_SENDER,
     });
-    
+
     await ses.send(command);
     return true;
   } catch (error) {
@@ -73,17 +77,17 @@ export const userOperations = {
     try {
       const command = new ListUsersCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
-        Limit: 60
+        Limit: 60,
       });
-      
+
       const response = await cognito.send(command);
-      
+
       return (response.Users || []).map((user: UserType) => ({
-        email: user.Attributes?.find(attr => attr.Name === "email")?.Value,
+        email: user.Attributes?.find((attr) => attr.Name === "email")?.Value,
         status: user.UserStatus,
         enabled: user.Enabled,
         created: user.UserCreateDate,
-        lastModified: user.UserLastModifiedDate
+        lastModified: user.UserLastModifiedDate,
       }));
     } catch (error) {
       console.error("Error listing users:", error);
@@ -95,7 +99,7 @@ export const userOperations = {
   getUsersByStatus: async (status: string): Promise<UserData[]> => {
     try {
       const allUsers = await userOperations.listUsers();
-      return allUsers.filter(user => {
+      return allUsers.filter((user) => {
         switch (status) {
           case "pending":
             return user.status === "FORCE_CHANGE_PASSWORD";
@@ -118,11 +122,11 @@ export const userOperations = {
     try {
       const command = new AdminGetUserCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
-        Username: email
+        Username: email,
       });
-      
+
       const response = await cognito.send(command);
-      
+
       const attributes: Record<string, string> = {};
       if (response.UserAttributes) {
         response.UserAttributes.forEach((attr: AttributeType) => {
@@ -131,14 +135,14 @@ export const userOperations = {
           }
         });
       }
-      
+
       return {
         email,
         status: response.UserStatus,
         enabled: response.Enabled,
         created: response.UserCreateDate,
         lastModified: response.UserLastModifiedDate,
-        attributes
+        attributes,
       };
     } catch (error) {
       console.error(`Error getting user details for ${email}:`, error);
@@ -153,18 +157,18 @@ export const userOperations = {
       const addToGroupCommand = new AdminAddUserToGroupCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
         Username: email,
-        GroupName: "Approved-Users"
+        GroupName: "Approved-Users",
       });
-      
+
       await cognito.send(addToGroupCommand);
-      
+
       // Send approval email
       await sendEmail({
         to: email,
         subject: "Your Account Has Been Approved",
-        message: `<p>Hello,</p><p>Your account has been approved. You can now log in to the MC3 GRC platform.</p><p>Thank you,<br>MC3 Admin Team</p>`
+        message: `<p>Hello,</p><p>Your account has been approved. You can now log in to the MC3 GRC platform.</p><p>Thank you,<br>MC3 Admin Team</p>`,
       });
-      
+
       return true;
     } catch (error) {
       console.error(`Error approving user ${email}:`, error);
@@ -178,26 +182,26 @@ export const userOperations = {
       // Disable the user in Cognito
       const disableCommand = new AdminDisableUserCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
-        Username: email
+        Username: email,
       });
-      
+
       await cognito.send(disableCommand);
-      
+
       // Send rejection email
       const rejectionMessage = `
         <p>Hello,</p>
         <p>We regret to inform you that your account request has been rejected.</p>
-        ${reason ? `<p>Reason: ${reason}</p>` : ''}
+        ${reason ? `<p>Reason: ${reason}</p>` : ""}
         <p>If you believe this is an error, please contact our support team.</p>
         <p>Thank you,<br>MC3 Admin Team</p>
       `;
-      
+
       await sendEmail({
         to: email,
         subject: "Your Account Request Status",
-        message: rejectionMessage
+        message: rejectionMessage,
       });
-      
+
       return true;
     } catch (error) {
       console.error(`Error rejecting user ${email}:`, error);
@@ -211,26 +215,26 @@ export const userOperations = {
       // Disable the user in Cognito
       const disableCommand = new AdminDisableUserCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
-        Username: email
+        Username: email,
       });
-      
+
       await cognito.send(disableCommand);
-      
+
       // Send suspension email
       const suspensionMessage = `
         <p>Hello,</p>
         <p>Your account has been temporarily suspended.</p>
-        ${reason ? `<p>Reason: ${reason}</p>` : ''}
+        ${reason ? `<p>Reason: ${reason}</p>` : ""}
         <p>If you believe this is an error, please contact our support team.</p>
         <p>Thank you,<br>MC3 Admin Team</p>
       `;
-      
+
       await sendEmail({
         to: email,
         subject: "Your Account Has Been Suspended",
-        message: suspensionMessage
+        message: suspensionMessage,
       });
-      
+
       return true;
     } catch (error) {
       console.error(`Error suspending user ${email}:`, error);
@@ -244,18 +248,18 @@ export const userOperations = {
       // Enable the user in Cognito
       const enableCommand = new AdminEnableUserCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
-        Username: email
+        Username: email,
       });
-      
+
       await cognito.send(enableCommand);
-      
+
       // Send reactivation email
       await sendEmail({
         to: email,
         subject: "Your Account Has Been Reactivated",
-        message: `<p>Hello,</p><p>Your account has been reactivated. You can now log in to the MC3 GRC platform.</p><p>Thank you,<br>MC3 Admin Team</p>`
+        message: `<p>Hello,</p><p>Your account has been reactivated. You can now log in to the MC3 GRC platform.</p><p>Thank you,<br>MC3 Admin Team</p>`,
       });
-      
+
       return true;
     } catch (error) {
       console.error(`Error reactivating user ${email}:`, error);
@@ -264,14 +268,18 @@ export const userOperations = {
   },
 
   // Create user
-  createUser: async (email: string, role: string, sendEmailNotification: boolean = true): Promise<{success: boolean, user?: any, error?: string}> => {
+  createUser: async (
+    email: string,
+    role: string,
+    sendEmailNotification: boolean = true,
+  ): Promise<{ success: boolean; user?: any; error?: string }> => {
     try {
       // Generate a secure temporary password
       const tempPassword = Array(12)
         .fill(0)
         .map(() => Math.random().toString(36).charAt(2))
-        .join('');
-      
+        .join("");
+
       // Create user in Cognito
       const createCommand = new AdminCreateUserCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
@@ -279,46 +287,48 @@ export const userOperations = {
         UserAttributes: [
           {
             Name: "email",
-            Value: email
+            Value: email,
           },
           {
             Name: "email_verified",
-            Value: "true"
+            Value: "true",
           },
           {
             Name: "custom:role",
-            Value: role
-          }
+            Value: role,
+          },
         ],
         TemporaryPassword: tempPassword,
         // Fix for MessageAction type issue
-        MessageAction: sendEmailNotification ? "SEND" as MessageActionType : "SUPPRESS" as MessageActionType
+        MessageAction: sendEmailNotification
+          ? ("SEND" as MessageActionType)
+          : ("SUPPRESS" as MessageActionType),
       });
-      
+
       const response = await cognito.send(createCommand);
-      
+
       // Add to appropriate group
       const groupName = role === "admin" ? "GRC-Admin" : "Approved-Users";
-      
+
       const addToGroupCommand = new AdminAddUserToGroupCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
         Username: email,
-        GroupName: groupName
+        GroupName: groupName,
       });
-      
+
       await cognito.send(addToGroupCommand);
-      
+
       return {
         success: true,
-        user: response.User
+        user: response.User,
       };
     } catch (error) {
       console.error(`Error creating user ${email}:`, error);
       const typedError = error as Error;
       return {
         success: false,
-        error: typedError.message
+        error: typedError.message,
       };
     }
-  }
+  },
 };

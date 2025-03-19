@@ -7,6 +7,6 @@ export const preSignUpFunction = defineFunction({
   entry: "./handler.ts",
   environment: {
     USER_STATUS_TABLE: process.env.USER_STATUS_TABLE || "UserStatus",
-    REGION: process.env.REGION || "us-east-1"
-  }
+    REGION: process.env.REGION || "us-east-1",
+  },
 });

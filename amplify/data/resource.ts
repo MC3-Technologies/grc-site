@@ -59,14 +59,14 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
     ]),
-  
+
   // User management queries and mutations
   listUsers: a
     .query()
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   getUsersByStatus: a
     .query()
     .arguments({
@@ -75,7 +75,7 @@ const schema = a.schema({
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   getUserDetails: a
     .query()
     .arguments({
@@ -84,7 +84,7 @@ const schema = a.schema({
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   approveUser: a
     .mutation()
     .arguments({
@@ -93,7 +93,7 @@ const schema = a.schema({
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   rejectUser: a
     .mutation()
     .arguments({
@@ -103,7 +103,7 @@ const schema = a.schema({
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   suspendUser: a
     .mutation()
     .arguments({
@@ -113,7 +113,7 @@ const schema = a.schema({
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   reactivateUser: a
     .mutation()
     .arguments({
@@ -122,7 +122,7 @@ const schema = a.schema({
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-    
+
   createUser: a
     .mutation()
     .arguments({

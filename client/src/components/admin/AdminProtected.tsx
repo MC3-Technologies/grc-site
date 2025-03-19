@@ -46,7 +46,9 @@ const AdminProtected = ({ children }: AdminProtectedProps) => {
       <div className="flex justify-center items-center min-h-screen">
         <div className="text-center">
           <Spinner />
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Verifying admin access...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">
+            Verifying admin access...
+          </p>
         </div>
       </div>
     );

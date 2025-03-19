@@ -193,7 +193,7 @@ export function CompletedAssessmentView() {
       const timer = setTimeout(() => {
         window.location.href = "/assessments/";
       }, 5000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [pageData.error]);

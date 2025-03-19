@@ -22,14 +22,19 @@ export function AdminDashboard() {
 
   useEffect(() => {
     initFlowbite();
-    
+
     // Get section from URL if present
     const params = new URLSearchParams(window.location.search);
     const sectionParam = params.get("section");
-    if (sectionParam && ["home", "users", "assessments", "questionnaire", "reports"].includes(sectionParam)) {
+    if (
+      sectionParam &&
+      ["home", "users", "assessments", "questionnaire", "reports"].includes(
+        sectionParam,
+      )
+    ) {
       setActiveSection(sectionParam);
     }
-    
+
     setLoading(false);
   }, []);
 
@@ -61,9 +66,9 @@ export function AdminDashboard() {
             </div>
           ) : (
             <div className="flex flex-col md:flex-row">
-              <AdminSidebar 
-                activeSection={activeSection} 
-                setActiveSection={setActiveSection} 
+              <AdminSidebar
+                activeSection={activeSection}
+                setActiveSection={setActiveSection}
               />
               <div className="flex-1 p-4 md:p-6">
                 <div className="mb-6">
@@ -71,7 +76,9 @@ export function AdminDashboard() {
                     Admin Dashboard
                     {activeSection !== "home" && (
                       <span className="ml-2 text-gray-500 dark:text-gray-400">
-                        / {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)}
+                        /{" "}
+                        {activeSection.charAt(0).toUpperCase() +
+                          activeSection.slice(1)}
                       </span>
                     )}
                   </h1>
@@ -90,5 +97,5 @@ export function AdminDashboard() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AdminDashboard />
-  </StrictMode>
+  </StrictMode>,
 );

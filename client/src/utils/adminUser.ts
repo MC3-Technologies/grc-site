@@ -64,7 +64,10 @@ export const approveUser = async (email: string): Promise<boolean> => {
 };
 
 // Reject user
-export const rejectUser = async (email: string, reason?: string): Promise<boolean> => {
+export const rejectUser = async (
+  email: string,
+  reason?: string,
+): Promise<boolean> => {
   try {
     const client = getClientSchema();
     const response = await client.mutations.rejectUser({ email, reason });
@@ -77,7 +80,10 @@ export const rejectUser = async (email: string, reason?: string): Promise<boolea
 };
 
 // Suspend user
-export const suspendUser = async (email: string, reason?: string): Promise<boolean> => {
+export const suspendUser = async (
+  email: string,
+  reason?: string,
+): Promise<boolean> => {
   try {
     const client = getClientSchema();
     const response = await client.mutations.suspendUser({ email, reason });
@@ -114,19 +120,23 @@ export interface CreateUserResult {
 }
 
 export const createUser = async (
-  email: string, 
-  role: string, 
-  sendEmail = true
+  email: string,
+  role: string,
+  sendEmail = true,
 ): Promise<CreateUserResult> => {
   try {
     const client = getClientSchema();
-    const response = await client.mutations.createUser({ email, role, sendEmail });
+    const response = await client.mutations.createUser({
+      email,
+      role,
+      sendEmail,
+    });
     return JSON.parse(response.data as string) as CreateUserResult;
   } catch (error: unknown) {
     console.error(`Error creating user ${email}:`, error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 };
