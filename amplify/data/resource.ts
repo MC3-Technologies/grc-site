@@ -1,3 +1,4 @@
+// File: amplify/data/resource.ts
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { chatGptFunction } from "../functions/chat-gpt/resource";
 import { userManagementFunction } from "../functions/user-management/resource";
@@ -49,20 +50,21 @@ const schema = a.schema({
     .model({
       id: a.id().required(),
       email: a.string().required(),
-      status: a.enum(["pending", "active", "suspended"]),
+      status: a.enum(["pending", "active", "suspended", "rejected"]),
       role: a.enum(["user", "admin"]),
       lastLogin: a.string(),
       registrationDate: a.string().required(),
+      notes: a.string(), //optional
     })
     .authorization((allow) => [
-      allow.groups(["GRC-Admin"]).to(["read"]),
-      allow.groups(["GRC-Admin"]).to(["create", "update", "delete"]),
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
     ]),
   
   // User management queries and mutations
   listUsers: a
     .query()
     .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   getUsersByStatus: a
@@ -71,6 +73,7 @@ const schema = a.schema({
       status: a.string().required(),
     })
     .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   getUserDetails: a
@@ -79,6 +82,7 @@ const schema = a.schema({
       email: a.string().required(),
     })
     .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   approveUser: a
@@ -87,6 +91,7 @@ const schema = a.schema({
       email: a.string().required(),
     })
     .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   rejectUser: a
@@ -96,6 +101,7 @@ const schema = a.schema({
       reason: a.string(),
     })
     .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   suspendUser: a
@@ -105,6 +111,7 @@ const schema = a.schema({
       reason: a.string(),
     })
     .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   reactivateUser: a
@@ -113,6 +120,7 @@ const schema = a.schema({
       email: a.string().required(),
     })
     .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
     
   createUser: a
@@ -123,6 +131,7 @@ const schema = a.schema({
       sendEmail: a.boolean(),
     })
     .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
 });
 

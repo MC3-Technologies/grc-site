@@ -1,5 +1,5 @@
 import { defineAuth } from "@aws-amplify/backend";
-
+import { preSignUpFunction } from "../functions/auth-triggers/resource";
 /**
  * Define and configure your auth resource
  * @see https://docs.amplify.aws/gen2/build-a-backend/auth
@@ -21,5 +21,9 @@ export const auth = defineAuth({
     },
   },
 
-  groups: ["GRC-Admin"],
+  groups: ["GRC-Admin", "Approved-Users"],
+
+  triggers: {
+    preSignUp: preSignUpFunction,
+  },
 });
