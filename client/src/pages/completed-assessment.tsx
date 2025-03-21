@@ -111,7 +111,7 @@ export function CompletedAssessmentView() {
         window.removeEventListener("lightMode", handleLightMode);
       };
     }
-  });
+  }, [pageData.assessment]);
 
   useEffect(() => {
     // Initialization function
@@ -160,7 +160,7 @@ export function CompletedAssessmentView() {
     initialize().finally(() => setLoading(false));
   }, []);
 
-  // Error component to show if errors
+  // errorFeedback function to show error feedback and redirect after 5 seconds
   const errorFeedback = (message: string): React.JSX.Element => {
     return (
       <>
@@ -173,11 +173,10 @@ export function CompletedAssessmentView() {
               <p className="mb-4 text-3xl tracking-tight font-bold text-gray-900 md:text-4xl dark:text-white">
                 Something went wrong.
               </p>
-
               <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
                 There was an error fetching your assessment : {`${message}`}
               </p>
-              <p className="mb-4 text-lg  text-gray-500 dark:text-gray-400 font-bold">
+              <p className="mb-4 text-lg text-gray-500 dark:text-gray-400 font-bold">
                 Redirecting you back to the assessments page in 5 seconds.
               </p>
             </div>

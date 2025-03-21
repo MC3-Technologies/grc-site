@@ -9,6 +9,8 @@ import { assessmentStorage } from "./storage/resource";
 import { preSignUpFunction } from "./functions/auth-triggers/resource";
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
+import { assessmentStorage } from "./storage/resource";
+
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
  */

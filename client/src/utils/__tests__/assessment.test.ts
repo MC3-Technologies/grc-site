@@ -48,23 +48,19 @@ jest.mock("../../utils/assessment", () => {
       return JSON.stringify({ id, data: `Mock data for ${id}` });
     }),
 
-    updateAssessment: jest.fn(
-      async (id, currentPage, percentCompleted, _file) => {
-        const assessment = inProgressAssessments.get(id);
-        if (!assessment) {
-          throw new Error("Error updating assessment");
-        }
-
-        inProgressAssessments.set(id, {
-          ...assessment,
-          currentPage,
-          percentCompleted,
-          updatedAt: new Date().toISOString(),
-        });
-
-        return;
-      },
-    ),
+    updateAssessment: jest.fn(async (id, currentPage, percentCompleted, _file) => {
+      const assessment = inProgressAssessments.get(id);
+      if (!assessment) {
+        throw new Error("Error updating assessment");
+      }
+      inProgressAssessments.set(id, {
+        ...assessment,
+        currentPage,
+        percentCompleted,
+        updatedAt: new Date().toISOString(),
+      });
+      return;
+    }),
 
     deleteAssessment: jest.fn(async (id) => {
       if (!inProgressAssessments.has(id)) {
@@ -78,7 +74,7 @@ jest.mock("../../utils/assessment", () => {
       inProgressAssessments.clear();
     },
 
-    __setMockAssessment: (assessment: Record<string, any>) => {
+    __setMockAssessment: (assessment) => {
       inProgressAssessments.set(assessment.id, assessment);
     },
   };
@@ -117,7 +113,6 @@ jest.mock("../../utils/assessment", () => {
       if (!inProgressAssessment) {
         throw new Error("Error completing assessment - not found");
       }
-
       // Create completed assessment
       const completedAssessment = {
         id: assessmentId,
@@ -132,7 +127,6 @@ jest.mock("../../utils/assessment", () => {
         createdAt: inProgressAssessment.createdAt,
         updatedAt: new Date().toISOString(),
       };
-
       // Add to completed, remove from in-progress
       completedAssessments.set(assessmentId, completedAssessment);
       inProgressAssessments.delete(assessmentId);
@@ -143,7 +137,7 @@ jest.mock("../../utils/assessment", () => {
       completedAssessments.clear();
     },
 
-    __setMockAssessment: (assessment: Record<string, any>) => {
+    __setMockAssessment: (assessment) => {
       completedAssessments.set(assessment.id, assessment);
     },
   };
@@ -161,8 +155,6 @@ import { InProgressAssessment, CompletedAssessment } from "../assessment";
 beforeEach(() => {
   resetAllMocks();
   __setMockIdentity("test-user-id");
-
-  // Also reset our assessment mocks' data
   (InProgressAssessment as any).__resetMockData();
   (CompletedAssessment as any).__resetMockData();
 });
@@ -172,10 +164,8 @@ describe("InProgressAssessment", () => {
     test("should create a new assessment", async () => {
       // Arrange
       const testName = "Test Assessment";
-
       // Act
       const id = await InProgressAssessment.createAssessment(testName);
-
       // Assert
       expect(id).toBeTruthy();
       const assessments = await InProgressAssessment.fetchAllAssessments();
@@ -214,15 +204,12 @@ describe("InProgressAssessment", () => {
           owner: "test-user-id",
         },
       ];
-
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (InProgressAssessment as any).__setMockAssessment(assessment),
+        (InProgressAssessment as any).__setMockAssessment(assessment)
       );
-
       // Act
       const result = await InProgressAssessment.fetchAllAssessments();
-
       // Assert
       expect(result.length).toBe(2);
       expect(result[0].name).toBe("Test Assessment 1");
@@ -246,12 +233,9 @@ describe("InProgressAssessment", () => {
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       };
-
       (InProgressAssessment as any).__setMockAssessment(testAssessment);
-
       // Act
       const result = await InProgressAssessment.fetchAssessmentData(testId);
-
       // Assert
       expect(result.id).toBe(testId);
       expect(result.name).toBe("Test Assessment");
@@ -261,7 +245,7 @@ describe("InProgressAssessment", () => {
     test("should throw error for non-existent id", async () => {
       // Act & Assert
       await expect(
-        InProgressAssessment.fetchAssessmentData("non-existent-id"),
+        InProgressAssessment.fetchAssessmentData("non-existent-id")
       ).rejects.toThrow("Error fetching in-progress assessments");
     });
   });
@@ -282,23 +266,18 @@ describe("InProgressAssessment", () => {
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       };
-
       (InProgressAssessment as any).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         question1: "answer1",
       });
-
       const newFile = createTestAssessmentFile(
         { question1: "updated-answer" },
-        `${testId}.json`,
+        `${testId}.json`
       );
-
       // Act
       await InProgressAssessment.updateAssessment(testId, 2, 25, newFile);
-
       // Assert
-      const updatedAssessment =
-        await InProgressAssessment.fetchAssessmentData(testId);
+      const updatedAssessment = await InProgressAssessment.fetchAssessmentData(testId);
       expect(updatedAssessment.currentPage).toBe(2);
       expect(updatedAssessment.percentCompleted).toBe(25);
     });
@@ -320,22 +299,17 @@ describe("InProgressAssessment", () => {
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       };
-
       (InProgressAssessment as any).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         question1: "answer1",
       });
-
       // Act
       await InProgressAssessment.deleteAssessment(testId);
-
       // Assert
       const assessments = await InProgressAssessment.fetchAllAssessments();
       expect(assessments.length).toBe(0);
-
-      // Check storage was deleted
       await expect(
-        InProgressAssessment.fetchAssessmentStorageData(testId),
+        InProgressAssessment.fetchAssessmentStorageData(testId)
       ).rejects.toThrow("Error getting assessment storage");
     });
   });
@@ -373,15 +347,12 @@ describe("CompletedAssessment", () => {
           owner: "test-user-id",
         },
       ];
-
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (CompletedAssessment as any).__setMockAssessment(assessment),
+        (CompletedAssessment as any).__setMockAssessment(assessment)
       );
-
       // Act
       const result = await CompletedAssessment.fetchAllCompletedAssessments();
-
       // Assert
       expect(result.length).toBe(2);
       expect(result[0].name).toBe("Completed Assessment 1");
@@ -402,42 +373,28 @@ describe("CompletedAssessment", () => {
         percentCompleted: 100,
         storagePath: `assessments/test-user-id/in-progress/${testId}.json`,
         version: "1",
-        startedAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+        startedAt: new Date(Date.now() - 3600000).toISOString(),
         createdAt: new Date(Date.now() - 3600000).toISOString(),
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       };
-
       (InProgressAssessment as any).__setMockAssessment(inProgressAssessment);
       __setMockStorageItem(inProgressAssessment.storagePath, {
         allAnswersCompleted: true,
       });
-
       const completedFile = createTestAssessmentFile(
         { allAnswersCompleted: true },
-        `${testId}.json`,
+        `${testId}.json`
       );
-
       // Act
-      await CompletedAssessment.completeInProgressAssessment(
-        completedFile,
-        testId,
-      );
-
+      await CompletedAssessment.completeInProgressAssessment(completedFile, testId);
       // Assert
-      // Should create a completed assessment
-      const completedAssessments =
-        await CompletedAssessment.fetchAllCompletedAssessments();
+      const completedAssessments = await CompletedAssessment.fetchAllCompletedAssessments();
       expect(completedAssessments.length).toBe(1);
       expect(completedAssessments[0].id).toBe(testId);
       expect(completedAssessments[0].name).toBe("Test Assessment to Complete");
-
-      // Should delete the in-progress assessment
-      const inProgressAssessments =
-        await InProgressAssessment.fetchAllAssessments();
+      const inProgressAssessments = await InProgressAssessment.fetchAllAssessments();
       expect(inProgressAssessments.length).toBe(0);
-
-      // Should have calculated duration
       expect(completedAssessments[0].duration).toBeGreaterThanOrEqual(0);
     });
   });
@@ -459,12 +416,9 @@ describe("CompletedAssessment", () => {
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       };
-
       (CompletedAssessment as any).__setMockAssessment(testAssessment);
-
       // Act
       const result = await CompletedAssessment.fetchAssessmentData(testId);
-
       // Assert
       expect(result.id).toBe(testId);
       expect(result.name).toBe("Completed Test Assessment");
@@ -490,18 +444,14 @@ describe("CompletedAssessment", () => {
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       };
-
       (CompletedAssessment as any).__setMockAssessment(testAssessment);
       __setMockStorageItem(testAssessment.storagePath, {
         allAnswersCompleted: true,
       });
-
       // Act
       await CompletedAssessment.deleteAssessment(testId);
-
       // Assert
-      const assessments =
-        await CompletedAssessment.fetchAllCompletedAssessments();
+      const assessments = await CompletedAssessment.fetchAllCompletedAssessments();
       expect(assessments.length).toBe(0);
     });
   });
