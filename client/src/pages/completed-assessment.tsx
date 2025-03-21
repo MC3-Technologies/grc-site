@@ -111,7 +111,7 @@ export function CompletedAssessmentView() {
         window.removeEventListener("lightMode", handleLightMode);
       };
     }
-  });
+  }, [pageData.assessment]);
 
   useEffect(() => {
     // Initialization function
@@ -160,23 +160,8 @@ export function CompletedAssessmentView() {
     initialize().finally(() => setLoading(false));
   }, []);
 
-  // Error component to show if errors
-  type ErrorFeedbackProps = {
-    message: string;
-  };
-
-  // Error component to show if errors
-  const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
-    message,
-  }): React.JSX.Element => {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        window.location.href = "/assessments/";
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }, []);
-
+  // errorFeedback function to show error feedback and redirect after 5 seconds
+  const errorFeedback = (message: string): React.JSX.Element => {
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
@@ -189,7 +174,7 @@ export function CompletedAssessmentView() {
                 Something went wrong.
               </p>
               <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
-                There was an error fetching your assessment: {message}
+                There was an error fetching your assessment : {`${message}`}
               </p>
               <p className="mb-4 text-lg text-gray-500 dark:text-gray-400 font-bold">
                 Redirecting you back to the assessments page in 5 seconds.
@@ -201,14 +186,23 @@ export function CompletedAssessmentView() {
     );
   };
 
+  // Add redirection effect when there's an error
+  useEffect(() => {
+    if (pageData.error) {
+      const timer = setTimeout(() => {
+        window.location.href = "/assessments/";
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [pageData.error]);
+
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return (
-        <ErrorFeedback
-          message={`There was an error fetching your completed assessment : ${pageData.error}`}
-        />
+      return errorFeedback(
+        `There was an error fetching your completed assessment : ${pageData.error}`,
       );
     }
     // If fetching assessment successful
@@ -375,8 +369,8 @@ export function CompletedAssessmentView() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return (
-      <ErrorFeedback message="Error getting assessment, fetching operation never started!" />
+    return errorFeedback(
+      "Error getting assessment, fetching operation never started!",
     );
   };
 

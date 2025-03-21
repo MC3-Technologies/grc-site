@@ -1,5 +1,7 @@
+// File: amplify/data/resource.ts
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { chatGptFunction } from "../functions/chat-gpt/resource";
+import { userManagementFunction } from "../functions/user-management/resource";
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -43,6 +45,94 @@ const schema = a.schema({
     .returns(a.json())
     .handler(a.handler.function(chatGptFunction))
     .authorization((allow) => [allow.authenticated("userPools")]),
+
+  UserStatus: a
+    .model({
+      id: a.id().required(),
+      email: a.string().required(),
+      status: a.enum(["pending", "active", "suspended", "rejected"]),
+      role: a.enum(["user", "admin"]),
+      lastLogin: a.string(),
+      registrationDate: a.string().required(),
+      notes: a.string(), //optional
+    })
+    .authorization((allow) => [
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
+    ]),
+
+  // User management queries and mutations
+  listUsers: a
+    .query()
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  getUsersByStatus: a
+    .query()
+    .arguments({
+      status: a.string().required(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  getUserDetails: a
+    .query()
+    .arguments({
+      email: a.string().required(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  approveUser: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+    })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  rejectUser: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      reason: a.string(),
+    })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  suspendUser: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      reason: a.string(),
+    })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  reactivateUser: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+    })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  createUser: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      role: a.string().required(),
+      sendEmail: a.boolean(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

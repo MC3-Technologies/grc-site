@@ -5,6 +5,10 @@ export const assessmentStorage = defineStorage({
   access: (allow) => ({
     "assessments/{entity_id}/*": [
       allow.entity("identity").to(["read", "write", "delete"]),
+      allow.groups(["GRC-Admin"]).to(["read", "write", "delete"]),
+    ],
+    "assessments/*": [
+      allow.groups(["GRC-Admin"]).to(["read", "write", "delete"]),
     ],
   }),
   isDefault: true,
