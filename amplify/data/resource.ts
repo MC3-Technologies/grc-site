@@ -133,6 +133,16 @@ const schema = a.schema({
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
+
+  updateUserRole: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      role: a.string().required(),
+    })
+    .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

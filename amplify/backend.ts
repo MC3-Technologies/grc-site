@@ -7,11 +7,12 @@ import { chatGptFunction } from "./functions/chat-gpt/resource";
 import { userManagementFunction } from "./functions/user-management/resource";
 import { assessmentStorage } from "./storage/resource";
 import { preSignUpFunction } from "./functions/auth-triggers/resource";
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
  */
-defineBackend({
+const backend = defineBackend({
   auth,
   data,
   chatGptFunction,
@@ -20,3 +21,11 @@ defineBackend({
   // osintFunction
   assessmentStorage,
 });
+
+// Add SES permissions to the user management Lambda function
+backend.userManagementFunction.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+    resources: ['*']
+  })
+);

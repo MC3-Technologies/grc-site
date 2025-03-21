@@ -170,6 +170,11 @@ const AdminHome = () => {
           {stats.totalAssessments.inProgress} in-progress assessment
           {stats.totalAssessments.inProgress !== 1 ? "s" : ""}.
         </p>
+        {process.env.NODE_ENV !== "production" && (
+          <div className="mt-2 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-md inline-block">
+            Development Mode: Using mock data for UI testing
+          </div>
+        )}
       </div>
 
       {/* Debugging tools - only visible in development */}

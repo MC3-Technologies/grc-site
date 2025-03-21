@@ -1,85 +1,140 @@
 // File: amplify/functions/user-management/handler.ts
 import { userOperations } from "./src/userOperations";
+import type { Schema } from "../../data/resource";
+import { AppSyncResolverEvent } from "aws-lambda";
 
-// Define type for arguments
-interface EventArgs {
-  status?: string;
-  email?: string;
-  reason?: string;
-  role?: string;
-  sendEmail?: boolean;
-  [key: string]: any; // Allow other properties
-}
+// Define a type for AppSync-specific fields
+type AppSyncEvent = AppSyncResolverEvent<any, any> & {
+  typeName?: string;
+  fieldName?: string;
+  info?: {
+    fieldName?: string;
+  };
+};
 
 /**
- * EMERGENCY OVERRIDE HANDLER
- * This implementation completely avoids any reference to event.info.fieldName
+ * Handler for the user management function
+ * Following the pattern established in chat-gpt function
  */
-export const handler = async (event: any) => {
+export const handler = async (event: AppSyncResolverEvent<any, any>) => {
   try {
-    // Log the full event for debugging
-    console.log("EMERGENCY HANDLER CALLED WITH EVENT:", JSON.stringify(event, null, 2));
+    console.log("User management handler received event:", JSON.stringify(event, null, 2));
     
-    // Default to listUsers if we can't determine the operation
-    let operation = 'listUsers';
-    let args: EventArgs = {};
+    // Determine the operation (improved logic)
+    let operation = '';
+    let args = {};
     
-    // Try to extract operation from various possible event structures
-    if (event) {
-      // Log diagnostic info about the event shape
-      console.log("Event keys:", Object.keys(event));
-      
-      // Attempt to get operation from commonly used patterns
-      if (typeof event === 'object') {
-        // First check if operation was explicitly provided
-        if (event.operation) {
-          operation = event.operation;
-          args = event;
-        }
-        // Check for AppSync resolver patterns
-        else if (event.typeName && event.field) {
-          operation = event.field;
-          args = event.arguments || {};
-        }
-        // Check for API Gateway patterns
-        else if (event.pathParameters && event.pathParameters.operation) {
-          operation = event.pathParameters.operation;
-          args = event.queryStringParameters || {};
-        }
-        // Last resort - check if there's an info object and extract from there
-        else if (event.info && typeof event.info === 'object') {
-          // Safely access nested properties
-          const possibleFieldName = event.info.fieldName || event.info.field;
-          if (possibleFieldName) {
-            operation = possibleFieldName;
-            args = event.arguments || {};
-          }
-        }
+    // Cast event to our extended type for AppSync-specific properties
+    const appSyncEvent = event as AppSyncEvent;
+    
+    // Check if typeName and fieldName exist (AppSync resolver pattern)
+    if (appSyncEvent.typeName && appSyncEvent.fieldName) {
+      console.log(`Event has typeName: ${appSyncEvent.typeName} and fieldName: ${appSyncEvent.fieldName}`);
+      operation = appSyncEvent.fieldName;
+      args = appSyncEvent.arguments || {};
+    }
+    // Fallback checks for older patterns
+    else if (typeof event === 'object' && event !== null) {
+      if ('operation' in event) {
+        operation = (event as any).operation;
+      } else if ('field' in event) {
+        operation = (event as any).field;
+      } else if ('info' in event && appSyncEvent.info && 'fieldName' in appSyncEvent.info) {
+        operation = appSyncEvent.info.fieldName || '';
+      } else if ('path' in event) {
+        // Extract operation from path if possible
+        const path = (event as any).path;
+        const parts = typeof path === 'string' ? path.split('/') : [];
+        operation = parts[parts.length - 1] || 'listUsers';
+      } else {
+        console.warn("Could not determine operation from event structure, defaulting to listUsers");
+        operation = 'listUsers';
       }
+      
+      // Get arguments
+      args = ((event as any).arguments || (event as any).args || {});
     }
     
-    console.log(`EMERGENCY HANDLER EXECUTING: ${operation} with args:`, args);
+    console.log(`Executing operation: ${operation} with args:`, args);
     
-    // Handle each supported operation
+    // Execute the operation
+    return await executeOperation(operation, args, event);
+  } catch (error) {
+    console.error("Error in Lambda handler:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Internal server error" })
+    };
+  }
+};
+
+async function executeOperation(operation: string, args: Record<string, any>, event: AppSyncResolverEvent<any, any>) {
+  try {
+    // Execute the operation using the user operation module
+    // Using switch pattern similar to chat-gpt handler
     switch (operation) {
-      case 'listUsers':
+      case "listUsers":
         return await userOperations.listUsers();
         
-      case 'getUsersByStatus':
-        return await userOperations.getUsersByStatus(args.status || '');
+      case "getUsersByStatus":
+        if (!args.status) {
+          return JSON.stringify({ error: "Status parameter is required" });
+        }
+        return await userOperations.getUsersByStatus(args.status);
         
-      // All other operations follow the same pattern
+      case "getUserDetails":
+        if (!args.email) {
+          return JSON.stringify({ error: "Email parameter is required" });
+        }
+        return await userOperations.getUserDetails(args.email);
+        
+      case "approveUser":
+        if (!args.email) {
+          return JSON.stringify({ error: "Email parameter is required" });
+        }
+        return JSON.stringify(await userOperations.approveUser(args.email));
+        
+      case "rejectUser":
+        if (!args.email) {
+          return JSON.stringify({ error: "Email parameter is required" });
+        }
+        return JSON.stringify(await userOperations.rejectUser(args.email, args.reason));
+        
+      case "suspendUser":
+        if (!args.email) {
+          return JSON.stringify({ error: "Email parameter is required" });
+        }
+        return JSON.stringify(await userOperations.suspendUser(args.email, args.reason));
+        
+      case "reactivateUser":
+        if (!args.email) {
+          return JSON.stringify({ error: "Email parameter is required" });
+        }
+        return JSON.stringify(await userOperations.reactivateUser(args.email));
+        
+      case "createUser":
+        if (!args.email || !args.role) {
+          return JSON.stringify({ error: "Email and role parameters are required" });
+        }
+        return JSON.stringify(await userOperations.createUser(args.email, args.role, args.sendEmail));
+        
+      case "updateUserRole":
+        if (!args.email || !args.role) {
+          return JSON.stringify({ error: "Email and role parameters are required" });
+        }
+        return JSON.stringify(await userOperations.updateUserRole(args.email, args.role));
+        
       default:
         console.log(`Unknown operation: ${operation}, defaulting to listUsers`);
         return await userOperations.listUsers();
     }
   } catch (error) {
-    console.error("EMERGENCY HANDLER ERROR:", error);
+    console.error("Error in user management handler:", error);
     
-    // Return an empty result rather than throwing
+    // Always return a valid JSON response even on error
     return JSON.stringify({
-      users: [],
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      users: [] // Ensure there's always a users property for client compatibility
     });
   }
-};
+}
