@@ -4,6 +4,7 @@ import {
   InProgressAssessment,
 } from "../../utils/assessment";
 import { getCurrentUser, User } from "../../amplify/auth";
+import { fetchUsers, createTestUser } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 
 // Summary stats interface
@@ -19,6 +20,7 @@ interface AdminStats {
 
 const AdminHome = () => {
   const [loading, setLoading] = useState<boolean>(true);
+  const [debugMessage, setDebugMessage] = useState<string>("");
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     pendingUsers: 0,
@@ -43,6 +45,21 @@ const AdminHome = () => {
         const completedAssessments =
           await CompletedAssessment.fetchAllCompletedAssessments();
 
+        // Get user data from backend
+        let userData = [];
+        let pendingUsers = 0;
+        try {
+          userData = await fetchUsers() || [];
+          pendingUsers = userData.filter(
+            (user: { status: string }) => user.status === "pending"
+          ).length;
+        } catch (err) {
+          console.warn("Could not fetch users, using placeholder data instead", err);
+          // Fallback to placeholder data
+          userData = [];
+          pendingUsers = 0;
+        }
+        
         // Calculate compliance rate
         const compliantAssessments = completedAssessments.filter(
           (assessment) => assessment.isCompliant,
@@ -52,10 +69,10 @@ const AdminHome = () => {
             ? (compliantAssessments.length / completedAssessments.length) * 100
             : 0;
 
-        // Set stats
+        // Set stats with real data or fallback values
         setStats({
-          totalUsers: 10, // Placeholder - would come from user DB query
-          pendingUsers: 2, // Placeholder - would come from user DB query
+          totalUsers: userData.length || 0,
+          pendingUsers: pendingUsers,
           totalAssessments: {
             inProgress: inProgressAssessments.length,
             completed: completedAssessments.length,
@@ -71,6 +88,66 @@ const AdminHome = () => {
 
     fetchStats();
   }, []);
+
+  // Debugging functions
+  const handleRefreshUsers = async () => {
+    setDebugMessage("Refreshing users list...");
+    try {
+      const users = await fetchUsers();
+      setDebugMessage(`Successfully fetched ${users.length} users.`);
+      setStats(prev => ({
+        ...prev,
+        totalUsers: users.length || 0,
+        pendingUsers: users.filter(user => user.status === "FORCE_CHANGE_PASSWORD" || user.status === "pending").length
+      }));
+    } catch (error) {
+      setDebugMessage(`Error fetching users: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const handleCreateTestUser = async () => {
+    setDebugMessage("Creating test user...");
+    try {
+      const result = await createTestUser();
+      if (result.success) {
+        setDebugMessage("Test user created successfully. Refreshing user list...");
+        handleRefreshUsers();
+      } else {
+        setDebugMessage(`Failed to create test user: ${result.error}`);
+      }
+    } catch (error) {
+      setDebugMessage(`Error creating test user: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const checkBackendStatus = async () => {
+    setDebugMessage("Checking backend status...");
+    try {
+      // First check auth
+      const { getCurrentUser, isCurrentUserAdmin } = await import("../../amplify/auth");
+      try {
+        const user = await getCurrentUser();
+        setDebugMessage(`Authenticated as: ${user.email}`);
+        
+        // Check admin status
+        const isAdmin = await isCurrentUserAdmin();
+        setDebugMessage(prev => `${prev}\nAdmin status: ${isAdmin ? "✓ Admin" : "✗ Not admin"}`);
+        
+        // Now try to get users
+        const users = await fetchUsers();
+        setDebugMessage(prev => `${prev}\nFetched ${users.length} users (${users.length > 0 ? 'actual data' : 'mock data'})`);
+        
+        // Show the first user if any
+        if (users.length > 0) {
+          setDebugMessage(prev => `${prev}\nFirst user: ${users[0].email} (${users[0].status})`);
+        }
+      } catch (authError) {
+        setDebugMessage(prev => `${prev}\nAuth error: ${authError instanceof Error ? authError.message : String(authError)}`);
+      }
+    } catch (error) {
+      setDebugMessage(`Error checking backend: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,6 +171,40 @@ const AdminHome = () => {
           {stats.totalAssessments.inProgress !== 1 ? "s" : ""}.
         </p>
       </div>
+
+      {/* Debugging tools - only visible in development */}
+      {process.env.NODE_ENV !== "production" && (
+        <div className="p-4 mb-6 bg-gray-100 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600">
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+            Admin Debugging Tools
+          </h3>
+          <div className="flex gap-3 mb-3">
+            <button
+              onClick={handleRefreshUsers}
+              className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Refresh Users
+            </button>
+            <button
+              onClick={handleCreateTestUser}
+              className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Create Test User
+            </button>
+            <button
+              onClick={checkBackendStatus}
+              className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
+            >
+              Check Backend Status
+            </button>
+          </div>
+          {debugMessage && (
+            <div className="p-3 bg-white border rounded dark:bg-gray-800 dark:border-gray-700">
+              <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{debugMessage}</pre>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">

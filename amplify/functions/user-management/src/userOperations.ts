@@ -73,33 +73,86 @@ interface UserData {
 // User Operations
 export const userOperations = {
   // List all users
-  listUsers: async (): Promise<UserData[]> => {
+  listUsers: async (): Promise<UserData[] | string> => {
     try {
+      // Log environment variables (excluding sensitive data)
+      console.log("Environment variables:", {
+        AUTH_USERPOOL_ID: env.AUTH_USERPOOL_ID ? "✓ Set" : "✗ Missing",
+        EMAIL_SENDER: env.EMAIL_SENDER ? "✓ Set" : "✗ Missing",
+        // Add any other environment variables you need to check
+      });
+      
+      // Check if UserPoolId is defined
+      if (!env.AUTH_USERPOOL_ID) {
+        const errorMsg = "AUTH_USERPOOL_ID is undefined in environment variables";
+        console.error(errorMsg);
+        return JSON.stringify({ error: errorMsg, users: [] });
+      }
+
+      console.log("Using UserPoolId:", env.AUTH_USERPOOL_ID);
+      
       const command = new ListUsersCommand({
         UserPoolId: env.AUTH_USERPOOL_ID,
         Limit: 60,
       });
 
-      const response = await cognito.send(command);
+      try {
+        const response = await cognito.send(command);
+        console.log("Cognito ListUsers response received:", 
+          response.Users ? `Found ${response.Users.length} users` : "No users found");
 
-      return (response.Users || []).map((user: UserType) => ({
-        email: user.Attributes?.find((attr) => attr.Name === "email")?.Value,
-        status: user.UserStatus,
-        enabled: user.Enabled,
-        created: user.UserCreateDate,
-        lastModified: user.UserLastModifiedDate,
-      }));
+        if (!response.Users || response.Users.length === 0) {
+          console.log("No users found in Cognito user pool");
+          return JSON.stringify([]);
+        }
+
+        const users = response.Users.map((user: UserType) => {
+          const userData = {
+            email: user.Attributes?.find((attr) => attr.Name === "email")?.Value,
+            status: user.UserStatus,
+            enabled: user.Enabled,
+            created: user.UserCreateDate,
+            lastModified: user.UserLastModifiedDate,
+          };
+          console.log("Processed user:", userData.email);
+          return userData;
+        });
+        
+        console.log(`Successfully mapped ${users.length} users`);
+        
+        // Return as a JSON string to ensure it's compatible with the client
+        return JSON.stringify(users);
+      } catch (cognitoError) {
+        console.error("Error calling Cognito ListUsers API:", cognitoError);
+        return JSON.stringify({ 
+          error: cognitoError instanceof Error ? cognitoError.message : String(cognitoError),
+          users: [] 
+        });
+      }
     } catch (error) {
       console.error("Error listing users:", error);
-      throw error;
+      // Return error as JSON string instead of empty array
+      return JSON.stringify({ 
+        error: error instanceof Error ? error.message : String(error), 
+        users: [] 
+      });
     }
   },
 
   // Get users by status
-  getUsersByStatus: async (status: string): Promise<UserData[]> => {
+  getUsersByStatus: async (status: string): Promise<UserData[] | string> => {
     try {
-      const allUsers = await userOperations.listUsers();
-      return allUsers.filter((user) => {
+      const result = await userOperations.listUsers();
+      
+      // If result is a string (JSON), parse it first
+      let allUsers: UserData[];
+      if (typeof result === 'string') {
+        allUsers = JSON.parse(result);
+      } else {
+        allUsers = result;
+      }
+      
+      const filteredUsers = allUsers.filter((user: UserData) => {
         switch (status) {
           case "pending":
             return user.status === "FORCE_CHANGE_PASSWORD";
@@ -111,9 +164,12 @@ export const userOperations = {
             return true;
         }
       });
+      
+      // Return as JSON string for consistency
+      return JSON.stringify(filteredUsers);
     } catch (error) {
       console.error("Error getting users by status:", error);
-      throw error;
+      return JSON.stringify([]);
     }
   },
 

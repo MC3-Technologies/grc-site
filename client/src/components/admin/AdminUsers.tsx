@@ -36,24 +36,46 @@ const AdminUsers = () => {
       setError(null);
 
       try {
+        console.log(`Loading users with activeTab: ${activeTab}`);
         let fetchedUsers: User[];
 
         if (activeTab === "pending") {
+          console.log("Fetching users with pending status");
           fetchedUsers = await fetchUsersByStatus("pending");
         } else {
+          console.log("Fetching all users");
           fetchedUsers = await fetchUsers();
+        }
+        
+        console.log("Fetched users:", fetchedUsers);
+        
+        // Validate the response
+        if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
+          console.error("Invalid user data received:", fetchedUsers);
+          setError("Invalid user data received from server");
+          setUsers([]);
+          return;
         }
 
         // Transform the API data to match our component's expected format
-        const transformedUsers: UserData[] = fetchedUsers.map((user) => ({
-          email: user.email,
-          status: getUserStatus(user.status, user.enabled),
-          role: getUserRole(user),
-          created: user.created,
-          lastLogin: user.lastModified,
-          enabled: user.enabled,
-        }));
-
+        const transformedUsers: UserData[] = fetchedUsers.map((user) => {
+          console.log("Processing user:", user);
+          if (!user || !user.email) {
+            console.warn("Invalid user object in response:", user);
+            return null;
+          }
+          
+          return {
+            email: user.email,
+            status: getUserStatus(user.status, user.enabled),
+            role: getUserRole(user),
+            created: user.created,
+            lastLogin: user.lastModified,
+            enabled: user.enabled,
+          };
+        }).filter(Boolean) as UserData[]; // Remove any null entries
+        
+        console.log("Transformed users:", transformedUsers);
         setUsers(transformedUsers);
       } catch (err) {
         console.error("Error loading users:", err);
@@ -62,6 +84,7 @@ const AdminUsers = () => {
         } else {
           setError(`An error occurred: ${String(err)}`);
         }
+        setUsers([]); // Ensure users is empty on error
       } finally {
         setLoading(false);
       }

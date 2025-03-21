@@ -9,7 +9,7 @@ const AdminSidebar = ({
   activeSection,
   setActiveSection,
 }: AdminSidebarProps) => {
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Navigation items
   const navItems = [
@@ -29,8 +29,8 @@ const AdminSidebar = ({
     url.searchParams.set("section", section);
     window.history.pushState({}, "", url);
 
-    // Close mobile sidebar after selection
-    setMobileOpen(false);
+    // Close sidebar after selection
+    setSidebarOpen(false);
   };
 
   const renderIcon = (icon: string) => {
@@ -103,15 +103,15 @@ const AdminSidebar = ({
 
   return (
     <>
-      {/* Mobile trigger */}
+      {/* Toggle button - now visible on all screen sizes */}
       <button
-        onClick={() => setMobileOpen(!mobileOpen)}
+        onClick={() => setSidebarOpen(!sidebarOpen)}
         type="button"
-        className="fixed bottom-4 right-4 inline-flex items-center p-2 mt-2 ml-3 text-sm text-gray-500 rounded-lg md:hidden bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 z-30 shadow-md"
+        className="fixed bottom-4 right-4 inline-flex items-center p-2 mt-2 ml-3 text-sm text-gray-500 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 z-30 shadow-md"
         aria-controls="admin-sidebar"
-        aria-expanded={mobileOpen}
+        aria-expanded={sidebarOpen}
       >
-        <span className="sr-only">Open admin menu</span>
+        <span className="sr-only">Toggle admin menu</span>
         <svg
           className="w-6 h-6"
           aria-hidden="true"
@@ -127,12 +127,12 @@ const AdminSidebar = ({
         </svg>
       </button>
 
-      {/* Sidebar */}
+      {/* Sidebar - now collapsible on all screen sizes */}
       <aside
         id="admin-sidebar"
-        className={`fixed top-0 left-0 z-20 w-64 md:w-64 h-screen pt-20 transition-transform ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700`}
+        className={`fixed top-0 left-0 z-20 w-64 h-screen pt-20 transition-transform ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700`}
         aria-label="Admin sidebar"
       >
         <div className="h-full px-3 pb-4 overflow-y-auto bg-white dark:bg-gray-800">
@@ -158,11 +158,11 @@ const AdminSidebar = ({
         </div>
       </aside>
 
-      {/* Overlay for mobile */}
-      {mobileOpen && (
+      {/* Overlay for when sidebar is open - now works on all screen sizes */}
+      {sidebarOpen && (
         <div
-          className="fixed inset-0 z-10 bg-gray-900 bg-opacity-50 dark:bg-opacity-80 md:hidden"
-          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 z-10 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"
+          onClick={() => setSidebarOpen(false)}
         ></div>
       )}
     </>
