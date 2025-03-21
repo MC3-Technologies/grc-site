@@ -4,7 +4,7 @@ import {
   InProgressAssessment,
 } from "../../utils/assessment";
 import { getCurrentUser, User } from "../../amplify/auth";
-import { fetchUsers, createTestUser } from "../../utils/adminUser";
+import { fetchUsers, createTestUser, getUserStatus } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 
 // Summary stats interface
@@ -50,9 +50,19 @@ const AdminHome = () => {
         let pendingUsers = 0;
         try {
           userData = await fetchUsers() || [];
-          pendingUsers = userData.filter(
-            (user: { status: string }) => user.status === "pending"
+          
+          // Process users the same way AdminUsers does to ensure consistency
+          const processedUsers = userData.map(user => ({
+            ...user,
+            status: getUserStatus(user.status, user.enabled, user.customStatus)
+          }));
+          
+          // Now filter by the processed status
+          pendingUsers = processedUsers.filter(
+            (user) => user.status === "pending"
           ).length;
+
+          console.log("Found pending users:", pendingUsers);
         } catch (err) {
           console.warn("Could not fetch users, using placeholder data instead", err);
           // Fallback to placeholder data
@@ -86,7 +96,17 @@ const AdminHome = () => {
       }
     };
 
+    // Initial fetch
     fetchStats();
+    
+    // Set up a refresh interval (every 30 seconds)
+    const refreshInterval = setInterval(() => {
+      console.log("Auto-refreshing dashboard stats...");
+      fetchStats();
+    }, 30000); // 30 seconds
+    
+    // Clean up the interval when component unmounts
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Debugging functions
@@ -95,10 +115,21 @@ const AdminHome = () => {
     try {
       const users = await fetchUsers();
       setDebugMessage(`Successfully fetched ${users.length} users.`);
+      
+      // Process users to ensure proper status mapping
+      const processedUsers = users.map(user => ({
+        ...user,
+        status: getUserStatus(user.status, user.enabled, user.customStatus)
+      }));
+      
+      // Count pending users using consistent logic
+      const pendingCount = processedUsers.filter(user => user.status === "pending").length;
+      setDebugMessage(prev => `${prev}\nPending users: ${pendingCount}`);
+      
       setStats(prev => ({
         ...prev,
         totalUsers: users.length || 0,
-        pendingUsers: users.filter(user => user.status === "FORCE_CHANGE_PASSWORD" || user.status === "pending").length
+        pendingUsers: pendingCount
       }));
     } catch (error) {
       setDebugMessage(`Error fetching users: ${error instanceof Error ? error.message : String(error)}`);
@@ -170,7 +201,8 @@ const AdminHome = () => {
           {stats.totalAssessments.inProgress} in-progress assessment
           {stats.totalAssessments.inProgress !== 1 ? "s" : ""}.
         </p>
-        {process.env.NODE_ENV !== "production" && (
+        {process.env.NODE_ENV !== "production" && 
+          (typeof window !== 'undefined' && window.location.search.includes('mock=true')) && (
           <div className="mt-2 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-md inline-block">
             Development Mode: Using mock data for UI testing
           </div>

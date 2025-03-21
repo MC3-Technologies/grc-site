@@ -312,13 +312,21 @@ export const userOperations = {
       }
       
       const filteredUsers = allUsers.filter((user: UserData) => {
+        // Get custom status from attributes if available
+        const customStatus = user.attributes?.["custom:status"];
+        
         switch (status.toLowerCase()) {
           case "pending":
-            return user.status === "FORCE_CHANGE_PASSWORD";
+            // Only count as pending if FORCE_CHANGE_PASSWORD and not rejected
+            return user.status === "FORCE_CHANGE_PASSWORD" && 
+                  customStatus !== "REJECTED";
           case "active":
             return user.status === "CONFIRMED" && user.enabled;
           case "suspended":
-            return !user.enabled;
+            return (customStatus === "SUSPENDED") || 
+                  (!user.enabled && customStatus !== "REJECTED");
+          case "rejected":
+            return customStatus === "REJECTED";
           default:
             return true;
         }

@@ -68,11 +68,15 @@ export const getFilteredMockUsers = (status: string): User[] => {
   return getMockUsers().filter(user => {
     switch (status) {
       case "pending":
-        return user.status === "FORCE_CHANGE_PASSWORD";
+        // Only count as pending if FORCE_CHANGE_PASSWORD and not rejected
+        return user.status === "FORCE_CHANGE_PASSWORD" && 
+               user.customStatus !== "REJECTED";
       case "active":
         return user.status === "CONFIRMED" && user.enabled;
       case "suspended":
-        return !user.enabled;
+        return !user.enabled && user.customStatus === "SUSPENDED";
+      case "rejected":
+        return user.customStatus === "REJECTED";
       default:
         return true;
     }
@@ -105,32 +109,34 @@ const safelyParseApiResponse = <T>(data: unknown): T | null => {
  * Helper function to determine user status based on Cognito status and enabled state
  */
 export const getUserStatus = (
-  status?: string,
-  enabled?: boolean,
+  status: string,
+  enabled: boolean,
   customStatus?: string | null
-): "active" | "pending" | "suspended" | "rejected" => {
-  // If we have a custom status, use it first (highest priority)
-  if (customStatus) {
-    if (customStatus === "REJECTED") return "rejected";
-    if (customStatus === "SUSPENDED") return "suspended";
+): "active" | "pending" | "rejected" | "suspended" => {
+  // First check custom status which overrides default
+  if (customStatus === "REJECTED") {
+    return "rejected";
   }
-
-  // Check the enabled flag and status combination
-  if (enabled === false) {
-    // If we don't have a custom status but enabled is false, 
-    // we need to differentiate based on other properties
-    // Disabled users are either suspended or rejected, but without customStatus
-    // we can't tell which, so log a warning
-    console.log(`User with enabled=false but no customStatus. Defaulting to suspended.`);
+  
+  if (customStatus === "SUSPENDED") {
     return "suspended";
   }
-
-  // CONFIRMED users with enabled=true are active
-  if (status === "CONFIRMED" && enabled === true) {
-    return "active";
+  
+  // If user is disabled but not rejected or suspended, treat as rejected
+  if (!enabled && !customStatus) {
+    return "rejected";
   }
 
-  // All other cases (FORCE_CHANGE_PASSWORD, etc.) are pending
+  // Map Cognito status to our UI status
+  if (status === "CONFIRMED" && enabled) {
+    return "active";
+  } else if (
+    ["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)
+  ) {
+    return "pending";
+  }
+  
+  // Default to pending for any other status
   return "pending";
 };
 
@@ -191,8 +197,10 @@ export const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
-// Get users by status
-export const fetchUsersByStatus = async (status: string): Promise<User[]> => {
+// Fetch users filtered by status
+export const fetchUsersByStatus = async (
+  status: "pending" | "active" | "rejected" | "suspended"
+): Promise<User[]> => {
   try {
     console.log(`Fetching users with status: ${status}`);
     
@@ -215,6 +223,25 @@ export const fetchUsersByStatus = async (status: string): Promise<User[]> => {
       console.log('Parsed status filtered data:', parsedData);
       
       if (Array.isArray(parsedData)) {
+        // Apply specific filters as needed
+        if (status === "pending") {
+          return (parsedData as User[]).filter(user => 
+            user.customStatus !== "REJECTED" && 
+            user.status !== "rejected"
+          );
+        } else if (status === "rejected") {
+          // Return users with REJECTED customStatus or rejected status
+          return (parsedData as User[]).filter(user => 
+            user.customStatus === "REJECTED" || 
+            user.status === "rejected"
+          );
+        } else if (status === "suspended") {
+          // Return users with SUSPENDED customStatus or suspended status
+          return (parsedData as User[]).filter(user => 
+            user.customStatus === "SUSPENDED" || 
+            user.status === "suspended"
+          );
+        }
         return parsedData as User[];
       } else {
         console.warn('API returned data but not an array:', parsedData);

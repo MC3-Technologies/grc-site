@@ -27,7 +27,8 @@ interface UserData {
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserData[]>([]);
-  const [activeTab, setActiveTab] = useState<"all" | "pending">("all");
+  const [allUsers, setAllUsers] = useState<UserData[]>([]); // New state to track all users for counts
+  const [activeTab, setActiveTab] = useState<"all" | "pending" | "rejected" | "suspended">("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +36,94 @@ const AdminUsers = () => {
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
 
-  // Load users on component mount and when tab changes
+  // Auto-dismiss messages after timeout
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        setSuccess(null);
+      }, 5000); // Auto-dismiss after 5 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+  
+  // Auto-dismiss error messages after timeout
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 7000); // Auto-dismiss after 7 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  // Function to transform API user data into the format we need
+  const transformUserData = (fetchedUsers: User[]): UserData[] => {
+    if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
+      console.error("Invalid user data received:", fetchedUsers);
+      return [];
+    }
+
+    // Helper function to determine user role
+    const determineUserRole = (user: User): "user" | "admin" => {
+      if (user.attributes?.['cognito:groups']) {
+        try {
+          const groups = JSON.parse(user.attributes['cognito:groups']);
+          if (Array.isArray(groups) && groups.includes('GRC-Admin')) {
+            return "admin";
+          }
+        } catch {
+          console.warn('Failed to parse groups from user attributes');
+        }
+      }
+      
+      return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
+    };
+
+    // Transform the API data
+    return fetchedUsers.map((user) => {
+      if (!user || !user.email) {
+        console.warn("Invalid user object in response:", user);
+        return null;
+      }
+      
+      return {
+        email: user.attributes?.email || user.email,
+        status: getUserStatus(
+          user.status || "", 
+          Boolean(user.enabled), 
+          user.customStatus || undefined
+        ),
+        role: determineUserRole(user),
+        created: user.created,
+        lastLogin: user.lastModified,
+        enabled: user.enabled,
+        customStatus: user.customStatus,
+      };
+    }).filter(Boolean) as UserData[]; // Remove any null entries
+  };
+
+  // Fetch all users for counting badges
+  useEffect(() => {
+    const fetchAllUsers = async () => {
+      try {
+        const allFetchedUsers = await fetchUsers();
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        setAllUsers(transformedAllUsers);
+      } catch (err) {
+        console.error("Error loading all users for counts:", err);
+      }
+    };
+
+    fetchAllUsers();
+    // Set up periodic refresh for user counts
+    const refreshInterval = setInterval(fetchAllUsers, 60000); // Refresh every minute
+    
+    return () => clearInterval(refreshInterval);
+  }, []);
+
+  // Load users for the current tab view
   useEffect(() => {
     const loadUsers = async () => {
       setLoading(true);
@@ -48,59 +136,25 @@ const AdminUsers = () => {
         if (activeTab === "pending") {
           console.log("Fetching users with pending status");
           fetchedUsers = await fetchUsersByStatus("pending");
+        } else if (activeTab === "rejected") {
+          console.log("Fetching users with rejected status");
+          fetchedUsers = await fetchUsersByStatus("rejected");
+        } else if (activeTab === "suspended") {
+          console.log("Fetching users with suspended status");
+          fetchedUsers = await fetchUsersByStatus("suspended");
         } else {
           console.log("Fetching all users");
           fetchedUsers = await fetchUsers();
+          
+          // Also update the allUsers state when fetching all users
+          const transformedAllUsers = transformUserData(fetchedUsers);
+          setAllUsers(transformedAllUsers);
         }
         
         console.log("Fetched users:", fetchedUsers);
         
-        // Validate the response
-        if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
-          console.error("Invalid user data received:", fetchedUsers);
-          setError("Invalid user data received from server");
-          setUsers([]);
-          return;
-        }
-
-        // Add this helper function to your component
-        const determineUserRole = (user: User): "user" | "admin" => {
-          // First check if the user belongs to the GRC-Admin group
-          if (user.attributes?.['cognito:groups']) {
-            try {
-              const groups = JSON.parse(user.attributes['cognito:groups']);
-              if (Array.isArray(groups) && groups.includes('GRC-Admin')) {
-                return "admin";
-              }
-            } catch {
-              // If parsing fails, continue to the fallback
-              console.warn('Failed to parse groups from user attributes');
-            }
-          }
-          
-          // Then fall back to the custom:role attribute
-          return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
-        };
-
-        // Transform the API data to match our component's expected format
-        const transformedUsers: UserData[] = fetchedUsers.map((user) => {
-          console.log("Processing user:", user);
-          if (!user || !user.email) {
-            console.warn("Invalid user object in response:", user);
-            return null;
-          }
-          
-          return {
-            email: user.attributes?.email || user.email,
-            status: getUserStatus(user.status, user.enabled, user.customStatus),
-            role: determineUserRole(user),
-            created: user.created,
-            lastLogin: user.lastModified,
-            enabled: user.enabled,
-            customStatus: user.customStatus,
-          };
-        }).filter(Boolean) as UserData[]; // Remove any null entries
-        
+        // Transform and set the users for the current view
+        const transformedUsers = transformUserData(fetchedUsers);
         console.log("Transformed users:", transformedUsers);
         setUsers(transformedUsers);
       } catch (err) {
@@ -135,7 +189,7 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date
         await refreshUserData();
         
-        // Update local state to ensure immediate UI update
+        // Update both users and allUsers states
         setUsers((prev) =>
           prev.map((user) =>
             user.email === email
@@ -144,6 +198,19 @@ const AdminUsers = () => {
                   status: "active", 
                   enabled: true,
                   customStatus: null // Clear any custom status
+                }
+              : user
+          )
+        );
+        
+        setAllUsers((prev) =>
+          prev.map((user) =>
+            user.email === email
+              ? { 
+                  ...user, 
+                  status: "active", 
+                  enabled: true,
+                  customStatus: null
                 }
               : user
           )
@@ -183,8 +250,16 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date
         await refreshUserData();
         
-        // Update local state to ensure immediate UI update
+        // Update both users and allUsers states
         setUsers((prev) =>
+          prev.map((user) =>
+            user.email === email
+              ? { ...user, status: "rejected", enabled: false, customStatus: "REJECTED" }
+              : user
+          )
+        );
+        
+        setAllUsers((prev) =>
           prev.map((user) =>
             user.email === email
               ? { ...user, status: "rejected", enabled: false, customStatus: "REJECTED" }
@@ -221,8 +296,16 @@ const AdminUsers = () => {
       if (result) {
         setSuccess(`User ${email} has been suspended.`);
 
-        // Update the user in the list
+        // Update both users and allUsers states
         setUsers((prevUsers) =>
+          prevUsers.map((user) =>
+            user.email === email
+              ? { ...user, status: "suspended", enabled: false }
+              : user,
+          ),
+        );
+        
+        setAllUsers((prevUsers) =>
           prevUsers.map((user) =>
             user.email === email
               ? { ...user, status: "suspended", enabled: false }
@@ -255,8 +338,16 @@ const AdminUsers = () => {
       if (result) {
         setSuccess(`User ${email} has been reactivated.`);
 
-        // Update the user in the list
+        // Update both users and allUsers states
         setUsers((prevUsers) =>
+          prevUsers.map((user) =>
+            user.email === email
+              ? { ...user, status: "active", enabled: true }
+              : user,
+          ),
+        );
+        
+        setAllUsers((prevUsers) =>
           prevUsers.map((user) =>
             user.email === email
               ? { ...user, status: "active", enabled: true }
@@ -325,11 +416,17 @@ const AdminUsers = () => {
     }
   };
 
-  // Filter users based on the active tab
-  const filteredUsers =
-    activeTab === "all"
-      ? users
-      : users.filter((user) => user.status === "pending");
+  // Get filtered users based on active tab
+  const getFilteredUsers = () => {
+    if (activeTab === "pending") {
+      return users.filter((user) => user.status === "pending");
+    } else if (activeTab === "rejected") {
+      return users.filter((user) => user.status === "rejected");
+    } else if (activeTab === "suspended") {
+      return users.filter((user) => user.status === "suspended");
+    }
+    return users;
+  };
 
   // Handle opening the edit modal
   const handleEditUser = (user: UserData) => {
@@ -366,8 +463,14 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date
         await refreshUserData();
         
-        // Update local state
+        // Update both users and allUsers states
         setUsers(prev => 
+          prev.map(user => 
+            user.email === updatedUser.email ? updatedUser : user
+          )
+        );
+        
+        setAllUsers(prev => 
           prev.map(user => 
             user.email === updatedUser.email ? updatedUser : user
           )
@@ -393,33 +496,51 @@ const AdminUsers = () => {
       {/* Alert messages */}
       {error && (
         <div
-          className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-300"
+          className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-300 shadow-md animate-fadeIn"
           role="alert"
         >
-          {error}
-          <button
-            className="float-right font-bold"
-            onClick={() => setError(null)}
-            aria-label="Close"
-          >
-            &times;
-          </button>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"></path>
+              </svg>
+              <span>{error}</span>
+            </div>
+            <button
+              className="text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100"
+              onClick={() => setError(null)}
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
       {success && (
         <div
-          className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300"
+          className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300 shadow-md animate-fadeIn"
           role="alert"
         >
-          {success}
-          <button
-            className="float-right font-bold"
-            onClick={() => setSuccess(null)}
-            aria-label="Close"
-          >
-            &times;
-          </button>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+              </svg>
+              <span>{success}</span>
+            </div>
+            <button
+              className="text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100"
+              onClick={() => setSuccess(null)}
+              aria-label="Close"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       )}
 
@@ -430,8 +551,8 @@ const AdminUsers = () => {
               onClick={() => setActiveTab("all")}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "all"
-                  ? "border-primary-600 text-primary-600 dark:text-primary-500 dark:border-primary-500"
-                  : "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
               }`}
             >
               All Users
@@ -442,14 +563,48 @@ const AdminUsers = () => {
               onClick={() => setActiveTab("pending")}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "pending"
-                  ? "border-primary-600 text-primary-600 dark:text-primary-500 dark:border-primary-500"
-                  : "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
               }`}
             >
               Pending Approval
-              {users.filter((user) => user.status === "pending").length > 0 && (
+              {allUsers.filter((user) => user.status === "pending").length > 0 && (
                 <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
-                  {users.filter((user) => user.status === "pending").length}
+                  {allUsers.filter((user) => user.status === "pending").length}
+                </span>
+              )}
+            </button>
+          </li>
+          <li className="mr-2">
+            <button
+              onClick={() => setActiveTab("rejected")}
+              className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                activeTab === "rejected"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
+              }`}
+            >
+              Rejected
+              {allUsers.filter((user) => user.status === "rejected").length > 0 && (
+                <span className="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
+                  {allUsers.filter((user) => user.status === "rejected").length}
+                </span>
+              )}
+            </button>
+          </li>
+          <li className="mr-2">
+            <button
+              onClick={() => setActiveTab("suspended")}
+              className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                activeTab === "suspended"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
+              }`}
+            >
+              Suspended
+              {allUsers.filter((user) => user.status === "suspended").length > 0 && (
+                <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+                  {allUsers.filter((user) => user.status === "suspended").length}
                 </span>
               )}
             </button>
@@ -488,7 +643,7 @@ const AdminUsers = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {getFilteredUsers().map((user) => (
                   <tr
                     key={user.email}
                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -585,7 +740,7 @@ const AdminUsers = () => {
             </table>
           </div>
 
-          {filteredUsers.length === 0 && (
+          {getFilteredUsers().length === 0 && (
             <div className="p-4 mt-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-900 dark:text-blue-300">
               No users found matching the selected filter.
             </div>
