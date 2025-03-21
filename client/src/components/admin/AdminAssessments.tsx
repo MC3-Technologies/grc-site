@@ -205,15 +205,15 @@ const AdminAssessments = () => {
 
   return (
     <div>
-      <div className="mb-4 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
           <li className="mr-2">
             <button
               onClick={() => setActiveTab("all")}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "all"
-                  ? "border-primary-600 text-primary-600 dark:text-primary-500 dark:border-primary-500"
-                  : "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
               }`}
             >
               All Assessments
@@ -224,8 +224,8 @@ const AdminAssessments = () => {
               onClick={() => setActiveTab("in-progress")}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "in-progress"
-                  ? "border-primary-600 text-primary-600 dark:text-primary-500 dark:border-primary-500"
-                  : "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
               }`}
             >
               In Progress
@@ -239,8 +239,8 @@ const AdminAssessments = () => {
               onClick={() => setActiveTab("completed")}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "completed"
-                  ? "border-primary-600 text-primary-600 dark:text-primary-500 dark:border-primary-500"
-                  : "border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300"
+                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
               }`}
             >
               Completed
