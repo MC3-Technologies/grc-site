@@ -1,17 +1,40 @@
 import { useState } from "react";
 import { surveyJson } from "../../assessmentQuestions";
 
+// Survey element types
+interface SurveyElement {
+  type: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  isRequired?: boolean;
+  visibleIf?: string;
+  choices?: Array<string | ChoiceItem>;
+}
+
+// Choice item type for multiple choice questions
+interface ChoiceItem {
+  value: string | number;
+  text: string;
+}
+
 // Interface for questionnaire page
 interface QuestionPage {
   title: string;
-  elements: any[];
+  elements: SurveyElement[];
   id: string;
+}
+
+// Interface for original survey page before adding ID
+interface SurveyPage {
+  title: string;
+  elements: SurveyElement[];
 }
 
 const AdminQuestionnaire = () => {
   // Extract pages from the surveyJson for the UI
   const [pages] = useState<QuestionPage[]>(
-    surveyJson.pages.map((page: any, index: number) => ({
+    surveyJson.pages.map((page: SurveyPage, index: number) => ({
       ...page,
       id: `page-${index}`,
     })),
@@ -164,7 +187,7 @@ const AdminQuestionnaire = () => {
                         </div>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
                           {element.choices.map(
-                            (choice: any, choiceIndex: number) => (
+                            (choice: string | ChoiceItem, choiceIndex: number) => (
                               <li key={choiceIndex}>
                                 {typeof choice === "object"
                                   ? choice.text

@@ -22,6 +22,12 @@ interface AssessmentData {
   completedAt?: string;
 }
 
+// User info for the dropdown
+interface UserOption {
+  id: string;
+  email: string;
+}
+
 const AdminAssessments = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [assessments, setAssessments] = useState<AssessmentData[]>([]);
@@ -29,15 +35,22 @@ const AdminAssessments = () => {
     "all" | "in-progress" | "completed"
   >("all");
   const [userMap, setUserMap] = useState<Record<string, string>>({});
+  
+  // New state for user filtering
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [showUserDropdown, setShowUserDropdown] = useState<boolean>(false);
 
   // Fetch users and create a mapping of user IDs to emails
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const users = await fetchUsers();
+        const fetchedUsers = await fetchUsers();
         const userMapping: Record<string, string> = {};
+        const userOptions: UserOption[] = [];
         
-        users.forEach(user => {
+        fetchedUsers.forEach(user => {
           // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
           const userId = user.attributes?.sub || user.email;
           // The actual email is in user.attributes.email
@@ -45,11 +58,13 @@ const AdminAssessments = () => {
           
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
+            userOptions.push({ id: userId, email: userEmail });
             console.log(`Mapped ID ${userId} to email ${userEmail}`);
           }
         });
         
         setUserMap(userMapping);
+        setUsers(userOptions);
         console.log("User ID to Email mapping created:", userMapping);
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -131,11 +146,34 @@ const AdminAssessments = () => {
     fetchAssessments();
   }, [userMap]);
 
-  // Filter assessments based on active tab
+  // Filter assessments based on active tab and selected user
   const filteredAssessments = assessments.filter((assessment) => {
-    if (activeTab === "all") return true;
-    return assessment.status === activeTab;
+    // Filter by tab
+    const matchesTab = activeTab === "all" || assessment.status === activeTab;
+    
+    // Filter by user if one is selected
+    const matchesUser = !selectedUser || assessment.owner === selectedUser;
+    
+    return matchesTab && matchesUser;
   });
+
+  // Get filtered users for dropdown based on search query
+  const filteredUsers = users.filter(user => 
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Handle user selection
+  const handleUserSelect = (userId: string) => {
+    setSelectedUser(userId);
+    setShowUserDropdown(false);
+    setSearchQuery("");
+  };
+
+  // Clear user filter
+  const clearUserFilter = () => {
+    setSelectedUser(null);
+    setSearchQuery("");
+  };
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -212,6 +250,96 @@ const AdminAssessments = () => {
             </button>
           </li>
         </ul>
+      </div>
+
+      {/* User filter dropdown */}
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
+        <div className="relative">
+          <button 
+            onClick={() => setShowUserDropdown(!showUserDropdown)}
+            className="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 inline-flex items-center"
+            type="button"
+          >
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+            </svg>
+            {selectedUser ? `Filtered by: ${userMap[selectedUser] || "Unknown"}` : "Filter by User"}
+            <svg className="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
+            </svg>
+          </button>
+
+          {/* Dropdown menu */}
+          {showUserDropdown && (
+            <div className="absolute left-0 z-10 mt-2 w-72 bg-white rounded-lg shadow-lg dark:bg-gray-700">
+              <div className="p-3">
+                <label htmlFor="user-search" className="sr-only">Search users</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"></path>
+                    </svg>
+                  </div>
+                  <input 
+                    type="text" 
+                    id="user-search" 
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" 
+                    placeholder="Search users" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
+              <ul className="max-h-60 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdown-button">
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <li key={user.id}>
+                      <button 
+                        type="button" 
+                        className="inline-flex w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
+                        onClick={() => handleUserSelect(user.id)}
+                      >
+                        {user.email}
+                      </button>
+                    </li>
+                  ))
+                ) : (
+                  <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">No users found</li>
+                )}
+              </ul>
+              {users.length > 0 && (
+                <div className="py-2 px-3 border-t border-gray-200 dark:border-gray-600">
+                  <button 
+                    onClick={clearUserFilter}
+                    className="inline-flex items-center text-xs font-medium text-primary-700 dark:text-primary-500 hover:underline"
+                  >
+                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                    </svg>
+                    Clear filter
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        
+        {/* Show active filter badge */}
+        {selectedUser && (
+          <div className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300">
+            <span>Filtered by: {userMap[selectedUser]}</span>
+            <button 
+              onClick={clearUserFilter}
+              className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-primary-400 hover:text-primary-900 dark:hover:text-primary-100"
+              aria-label="Remove filter"
+            >
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
@@ -373,10 +501,7 @@ const AdminAssessments = () => {
           In future milestones, we'll implement:
         </p>
         <ul className="mt-2 text-sm text-left list-disc list-inside text-gray-500 dark:text-gray-400">
-          <li>Assessment detail view</li>
           <li>Assessment export functionality</li>
-          <li>Filtering by user</li>
-          <li>Bulk actions</li>
         </ul>
       </div>
     </div>
