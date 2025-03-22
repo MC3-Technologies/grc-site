@@ -125,1049 +125,415 @@ const surveyJson = {
       ],
     },
     {
-      title: "Section 2 - Access",
+      name: "Access Control",
       elements: [
         {
-          name: "inventory_accounts",
-          title: "Do you maintain an updated inventory of all accounts?",
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "account_change_process",
+          name: "inventoryUsers",
           title:
-            "Do you have a process to secure user account credential changes (password, username change)?",
-          type: "radiogroup",
+            "Do you maintain an updated inventory of all users, admin, service, and device accounts?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "unique_employee_accounts",
+          type: "radiogroup",
+          name: "inventoryDevices",
           title:
-            "Does each employee have a unique account and access only to the company resources they need for their role?",
-          type: "radiogroup",
+            "Do you maintain an updated inventory of all devices and systems that connect to the network?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "privileged_accounts",
+          type: "radiogroup",
+          name: "inventoryConnections",
           title:
-            "Do you have separate accounts for Privileged or Admin Accounts?",
-          type: "radiogroup",
+            "Do you maintain an updated list of connections to external systems?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "admin_password",
-          title: "Does each Admin account have a separate password?",
           type: "radiogroup",
+          name: "verifyConnections",
+          title: "Are connections to external systems verified and controlled?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "mfa_usage",
-          title: "Do you utilize Multi-Factor-Authentication (MFA)?",
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "sso_usage",
-          title: "Do you use Single-Sign-On (SSO) for any of your systems?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "account_details_protected",
+          name: "uniqueUserAccounts",
           title:
-            "Do you ensure that account details like usernames and passwords are protected from misuse?",
-          type: "radiogroup",
+            "Do all employees have unique user accounts for accessing company systems?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          description: "Example: Posted on a sticky note next to the computer",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
+        },
+        {
+          type: "radiogroup",
+          name: "accessRestriction",
+          title:
+            "Are employees, devices, systems, and processes granted access only to the systems and data they need for their job role?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "documentedPolicy",
+          title: "Are these documented in policy?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "separatedAccounts",
+          title:
+            "Are admin or privileged accounts separated from standard user accounts?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "uniqueAdminPasswords",
+          title: "Are passwords for admin accounts unique and not shared?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "protectAccountDetails",
+          title:
+            "Do you protect account details like usernames and passwords from unauthorized access (e.g., no passwords on sticky notes or in excel documents)?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "publicInformation",
+          title:
+            "Do you have externally accessible public information? Ie website, blog, social media?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "externalPostingPolicy",
+          title:
+            "Do you have policy and training on posting or processing information on external publicly available systems?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "inventoryPublicUsers",
+          title:
+            "Do you maintain an inventory of users authorized to post or process information on publicly accessible systems?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "reviewProcessPublicContent",
+          title:
+            "Do you maintain a review process prior to posting any publicly accessible content?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "ensureFCI",
+          title:
+            "Does this include ensuring FCI is not included in publicly posted data?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "removeFCI",
+          title: "Do you have processes to remove improperly posted FCI?",
+          choices: ["Yes", "No"],
+          isRequired: true,
         },
       ],
     },
     {
-      title: "Section 3 - Asset Management",
+      name: "Identification & Authentication (IA)",
       elements: [
         {
-          name: "hw_sw_inventory",
-          title: "Do you keep an inventory of company HW and SW assets?",
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "asset_inventory_updated",
-          title: "If yes: Is your asset inventory updated regularly?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{hw_sw_inventory} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "asset_usage_agreement",
+          name: "useMFA",
           title:
-            "Do employees sign an agreement on the proper use of company assets?",
-          type: "radiogroup",
+            "Do you use Multi-Factor Authentication (MFA) for accessing company systems?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "assets_shared",
-          title: "Are any assets shared between employees?",
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "asset_disposal",
+          name: "strongPasswords",
           title:
-            "How do you dispose of assets when they reach their end of life (EOL)?",
+            "Do you enforce strong passwords (e.g., 14+ characters or longest allowed)?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "enforcePasswordPolicy",
+          title: "Is your password policy enforced across all company assets?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+      ],
+    },
+    {
+      name: "Media Protection (MP)",
+      elements: [
+        {
           type: "comment",
+          name: "assetDisposal",
+          title:
+            "How do you dispose of outdated company assets (e.g., computers, hard drives)?",
           isRequired: true,
         },
         {
-          name: "sensitive_data_handling",
-          title: "How do you handle sensitive data?",
           type: "comment",
+          name: "sanitizeMedia",
+          title: "How do you sanitize media before release for reuse?",
           isRequired: true,
-          description: "Example: Labels, etc.",
         },
         {
-          name: "asset_sanitization",
-          title:
-            "Do you sanitize/destroy old assets, media, or documents in your business?",
           type: "radiogroup",
+          name: "shredDocuments",
+          title:
+            "Do you shred or securely destroy documents containing sensitive business information?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          description: "Example: Do you shred PHI or CHD that you collect?",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
       ],
     },
     {
-      title: "Section 4 - Awareness",
+      name: "Physical Protection (PE)",
       elements: [
         {
-          name: "cybersecurity_training",
-          title: "Do you provide cybersecurity awareness training?",
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 5 - Business Continuity",
-      elements: [
-        {
-          name: "business_continuity_plan",
+          name: "physicalSecurityMeasures",
           title:
-            "Do you have an established Business Continuity Plan in case of a disaster?",
-          type: "radiogroup",
+            "Do you have an authorization list(s) and physical security measures in place to prevent unauthorized access to organizational systems, equipment, and operating environments such as workstations, file storage, or server rooms?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "bcp_training",
-          title:
-            "If yes: Do you train employees on proper roles and responsibilities?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{business_continuity_plan} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "data_backups",
-          title: "Do you perform data backups in place online or offline?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "online", text: "Online" },
-            { value: "offline", text: "Offline" },
-            { value: "both", text: "Both" },
-            { value: "none", text: "None" },
-          ],
-        },
-        {
-          name: "backup_encryption",
-          title: "If yes: Is backup data encrypted?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{data_backups} != 'none'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 6 - Card Payments",
-      elements: [
-        {
-          name: "payment_security_steps",
-          title:
-            "What steps do you take to ensure the security of payment systems and keep your software and systems updated against vulnerabilities?",
           type: "comment",
-          isRequired: true,
-        },
-        {
-          name: "store_cardholder_data",
-          title: "Do you store cardholder data (CHD)?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "encrypt_cardholder_data",
-          title: "If yes: Do you encrypt stored cardholder (CHD) information?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{store_cardholder_data} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "payment_device_security",
+          name: "companySecurityMeasures",
           title:
-            "Are all devices that accept credit card payments secured from tampering & skimming?",
-          type: "radiogroup",
+            "What security measures are used at company locations? (e.g., locks, keycards, alarms, cameras)",
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "cc_payment_website",
-          title: "Do you accept credit card payment through your website?",
           type: "radiogroup",
+          name: "visitorMonitoring",
+          title:
+            "Are visitors logged, escorted and monitored while within security perimeters?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
+        },
+        {
+          type: "radiogroup",
+          name: "accessEquipmentControl",
+          title:
+            "Is physical security access equipment identified, controlled, and managed?",
+          choices: ["Yes", "No"],
+          isRequired: true,
         },
       ],
     },
     {
-      title: "Section 7 - Change & Configuration Management",
+      name: "System & Communications Protection (SC)",
       elements: [
         {
-          name: "change_management",
-          title: "Do you manage changes to information systems?",
           type: "radiogroup",
+          name: "identifyBoundaries",
+          title:
+            "Do security policies identify external and key internal system boundaries?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "software_download",
-          title:
-            "Do employees have the ability to download and install any software (SW) they want?",
           type: "radiogroup",
+          name: "monitorBoundaries",
+          title:
+            "Are external boundaries monitored, controlled, and protected?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
+        },
+        {
+          type: "radiogroup",
+          name: "useSecurityProtections",
+          title:
+            "Do you use security protections such as firewalls, antivirus, or endpoint security tools?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "encryptData",
+          title:
+            "Do you encrypt sensitive company data when storing or transmitting it?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "backupProtection",
+          title:
+            "If you perform backups, are they protected (e.g., encrypted, stored securely)?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "regularUpdates",
+          title:
+            "Do you ensure that systems are regularly updated with security patches?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "websiteDataHandling",
+          title:
+            "If your company has a website, do you handle sensitive customer or business data on it?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "separatePublicInternal",
+          title:
+            "Are publicly accessible websites logically or physically separated from internal networks?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "publicWifi",
+          title:
+            "Do you have publicly accessible WiFi or Network ports in publicly accessible areas outside of physical security perimeters, i.e. lobby, waiting room?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "identifyMaliciousCodeProtection",
+          title:
+            "Do you identify systems or network locations requiring malicious code protection?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "separatePublicNetwork",
+          title:
+            "Are publicly accessible websites, or networks logically or physically separated from internal networks?",
+          choices: ["Yes", "No"],
+          isRequired: true,
         },
       ],
     },
     {
-      title: "Section 8 - Data Protection",
+      name: "System & Information Integrity (SI)",
       elements: [
         {
-          name: "data_protection_processes",
+          type: "radiogroup",
+          name: "useIntrusionDetection",
           title:
-            "Do you have any processes to protect sensitive data during transmission & storage?",
-          type: "comment",
+            "Do you use Intrusion Detection/Prevention, antivirus, and/or endpoint protection tools on company computers and systems?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          description: "Example: PII, PHI, or company data",
         },
         {
-          name: "remote_wipe_capability",
-          title:
-            "Do you have the ability to remotely wipe company assets that employees use for work?",
           type: "radiogroup",
+          name: "realTimeMaliciousCode",
+          title:
+            "Do these systems perform real-time malicious code scans of files from external sources as they are downloaded, opened, or executed?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
+        },
+        {
+          type: "radiogroup",
+          name: "patchMonitoring",
+          title:
+            "Do you monitor for and install security patches and updates for all systems?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "defineScanFrequency",
+          title: "Do you define a frequency for malicious code scans?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "meetScanFrequency",
+          title:
+            "Do you meet the defined frequency for malicious code scanning?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "reviewLogs",
+          title:
+            "Do you review system logs or security alerts for potential security issues?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "policyTimeFrames",
+          title:
+            "Does security policy identify time frames to identify, report, and remediate system flaws?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "meetTimeFrames",
+          title:
+            "Do you meet the time frames to identify, report, and remediate system flaws?",
+          choices: ["Yes", "No"],
+          isRequired: true,
         },
       ],
     },
     {
-      title: "Section 9 - Domain & DNS",
+      name: "Supply Chain Management",
       elements: [
         {
-          name: "domain_registration_process",
+          type: "radiogroup",
+          name: "farContractProvisions",
           title:
-            "Do you have a process in place to ensure your domain registration does not lapse/expire?",
-          type: "radiogroup",
+            "Do you include FAR contract provisions in contracts with sub-contractors?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 10 - Email & Messages",
-      elements: [
-        {
-          name: "email_account_security",
-          title: "Do you take measures to secure all employee email accounts?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
         },
         {
-          name: "email_attack_training",
-          title: "Do you train employees on common email attacks?",
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "email_usage_policy",
-          title: "Do you have an email proper use policy?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 11 - Endpoints & Mobile Devices",
-      elements: [
-        {
-          name: "device_ownership",
+          name: "validateSubcontractorCompliance",
           title:
-            "Does the company own all computers/laptops/workstations/mobile devices?",
+            "Do you validate subcontractor CMMC or applicable security compliance as a contingent requirement for selection?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
           type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "device_security_protections",
-          title: "Do you have security protections in place for these devices?",
-          type: "radiogroup",
-          isRequired: true,
-          description:
-            "Example: AV, Firewall, inactivity timeout, Auto updates, etc.",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "device_protections_detail",
-          title: "If yes: What types of protections are in place?",
-          type: "comment",
-          isRequired: true,
-          visibleIf: "{device_security_protections} = 'yes'",
-        },
-        {
-          name: "local_admin_password",
+          name: "fcisharingPolicies",
           title:
-            "Do you use a unique, strong local admin password for each workstation?",
-          type: "radiogroup",
+            "Do you include policies and processes to ensure FCI is not shared with subcontractors, suppliers or manufacturers without validating CMMC or other applicable security framework compliance?",
+          choices: ["Yes", "No"],
           isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "mobile_device_policy",
-          title:
-            "Are there documented policies and procedures for using mobile devices in the organization?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 12 - Human Resources",
-      elements: [
-        {
-          name: "background_checks",
-          title: "Do you perform background checks on new hires?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "incident_reporting",
-          title:
-            "Are there formal procedures for employees to report cybersecurity incidents?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "incident_tracking",
-          title: "If yes: How are these incidents tracked and managed?",
-          type: "comment",
-          isRequired: true,
-          visibleIf: "{incident_reporting} = 'yes'",
-        },
-        {
-          name: "disgruntled_employee_risk",
-          title:
-            "Is there a process to identify potentially disgruntled employees that pose a risk to your company?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 13 - Incident Response",
-      elements: [
-        {
-          name: "cyberattack_preparedness",
-          title:
-            "Do you have any tools or procedures to prepare, detect, and react to a cyber-attack?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "incident_notification",
-          title:
-            "Do you have a process for notifying all affected parties in case of a cyber-attack?",
-          type: "comment",
-          isRequired: true,
-          description:
-            "Example: customers, law enforcement, shareholders, regulatory agencies, etc.",
-        },
-        {
-          name: "cyberattack_experience",
-          title: "Have you ever experienced a cybersecurity incident?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "incident_response_improvement",
-          title:
-            "If yes: Have you reviewed and improved your incident response process after a successful cyber-attack?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{cyberattack_experience} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 14 - Information Security Management",
-      elements: [
-        {
-          name: "cybersecurity_program",
-          title:
-            "Is there a formal Cybersecurity program in place, and does it have an information security policy in place?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "roles_responsibilities",
-          title:
-            "If yes: Are roles and responsibilities clearly outlined for individuals within the organization?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{cybersecurity_program} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 15 - Logging & Monitoring",
-      elements: [
-        {
-          name: "audit_logs",
-          title: "Are audit logs enabled and are they reviewed?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 16 - Operations & Maintenance",
-      elements: [
-        {
-          name: "security_measures",
-          title:
-            "Does the company have security measures in place to protect its systems and sensitive information, and has it identified the most important ones?",
-          type: "comment",
-          isRequired: true,
-        },
-        {
-          name: "maintenance_monitoring",
-          title:
-            "Is maintenance of systems and infrastructure monitored and controlled?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "maintenance_supervision",
-          title: "Are maintenance personnel’s activities supervised?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "patch_management",
-          title:
-            "Do all systems and software receive the latest vendor-supplied security patches installed?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 17 - Passwords & Secrets",
-      elements: [
-        {
-          name: "password_policy_enforced",
-          title:
-            "Are strong password (14+ complex characters or longest allowed) policies enforced across the organization?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "password_policy_on_assets",
-          title:
-            "If yes: Is the password policy enforced on all company assets?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{password_policy_enforced} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "password_management_tool",
-          title: "Are employees using a password management tool?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 18 - Physical Infrastructure",
-      elements: [
-        {
-          name: "physical_access_controls",
-          title:
-            "Do you have measures in place to control physical access to your company’s site?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "physical_access_measures",
-          title: "If yes: What types of measures are in place?",
-          type: "comment",
-          isRequired: true,
-          visibleIf: "{physical_access_controls} = 'yes'",
-          description:
-            "Example: Physical locks, PIN or swipe, CCTV, Security guard, alarm system, etc.",
-        },
-      ],
-    },
-    {
-      title: "Section 19 - Risk Management",
-      elements: [
-        {
-          name: "risk_management_plan",
-          title: "Do you perform a risk management plan?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "cyber_insurance",
-          title: "Do you have an insurance policy covering cybersecurity?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 20 - Service Provider & Vendor Management",
-      elements: [
-        {
-          name: "service_providers",
-          title: "What service providers/vendors do you utilize?",
-          type: "comment",
-          isRequired: true,
-        },
-        {
-          name: "vendor_vetting",
-          title:
-            "Do you vet them to ensure that they are reputable and have security measures in place?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "vendor_regulatory",
-          title: "Do you ensure that they meet regulatory standards?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-      ],
-    },
-    {
-      title: "Section 21 - Vulnerability Management",
-      elements: [
-        {
-          name: "vulnerability_management_program",
-          title: "Do you have a vulnerability management program?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "vulnerability_assessment",
-          title: "If yes: How are these vulnerabilities assessed?",
-          type: "comment",
-          isRequired: true,
-          visibleIf: "{vulnerability_management_program} = 'yes'",
-        },
-      ],
-    },
-    {
-      title: "Section 22 - Website & Web Application",
-      elements: [
-        {
-          name: "website_existence",
-          title: "Do you have a website?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "external_hosting",
-          title: "If yes: Is your website hosted by an external party?",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{website_existence} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "customer_data_handling",
-          title:
-            "If yes: Do you handle sensitive customer data? (PII, PHI, CHD, etc.)",
-          type: "radiogroup",
-          isRequired: true,
-          visibleIf: "{website_existence} = 'yes'",
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "website_security_measures",
-          title: "If yes: How do you secure this data?",
-          type: "comment",
-          isRequired: true,
-          visibleIf: "{customer_data_handling} = 'yes'",
-        },
-        {
-          name: "third_party_payment",
-          title:
-            "Do you use a third-party service provider for financial data or payment processing?",
-          type: "radiogroup",
-          isRequired: true,
-          choices: [
-            { value: "yes", text: "Yes" },
-            { value: "no", text: "No" },
-          ],
-        },
-        {
-          name: "third_party_payment_security",
-          title: "If yes: How is this data being secured?",
-          type: "comment",
-          isRequired: true,
-          visibleIf: "{third_party_payment} = 'yes'",
         },
       ],
     },
   ],
 };
-
-// const surveyJson = {
-//   showProgressBar: "topBottom",
-//   progressBarType: "buttons",
-//   showTOC: false,
-//   tocLocation: "left",
-//   goNextPageAutomatic: false,
-//   showNavigationButtons: true,
-//   showPageTitles: true,
-//   showQuestionNumbers: "off",
-//   checkErrorsMode: "onValueChanged",
-//   requiredText: "*",
-//   questionErrorLocation: "bottom",
-//   maxTextLength: 4000,
-//   maxOthersLength: 1000,
-//   isPaneless: true,
-//   title: "CMMC Level 1 Assessment",
-//   pages: [
-//     {
-//       title: "Section 1 - Onboarding Section",
-//       elements: [
-//         {
-//           name: "employee_count",
-//           title: "How many employees do you have?",
-//           type: "text",
-//           isRequired: true,
-//         },
-//         {
-//           name: "expansion_plan",
-//           title: "Do you plan to expand?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "expansion_timeline",
-//           title: "If yes, what is the timeline?",
-//           type: "text",
-//           isRequired: true,
-//           visibleIf: "{expansion_plan} = 'yes'",
-//         },
-//         {
-//           name: "business_industry",
-//           title: "What industry does your business belong to?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "health", text: "Health" },
-//             { value: "sales", text: "Sales" },
-//             { value: "commerce", text: "Commerce" },
-//             { value: "other", text: "Other" },
-//           ],
-//         },
-//         {
-//           name: "it_policies",
-//           title: "Do you have any IT related policies and/or procedures?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "policies_review",
-//           title: "If yes, how often are they reviewed and/or updated?",
-//           type: "text",
-//           isRequired: true,
-//           visibleIf: "{it_policies} = 'yes'",
-//         },
-//         {
-//           name: "policies_used",
-//           title: "If yes, select those used in your organization:",
-//           type: "checkbox",
-//           isRequired: true,
-//           visibleIf: "{it_policies} = 'yes'",
-//           choices: [
-//             {
-//               value: "new_employee_handbook",
-//               text: "New Employee Handbook / Guide",
-//             },
-//             { value: "aup", text: "Acceptable Use Policy (AUP)" },
-//             { value: "password_policy", text: "Password Policy" },
-//             { value: "ir", text: "IR" },
-//             { value: "pci_dss", text: "PCI-DSS" },
-//             { value: "hipaa", text: "HIPAA" },
-//             { value: "gdpr", text: "GDPR" },
-//             { value: "other", text: "Other (List all)" },
-//           ],
-//         },
-//         {
-//           name: "it_infrastructure",
-//           title: "Do you have on-prem or managed IT infrastructure?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "onprem", text: "On-prem" },
-//             { value: "managed", text: "Managed" },
-//             { value: "none", text: "None" },
-//           ],
-//         },
-//         {
-//           name: "active_directory",
-//           title: "Do you have Active Directory?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "remote_access",
-//           title:
-//             "Do employees have remote access to company resources to perform their work?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//       ],
-//     },
-//     {
-//       title: "Section 2 - Access",
-//       elements: [
-//         {
-//           name: "inventory_accounts",
-//           title: "Do you maintain an updated inventory of all accounts?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "account_change_process",
-//           title:
-//             "Do you have a process to secure user account credential changes (password, username change)?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "unique_employee_accounts",
-//           title:
-//             "Does each employee have a unique account and access only to the company resources they need for their role?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "privileged_accounts",
-//           title:
-//             "Do you have separate accounts for Privileged or Admin Accounts?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "admin_password",
-//           title: "Does each Admin account have a separate password?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "mfa_usage",
-//           title: "Do you utilize Multi-Factor-Authentication (MFA)?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "sso_usage",
-//           title: "Do you use Single-Sign-On (SSO) for any of your systems?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//         {
-//           name: "account_details_protected",
-//           title:
-//             "Do you ensure that account details like usernames and passwords are protected from misuse?",
-//           type: "radiogroup",
-//           isRequired: true,
-//           description: "Example: Posted on a sticky note next to the computer",
-//           choices: [
-//             { value: "yes", text: "Yes" },
-//             { value: "no", text: "No" },
-//           ],
-//         },
-//       ],
-//     },
-//   ],
-// };
 
 export { surveyJson };
