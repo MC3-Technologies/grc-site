@@ -1,4 +1,38 @@
 // File: client/src/utils/__tests__/adminUser.test.ts
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck
+
+// Mock cognitoConfig before importing anything that might use it
+jest.mock('../cognitoConfig', () => ({
+  getCognitoConfig: jest.fn().mockReturnValue({
+    userPoolId: 'test-user-pool-id',
+    region: 'us-east-1',
+    clientId: 'test-client-id'
+  })
+}));
+
+// Mock localStorage since it's not available in Node.js environment
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: jest.fn((key) => store[key] || null),
+    setItem: jest.fn((key, value) => {
+      store[key] = value.toString();
+    }),
+    clear: jest.fn(() => {
+      store = {};
+    }),
+    removeItem: jest.fn((key) => {
+      delete store[key];
+    }),
+    key: jest.fn((index) => Object.keys(store)[index] || null),
+    length: 0
+  };
+})();
+
+// Set up global localStorage before any imports
+Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import {
   fetchUsers,

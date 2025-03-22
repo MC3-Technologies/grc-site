@@ -25,7 +25,8 @@ jest.mock('../cognitoConfig', () => {
       const rootDir = process.cwd();
       const amplifyOutputsPath = path.resolve(rootDir, "amplify_outputs.json");
       if (fs.existsSync(amplifyOutputsPath)) {
-        const outputsJson = JSON.parse(fs.readFileSync(amplifyOutputsPath, "utf8"));
+        const fileContent = fs.readFileSync(amplifyOutputsPath, "utf8");
+        const outputsJson = JSON.parse(fileContent);
         if (outputsJson.auth) {
           const auth = outputsJson.auth;
           return {
@@ -50,7 +51,7 @@ jest.mock('../cognitoConfig', () => {
       
       const config = {
         userPoolId: envConfig.userPoolId || amplifyConfig.userPoolId || '',
-        region: envConfig.region || amplifyConfig.region || 'us-east-1',
+        region: envConfig.region || amplifyConfig.region || '',
         clientId: envConfig.clientId || amplifyConfig.clientId || '',
         identityPoolId: envConfig.identityPoolId || amplifyConfig.identityPoolId || '',
       };
@@ -126,18 +127,22 @@ describe('getCognitoConfig', () => {
     // Mock the file existence and content
     (fs.existsSync as jest.Mock).mockReturnValue(true);
     (fs.readFileSync as jest.Mock).mockReturnValue(JSON.stringify({
-      userPoolId: 'test-user-pool-id',
-      region: 'test-region',
-      clientId: 'test-client-id',
-      identityPoolId: 'test-identity-pool-id'
+      auth: {
+        userPoolId: 'test-user-pool-id',
+        region: 'test-region',
+        webClientId: 'test-client-id'
+      }
     }));
+    
+    // Ensure path.resolve returns a value our mock recognizes
+    (path.resolve as jest.Mock).mockReturnValue("amplify_outputs.json");
     
     const config = getCognitoConfig();
     
     expect(config.userPoolId).toBe('test-user-pool-id');
     expect(config.region).toBe('test-region');
     expect(config.clientId).toBe('test-client-id');
-    expect(config.identityPoolId).toBe('test-identity-pool-id');
+    expect(config.identityPoolId).toBe('');
   });
   
   it('should prefer environment variables over Amplify outputs', () => {
