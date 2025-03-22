@@ -31,19 +31,21 @@ export const auth = defineAuth({
   triggers: {
     preSignUp: preSignUpFunction,
   },
-  
+
   access: (allow) => [
-    allow.resource(userManagementFunction).to([
-      "listUsers",
-      "getUser", 
-      "createUser",
-      "updateUserAttributes",
-      "enableUser",
-      "disableUser",
-      "deleteUser",
-      "setUserPassword",
-      "addUserToGroup",
-      "removeUserFromGroup"
-    ])
+    allow
+      .resource(userManagementFunction)
+      .to([
+        "listUsers",
+        "getUser",
+        "createUser",
+        "updateUserAttributes",
+        "enableUser",
+        "disableUser",
+        "deleteUser",
+        "setUserPassword",
+        "addUserToGroup",
+        "removeUserFromGroup",
+      ]),
   ],
 });

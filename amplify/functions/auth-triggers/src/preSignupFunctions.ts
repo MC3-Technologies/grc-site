@@ -22,7 +22,8 @@ const sesClient = new SESClient();
 const snsClient = new SNSClient();
 
 // Admin email - Could be stored in environment variables
-const ADMIN_EMAIL = amplifyEnv.ADMIN_EMAIL || "cmmc.support@mc3technologies.com";
+const ADMIN_EMAIL =
+  amplifyEnv.ADMIN_EMAIL || "cmmc.support@mc3technologies.com";
 const FROM_EMAIL = amplifyEnv.FROM_EMAIL || "cmmc.support@mc3technologies.com";
 
 // User status operations
@@ -55,10 +56,10 @@ export const userStatusOperations = {
       await docClient.send(putCommand);
 
       console.log(`Created UserStatus record for ${email} with pending status`);
-      
+
       // Notify admins about the new user
       await userStatusOperations.notifyAdminsAboutNewUser(email);
-      
+
       return true;
     } catch (error) {
       console.error(`Error creating UserStatus for ${email}:`, error);
@@ -66,7 +67,7 @@ export const userStatusOperations = {
       return false;
     }
   },
-  
+
   /**
    * Sends a notification to admin(s) about a new user signup
    * @param userEmail The email of the user who signed up
@@ -89,7 +90,7 @@ export const userStatusOperations = {
                   <h1>New User Registration</h1>
                   <p>A new user has registered with the email: <strong>${userEmail}</strong></p>
                   <p>This user is awaiting approval. Please login to the admin panel to approve or reject this user.</p>
-                  <p><a href="${amplifyEnv.ADMIN_URL || '#'}">Go to Admin Panel</a></p>
+                  <p><a href="${amplifyEnv.ADMIN_URL || "#"}">Go to Admin Panel</a></p>
                 </body>
                 </html>
               `,
@@ -121,13 +122,17 @@ export const userStatusOperations = {
             Subject: "New User Registration",
             TopicArn: amplifyEnv.ADMIN_NOTIFICATION_TOPIC_ARN,
           };
-          
+
           if (amplifyEnv.ADMIN_NOTIFICATION_TOPIC_ARN) {
             const snsCommand = new PublishCommand(snsParams);
             await snsClient.send(snsCommand);
-            console.log(`Admin SNS notification sent for new user: ${userEmail}`);
+            console.log(
+              `Admin SNS notification sent for new user: ${userEmail}`,
+            );
           } else {
-            console.warn("SNS Topic ARN not configured, skipping SNS notification");
+            console.warn(
+              "SNS Topic ARN not configured, skipping SNS notification",
+            );
           }
         } catch (snsError) {
           console.error("Error sending SNS notification:", snsError);
@@ -136,7 +141,10 @@ export const userStatusOperations = {
 
       return true;
     } catch (error) {
-      console.error(`Error notifying admin about new user ${userEmail}:`, error);
+      console.error(
+        `Error notifying admin about new user ${userEmail}:`,
+        error,
+      );
       return false;
     }
   },

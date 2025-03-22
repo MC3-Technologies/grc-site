@@ -5,7 +5,10 @@ import {
 } from "../../utils/assessment";
 import { fetchUsers } from "../../utils/adminUser";
 import Spinner from "../Spinner";
-import { redirectToInProgressAssessment, redirectToCompletedAssessment } from "../../utils/routing";
+import {
+  redirectToInProgressAssessment,
+  redirectToCompletedAssessment,
+} from "../../utils/routing";
 
 // Combined assessment type for the UI
 interface AssessmentData {
@@ -35,7 +38,7 @@ const AdminAssessments = () => {
     "all" | "in-progress" | "completed"
   >("all");
   const [userMap, setUserMap] = useState<Record<string, string>>({});
-  
+
   // New state for user filtering
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -46,11 +49,11 @@ const AdminAssessments = () => {
   useEffect(() => {
     const updateTabFromUrl = () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get('tab');
-      
-      if (tabParam === 'in-progress') {
+      const tabParam = urlParams.get("tab");
+
+      if (tabParam === "in-progress") {
         setActiveTab("in-progress");
-      } else if (tabParam === 'completed') {
+      } else if (tabParam === "completed") {
         setActiveTab("completed");
       } else {
         setActiveTab("all");
@@ -61,11 +64,11 @@ const AdminAssessments = () => {
     updateTabFromUrl();
 
     // Listen for URL changes (browser back/forward buttons)
-    window.addEventListener('popstate', updateTabFromUrl);
-    
+    window.addEventListener("popstate", updateTabFromUrl);
+
     // Clean up event listener
     return () => {
-      window.removeEventListener('popstate', updateTabFromUrl);
+      window.removeEventListener("popstate", updateTabFromUrl);
     };
   }, []);
 
@@ -77,20 +80,22 @@ const AdminAssessments = () => {
         const fetchedUsers = await fetchUsers(true);
         const userMapping: Record<string, string> = {};
         const userOptions: UserOption[] = [];
-        
-        fetchedUsers.forEach(user => {
+
+        fetchedUsers.forEach((user) => {
           // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
           const userId = user.attributes?.sub || user.email;
           // The actual email is in user.attributes.email or user.email if it's an email
-          const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
-          
+          const userEmail =
+            user.attributes?.email ||
+            (user.email.includes("@") ? user.email : null);
+
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
             userOptions.push({ id: userId, email: userEmail });
             console.log(`Mapped ID ${userId} to email ${userEmail}`);
           }
         });
-        
+
         setUserMap(userMapping);
         setUsers(userOptions);
         console.log("User ID to Email mapping created:", userMapping);
@@ -98,12 +103,12 @@ const AdminAssessments = () => {
         console.error("Error fetching user data:", error);
       }
     };
-    
+
     loadUsers();
-    
+
     // Set up periodic refresh of user data every 30 seconds
     const userRefreshInterval = setInterval(loadUsers, 30000);
-    
+
     return () => {
       clearInterval(userRefreshInterval);
     };
@@ -119,15 +124,17 @@ const AdminAssessments = () => {
           await CompletedAssessment.fetchAllCompletedAssessments();
 
         // Ensure we have the latest user mapping
-        const currentUserMap = {...userMap};
-        
+        const currentUserMap = { ...userMap };
+
         // If user map is empty, try to fetch it again
         if (Object.keys(currentUserMap).length === 0) {
           try {
             const fetchedUsers = await fetchUsers(true);
-            fetchedUsers.forEach(user => {
+            fetchedUsers.forEach((user) => {
               const userId = user.attributes?.sub || user.email;
-              const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
+              const userEmail =
+                user.attributes?.email ||
+                (user.email.includes("@") ? user.email : null);
               if (userId && userEmail) {
                 currentUserMap[userId] = userEmail;
               }
@@ -140,23 +147,23 @@ const AdminAssessments = () => {
         // Helper function to resolve owner email
         const resolveOwnerEmail = (ownerId: string | null): string | null => {
           if (!ownerId) return null;
-          
+
           // If owner ID is already an email, return it
-          if (ownerId.includes('@')) return ownerId;
-          
+          if (ownerId.includes("@")) return ownerId;
+
           // Look up in our mapping
           if (currentUserMap[ownerId]) return currentUserMap[ownerId];
-          
+
           // If no match, log and return owner ID (better than nothing)
           console.log(`Could not find email for owner ID: ${ownerId}`);
-          return ownerId; 
+          return ownerId;
         };
 
         // Convert to unified format for UI
         const inProgressData: AssessmentData[] = inProgressAssessments.map(
           (assessment) => {
             const ownerEmail = resolveOwnerEmail(assessment.owner);
-              
+
             return {
               id: assessment.id,
               name: assessment.name,
@@ -167,13 +174,13 @@ const AdminAssessments = () => {
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
             };
-          }
+          },
         );
 
         const completedData: AssessmentData[] = completedAssessments.map(
           (assessment) => {
             const ownerEmail = resolveOwnerEmail(assessment.owner);
-              
+
             return {
               id: assessment.id,
               name: assessment.name,
@@ -187,7 +194,7 @@ const AdminAssessments = () => {
               updatedAt: assessment.updatedAt,
               completedAt: assessment.completedAt,
             };
-          }
+          },
         );
 
         // Combine and sort by most recent first
@@ -211,16 +218,16 @@ const AdminAssessments = () => {
   const filteredAssessments = assessments.filter((assessment) => {
     // Filter by tab
     const matchesTab = activeTab === "all" || assessment.status === activeTab;
-    
+
     // Filter by user if one is selected
     const matchesUser = !selectedUser || assessment.owner === selectedUser;
-    
+
     return matchesTab && matchesUser;
   });
 
   // Get filtered users for dropdown based on search query
-  const filteredUsers = users.filter(user => 
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter((user) =>
+    user.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Handle user selection
@@ -274,8 +281,8 @@ const AdminAssessments = () => {
                 setActiveTab("all");
                 // Update URL without full page reload
                 const url = new URL(window.location.href);
-                url.searchParams.delete('tab');
-                window.history.pushState({}, '', url);
+                url.searchParams.delete("tab");
+                window.history.pushState({}, "", url);
               }}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "all"
@@ -292,8 +299,8 @@ const AdminAssessments = () => {
                 setActiveTab("in-progress");
                 // Update URL without full page reload
                 const url = new URL(window.location.href);
-                url.searchParams.set('tab', 'in-progress');
-                window.history.pushState({}, '', url);
+                url.searchParams.set("tab", "in-progress");
+                window.history.pushState({}, "", url);
               }}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "in-progress"
@@ -313,8 +320,8 @@ const AdminAssessments = () => {
                 setActiveTab("completed");
                 // Update URL without full page reload
                 const url = new URL(window.location.href);
-                url.searchParams.set('tab', 'completed');
-                window.history.pushState({}, '', url);
+                url.searchParams.set("tab", "completed");
+                window.history.pushState({}, "", url);
               }}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "completed"
@@ -334,17 +341,37 @@ const AdminAssessments = () => {
       {/* User filter dropdown */}
       <div className="mb-4 flex flex-wrap gap-2 items-center">
         <div className="relative">
-          <button 
+          <button
             onClick={() => setShowUserDropdown(!showUserDropdown)}
             className="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 inline-flex items-center"
             type="button"
           >
-            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+            <svg
+              className="w-4 h-4 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                clipRule="evenodd"
+              ></path>
             </svg>
-            {selectedUser ? `Filtered by: ${userMap[selectedUser] || "Unknown"}` : "Filter by User"}
-            <svg className="w-4 h-4 ml-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"></path>
+            {selectedUser
+              ? `Filtered by: ${userMap[selectedUser] || "Unknown"}`
+              : "Filter by User"}
+            <svg
+              className="w-4 h-4 ml-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              ></path>
             </svg>
           </button>
 
@@ -352,30 +379,44 @@ const AdminAssessments = () => {
           {showUserDropdown && (
             <div className="absolute left-0 z-10 mt-2 w-72 bg-white rounded-lg shadow-lg dark:bg-gray-700">
               <div className="p-3">
-                <label htmlFor="user-search" className="sr-only">Search users</label>
+                <label htmlFor="user-search" className="sr-only">
+                  Search users
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"></path>
+                    <svg
+                      className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                        clipRule="evenodd"
+                      ></path>
                     </svg>
                   </div>
-                  <input 
-                    type="text" 
-                    id="user-search" 
-                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" 
-                    placeholder="Search users" 
+                  <input
+                    type="text"
+                    id="user-search"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full pl-10 p-2 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
+                    placeholder="Search users"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
               </div>
-              <ul className="max-h-60 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdown-button">
+              <ul
+                className="max-h-60 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200"
+                aria-labelledby="dropdown-button"
+              >
                 {filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
                     <li key={user.id}>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="inline-flex w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white"
                         onClick={() => handleUserSelect(user.id)}
                       >
@@ -384,17 +425,28 @@ const AdminAssessments = () => {
                     </li>
                   ))
                 ) : (
-                  <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">No users found</li>
+                  <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                    No users found
+                  </li>
                 )}
               </ul>
               {users.length > 0 && (
                 <div className="py-2 px-3 border-t border-gray-200 dark:border-gray-600">
-                  <button 
+                  <button
                     onClick={clearUserFilter}
                     className="inline-flex items-center text-xs font-medium text-primary-700 dark:text-primary-500 hover:underline"
                   >
-                    <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                      <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                    <svg
+                      className="w-3 h-3 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      ></path>
                     </svg>
                     Clear filter
                   </button>
@@ -403,18 +455,27 @@ const AdminAssessments = () => {
             </div>
           )}
         </div>
-        
+
         {/* Show active filter badge */}
         {selectedUser && (
           <div className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-300">
             <span>Filtered by: {userMap[selectedUser]}</span>
-            <button 
+            <button
               onClick={clearUserFilter}
               className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-primary-400 hover:text-primary-900 dark:hover:text-primary-100"
               aria-label="Remove filter"
             >
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd"></path>
+              <svg
+                className="w-3 h-3"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                ></path>
               </svg>
             </button>
           </div>
@@ -463,15 +524,33 @@ const AdminAssessments = () => {
                   <div className="md:hidden mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-400">
                     {assessment.ownerEmail && (
                       <div className="flex items-center">
-                        <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path>
+                        <svg
+                          className="w-3.5 h-3.5 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                            clipRule="evenodd"
+                          ></path>
                         </svg>
                         {assessment.ownerEmail}
                       </div>
                     )}
                     <div className="flex items-center">
-                      <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"></path>
+                      <svg
+                        className="w-3.5 h-3.5 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                          clipRule="evenodd"
+                        ></path>
                       </svg>
                       {assessment.status === "completed"
                         ? formatDate(assessment.completedAt || "")
@@ -530,35 +609,43 @@ const AdminAssessments = () => {
                     : formatDate(assessment.updatedAt)}
                 </td>
                 <td className="px-6 py-4 space-x-2 flex flex-wrap gap-1">
-                  <button 
+                  <button
                     onClick={() => handleViewAssessment(assessment)}
                     className="flex items-center px-3 py-1 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
                     aria-label="View assessment"
                     title="View assessment"
                   >
-                    <svg 
-                      className="w-3.5 h-3.5 mr-1" 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20" 
+                    <svg
+                      className="w-3.5 h-3.5 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
                       xmlns="http://www.w3.org/2000/svg"
                     >
                       <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                      <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"></path>
+                      <path
+                        fillRule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clipRule="evenodd"
+                      ></path>
                     </svg>
                     View
                   </button>
-                  <button 
+                  <button
                     className="flex items-center px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     aria-label="Export assessment"
                     title="Export assessment data"
                   >
-                    <svg 
-                      className="w-3.5 h-3.5 mr-1" 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20" 
+                    <svg
+                      className="w-3.5 h-3.5 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd"></path>
+                      <path
+                        fillRule="evenodd"
+                        d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      ></path>
                     </svg>
                     Export
                   </button>

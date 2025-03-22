@@ -10,11 +10,11 @@ export const log = {
   },
   error: (message: string, ...args: any[]) => {
     console.error(`[ERROR] ${message}`, ...args);
-  }
+  },
 };
 
 // Helper function to generate a random ID
-export const generateId = (prefix: string = ''): string => {
+export const generateId = (prefix: string = ""): string => {
   return `${prefix}${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
 };
 
@@ -22,4 +22,4 @@ export const generateId = (prefix: string = ''): string => {
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
-}; 
+};

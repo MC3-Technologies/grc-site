@@ -171,26 +171,28 @@ export function CompletedAssessmentView() {
         // Force refresh to ensure we get latest user data
         const users = await fetchUsers(true);
         const userMapping: Record<string, string> = {};
-        
-        users.forEach(user => {
+
+        users.forEach((user) => {
           // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
           const userId = user.attributes?.sub || user.email;
           // The actual email is in user.attributes.email or user.email if it's already an email
-          const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
-          
+          const userEmail =
+            user.attributes?.email ||
+            (user.email.includes("@") ? user.email : null);
+
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
             console.log(`Mapped user ID ${userId} to email ${userEmail}`);
           }
         });
-        
+
         setUserMap(userMapping);
         console.log("User ID to email mapping created:", userMapping);
       } catch (error) {
         console.error("Error creating user mapping:", error);
       }
     };
-    
+
     loadUserMap();
   }, []);
 
@@ -234,13 +236,13 @@ export function CompletedAssessmentView() {
   // Update the owner display in getPageData to use the email mapping
   const getOwnerEmail = (ownerId: string | null): string | null => {
     if (!ownerId) return null;
-    
+
     // If owner ID is already an email, return it
-    if (ownerId.includes('@')) return ownerId;
-    
+    if (ownerId.includes("@")) return ownerId;
+
     // Look up in our mapping
     if (userMap[ownerId]) return userMap[ownerId];
-    
+
     // If no match, log and return owner ID (better than nothing)
     console.log(`Could not find email for owner ID: ${ownerId}`);
     return ownerId;

@@ -32,9 +32,14 @@ export function AdminDashboard() {
     const sectionParam = params.get("section");
     if (
       sectionParam &&
-      ["home", "users", "assessments", "questionnaire", "reports", "settings"].includes(
-        sectionParam,
-      )
+      [
+        "home",
+        "users",
+        "assessments",
+        "questionnaire",
+        "reports",
+        "settings",
+      ].includes(sectionParam)
     ) {
       setActiveSection(sectionParam);
     }
@@ -48,7 +53,7 @@ export function AdminDashboard() {
         console.error("Error fetching current user:", err);
       }
     };
-    
+
     fetchUser();
     setLoading(false);
   }, []);

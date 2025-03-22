@@ -10,9 +10,9 @@ const USE_MOCK_DATA = false;
 
 // Cache configuration
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes by default
-const USER_CACHE_KEY = 'admin_users_cache';
-const USER_CACHE_TIMESTAMP_KEY = 'admin_users_cache_timestamp';
-const USER_CACHE_BY_STATUS_PREFIX = 'admin_users_cache_status_';
+const USER_CACHE_KEY = "admin_users_cache";
+const USER_CACHE_TIMESTAMP_KEY = "admin_users_cache_timestamp";
+const USER_CACHE_BY_STATUS_PREFIX = "admin_users_cache_status_";
 
 // User interface
 export interface User {
@@ -39,7 +39,7 @@ export const getMockUsers = (): User[] => {
       enabled: true,
       role: "admin",
       created: now,
-      lastModified: now
+      lastModified: now,
     },
     {
       email: "user1@example.com",
@@ -47,7 +47,7 @@ export const getMockUsers = (): User[] => {
       enabled: true,
       role: "user",
       created: now,
-      lastModified: now
+      lastModified: now,
     },
     {
       email: "pending@example.com",
@@ -55,7 +55,7 @@ export const getMockUsers = (): User[] => {
       enabled: true,
       role: "user",
       created: now,
-      lastModified: now
+      lastModified: now,
     },
     {
       email: "suspended@example.com",
@@ -63,20 +63,22 @@ export const getMockUsers = (): User[] => {
       enabled: false,
       role: "user",
       created: now,
-      lastModified: now
-    }
+      lastModified: now,
+    },
   ];
 };
 
 // Helper to filter mock users by status
 export const getFilteredMockUsers = (status: string): User[] => {
   console.log(`Filtering mock users by status: ${status}`);
-  return getMockUsers().filter(user => {
+  return getMockUsers().filter((user) => {
     switch (status) {
       case "pending":
         // Only count as pending if FORCE_CHANGE_PASSWORD and not rejected
-        return user.status === "FORCE_CHANGE_PASSWORD" && 
-               user.customStatus !== "REJECTED";
+        return (
+          user.status === "FORCE_CHANGE_PASSWORD" &&
+          user.customStatus !== "REJECTED"
+        );
       case "active":
         return user.status === "CONFIRMED" && user.enabled;
       case "suspended":
@@ -93,7 +95,7 @@ export const getFilteredMockUsers = (status: string): User[] => {
 const safelyParseApiResponse = <T>(data: unknown): T | null => {
   try {
     // If data is already a string, parse it
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       // Check if it's a JSON string in quotes (common with AppSync responses)
       if (data.startsWith('"') && data.endsWith('"')) {
         // Remove the surrounding quotes and parse
@@ -105,8 +107,8 @@ const safelyParseApiResponse = <T>(data: unknown): T | null => {
     }
     return data as T;
   } catch (error) {
-    console.warn('Error parsing API response:', error);
-    console.log('Raw response was:', data);
+    console.warn("Error parsing API response:", error);
+    console.log("Raw response was:", data);
     return null;
   }
 };
@@ -117,17 +119,17 @@ const safelyParseApiResponse = <T>(data: unknown): T | null => {
 export const getUserStatus = (
   status: string,
   enabled: boolean,
-  customStatus?: string | null
+  customStatus?: string | null,
 ): "active" | "pending" | "rejected" | "suspended" => {
   // First check custom status which overrides default
   if (customStatus === "REJECTED") {
     return "rejected";
   }
-  
+
   if (customStatus === "SUSPENDED") {
     return "suspended";
   }
-  
+
   // If user is disabled but not rejected or suspended, treat as rejected
   if (!enabled && !customStatus) {
     return "rejected";
@@ -141,7 +143,7 @@ export const getUserStatus = (
   ) {
     return "pending";
   }
-  
+
   // Default to pending for any other status
   return "pending";
 };
@@ -151,16 +153,16 @@ export const getUserStatus = (
  */
 export const refreshUserData = async (): Promise<void> => {
   console.log("Refreshing user data cache...");
-  
+
   // Clear all cached data
   clearUserCache();
-  
+
   // Force a refresh by fetching all users
   await fetchUsers(true);
-  
+
   // Wait a moment for consistency
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
   // Fetch again to ensure we have the latest data
   await fetchUsers(true);
 };
@@ -168,16 +170,18 @@ export const refreshUserData = async (): Promise<void> => {
 /**
  * Fetch all users from the Cognito user pool
  */
-export const fetchUsers = async (forceRefresh: boolean = false): Promise<User[]> => {
+export const fetchUsers = async (
+  forceRefresh: boolean = false,
+): Promise<User[]> => {
   console.log("Fetching users...");
-  
+
   try {
     // Use the mockup data if configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock data");
       return getMockUsers();
     }
-    
+
     // Check cache first if not forcing a refresh
     if (!forceRefresh) {
       const cachedUsers = getCachedUsers();
@@ -186,32 +190,32 @@ export const fetchUsers = async (forceRefresh: boolean = false): Promise<User[]>
         return cachedUsers;
       }
     }
-    
+
     // If we get here, we need to fetch from the API
     console.log("Fetching users from API...");
-    
+
     // Use the same client pattern as other functions
     const client = getClientSchema();
     console.log("Got client");
-    
+
     const response = await client.queries.listUsers();
     console.log("API response received:", response);
-    
+
     // Parse the response using the existing helper
     if (response && response.data) {
       const parsedData = safelyParseApiResponse<User[]>(response.data);
       console.log("Parsed response data:", parsedData);
-      
+
       if (Array.isArray(parsedData)) {
         // Cache the fetched data
         cacheUsers(parsedData);
         return parsedData;
       } else {
-        console.warn('API returned data but not an array:', parsedData);
+        console.warn("API returned data but not an array:", parsedData);
         return [];
       }
     }
-    
+
     console.error("No data returned from listUsers query");
     return [];
   } catch (error) {
@@ -223,17 +227,17 @@ export const fetchUsers = async (forceRefresh: boolean = false): Promise<User[]>
 // Fetch users filtered by status
 export const fetchUsersByStatus = async (
   status: "pending" | "active" | "rejected" | "suspended",
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false,
 ): Promise<User[]> => {
   try {
     console.log(`Fetching users with status: ${status}`);
-    
+
     // Only use mock data if explicitly configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock filtered data");
       return getFilteredMockUsers(status);
     }
-    
+
     // Check cache first if not forcing a refresh
     if (!forceRefresh) {
       const cachedUsers = getCachedUsersByStatus(status);
@@ -242,51 +246,51 @@ export const fetchUsersByStatus = async (
         return cachedUsers;
       }
     }
-    
+
     // Get the authenticated client
     const client = getClientSchema();
-    
+
     // Call the API with the status parameter
     const response = await client.queries.getUsersByStatus({ status });
     console.log("API response for getUsersByStatus:", response);
-    
+
     // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      console.log('Parsed status filtered data:', parsedData);
-      
+      console.log("Parsed status filtered data:", parsedData);
+
       if (Array.isArray(parsedData)) {
         // Apply specific filters as needed
         let filteredData: User[] = parsedData as User[];
-        
+
         if (status === "pending") {
-          filteredData = filteredData.filter(user => 
-            user.customStatus !== "REJECTED" && 
-            user.status !== "rejected"
+          filteredData = filteredData.filter(
+            (user) =>
+              user.customStatus !== "REJECTED" && user.status !== "rejected",
           );
         } else if (status === "rejected") {
           // Return users with REJECTED customStatus or rejected status
-          filteredData = filteredData.filter(user => 
-            user.customStatus === "REJECTED" || 
-            user.status === "rejected"
+          filteredData = filteredData.filter(
+            (user) =>
+              user.customStatus === "REJECTED" || user.status === "rejected",
           );
         } else if (status === "suspended") {
           // Return users with SUSPENDED customStatus or suspended status
-          filteredData = filteredData.filter(user => 
-            user.customStatus === "SUSPENDED" || 
-            user.status === "suspended"
+          filteredData = filteredData.filter(
+            (user) =>
+              user.customStatus === "SUSPENDED" || user.status === "suspended",
           );
         }
-        
+
         // Cache the filtered results
         cacheUsersByStatus(status, filteredData);
-        
+
         return filteredData;
       } else {
-        console.warn('API returned data but not an array:', parsedData);
+        console.warn("API returned data but not an array:", parsedData);
       }
     }
-    
+
     // If we reach here, something went wrong
     console.error(`Failed to get users with status ${status}`);
     return [];
@@ -300,21 +304,21 @@ export const fetchUsersByStatus = async (
 export const getUserDetails = async (email: string): Promise<User> => {
   try {
     // Only use mock data if explicitly configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
-      const mockUser = getMockUsers().find(user => user.email === email);
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      const mockUser = getMockUsers().find((user) => user.email === email);
       if (mockUser) return mockUser;
     }
-    
+
     const client = getClientSchema();
     const response = await client.queries.getUserDetails({ email });
-    
+
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      if (parsedData && typeof parsedData === 'object') {
+      if (parsedData && typeof parsedData === "object") {
         return parsedData as User;
       }
     }
-    
+
     throw new Error("Invalid user data received");
   } catch (error) {
     console.error(`Error fetching user details for ${email}:`, error);
@@ -326,21 +330,26 @@ export const getUserDetails = async (email: string): Promise<User> => {
 export const fetchUserDetails = getUserDetails;
 
 // Approve user
-export const approveUser = async (email: string, adminEmail?: string): Promise<boolean> => {
+export const approveUser = async (
+  email: string,
+  adminEmail?: string,
+): Promise<boolean> => {
   try {
     // Only use mock data if explicitly configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
-      console.log(`Mock approving user: ${email} by admin: ${adminEmail || 'unknown'}`);
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(
+        `Mock approving user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
-    
+
     const client = getClientSchema();
-    const response = await client.mutations.approveUser({ 
+    const response = await client.mutations.approveUser({
       email,
-      adminEmail: adminEmail || 'admin@example.com'
+      adminEmail: adminEmail || "admin@example.com",
     });
     console.log(`Approve user API response for ${email}:`, response);
-    
+
     // Parse response if needed
     if (response && response.data) {
       const result = safelyParseApiResponse(response.data);
@@ -361,22 +370,24 @@ export const approveUser = async (email: string, adminEmail?: string): Promise<b
 export const rejectUser = async (
   email: string,
   reason?: string,
-  adminEmail?: string
+  adminEmail?: string,
 ): Promise<boolean> => {
   try {
     // Only use mock data if explicitly configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
-      console.log(`Mock rejecting user: ${email} by admin: ${adminEmail || 'unknown'}`);
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(
+        `Mock rejecting user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
-    
+
     const client = getClientSchema();
-    const response = await client.mutations.rejectUser({ 
-      email, 
+    const response = await client.mutations.rejectUser({
+      email,
       reason,
-      adminEmail: adminEmail || 'admin@example.com'
+      adminEmail: adminEmail || "admin@example.com",
     });
-    
+
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
     if (result) {
@@ -395,21 +406,23 @@ export const rejectUser = async (
 export const suspendUser = async (
   email: string,
   reason?: string,
-  adminEmail?: string
+  adminEmail?: string,
 ): Promise<boolean> => {
   try {
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
-      console.log(`Mock suspending user: ${email} by admin: ${adminEmail || 'unknown'}`);
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(
+        `Mock suspending user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
-    
+
     const client = getClientSchema();
     const response = await client.mutations.suspendUser({
-      email, 
+      email,
       reason,
-      adminEmail: adminEmail || 'admin@example.com'
+      adminEmail: adminEmail || "admin@example.com",
     });
-    
+
     const result = safelyParseApiResponse(response.data);
     if (result) {
       // Clear cache on successful operation
@@ -424,19 +437,24 @@ export const suspendUser = async (
 };
 
 // Reactivate user
-export const reactivateUser = async (email: string, adminEmail?: string): Promise<boolean> => {
+export const reactivateUser = async (
+  email: string,
+  adminEmail?: string,
+): Promise<boolean> => {
   try {
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
-      console.log(`Mock reactivating user: ${email} by admin: ${adminEmail || 'unknown'}`);
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(
+        `Mock reactivating user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
-    
+
     const client = getClientSchema();
     const response = await client.mutations.reactivateUser({
       email,
-      adminEmail: adminEmail || 'admin@example.com'
+      adminEmail: adminEmail || "admin@example.com",
     });
-    
+
     const result = safelyParseApiResponse(response.data);
     if (result) {
       // Clear cache on successful operation
@@ -451,30 +469,35 @@ export const reactivateUser = async (email: string, adminEmail?: string): Promis
 };
 
 // Delete user
-export const deleteUser = async (email: string, adminEmail?: string): Promise<{success: boolean, message: string}> => {
+export const deleteUser = async (
+  email: string,
+  adminEmail?: string,
+): Promise<{ success: boolean; message: string }> => {
   try {
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
-      console.log(`Mock deleting user: ${email} by admin: ${adminEmail || 'unknown'}`);
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(
+        `Mock deleting user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return {
         success: true,
-        message: `User ${email} has been deleted (mock).`
+        message: `User ${email} has been deleted (mock).`,
       };
     }
-    
+
     const client = getClientSchema();
-    const response = await client.mutations.deleteUser({ 
+    const response = await client.mutations.deleteUser({
       email,
-      adminEmail: adminEmail || 'admin@example.com' // Pass admin email to server
+      adminEmail: adminEmail || "admin@example.com", // Pass admin email to server
     });
-    
+
     console.log(`Delete user API response for ${email}:`, response);
-    
+
     // Parse response
     if (response && response.data) {
       const result = safelyParseApiResponse(response.data);
       // Check if result has the expected structure
-      if (result && typeof result === 'object' && 'success' in result) {
-        const typedResult = result as {success: boolean, message: string};
+      if (result && typeof result === "object" && "success" in result) {
+        const typedResult = result as { success: boolean; message: string };
         if (typedResult.success) {
           // Clear cache on successful operation
           clearUserCache();
@@ -482,16 +505,16 @@ export const deleteUser = async (email: string, adminEmail?: string): Promise<{s
         return typedResult;
       }
     }
-    
+
     return {
       success: false,
-      message: "Failed to delete user - no response from server."
+      message: "Failed to delete user - no response from server.",
     };
   } catch (error) {
     console.error(`Error deleting user ${email}:`, error);
     return {
       success: false,
-      message: `Failed to delete user: ${error instanceof Error ? error.message : String(error)}`
+      message: `Failed to delete user: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
 };
@@ -507,10 +530,17 @@ export interface CreateUserParams {
 export interface CreateUserResult {
   success: boolean;
   message?: string;
+  user?: {
+    email: string;
+    status: string;
+    [key: string]: unknown;
+  };
 }
 
 // Add the createTestUser function for test/development purposes only
-export async function createTestUser(params: CreateUserParams): Promise<CreateUserResult> {
+export async function createTestUser(
+  params: CreateUserParams,
+): Promise<CreateUserResult> {
   try {
     const client = getClientSchema();
     const response = await client.mutations.createUser({
@@ -518,25 +548,25 @@ export async function createTestUser(params: CreateUserParams): Promise<CreateUs
       role: params.role,
       adminEmail: params.adminEmail,
       // Only set sendEmail to false for test users, regular users should get emails
-      sendEmail: false // For test users, don't send verification emails
+      sendEmail: false, // For test users, don't send verification emails
     });
-    
+
     if (response && response.data) {
       return {
         success: true,
-        message: `Test user ${params.email} created successfully with auto-generated password. User will need password reset.`
+        message: `Test user ${params.email} created successfully with auto-generated password. User will need password reset.`,
       };
     } else {
       return {
         success: false,
-        message: response?.errors?.[0]?.message || 'Failed to create test user'
+        message: response?.errors?.[0]?.message || "Failed to create test user",
       };
     }
   } catch (error) {
     console.error("Error creating test user:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : String(error),
     };
   }
 }
@@ -575,11 +605,11 @@ interface AdminStats {
 export const fetchAdminStats = async (): Promise<AdminStats> => {
   try {
     console.log("Fetching admin statistics");
-    
+
     // Only use mock data if explicitly configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock statistics data");
-      
+
       // Create mock stats
       return {
         users: {
@@ -587,84 +617,95 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
           active: 6,
           pending: 2,
           rejected: 1,
-          suspended: 1
+          suspended: 1,
         },
         assessments: {
           total: 15,
           inProgress: 5,
           completed: 10,
           compliant: 8,
-          nonCompliant: 2
+          nonCompliant: 2,
         },
         complianceRate: 80,
-        recentActivity: []
+        recentActivity: [],
       };
     }
-    
+
     // Get the authenticated client
     const client = getClientSchema();
-    
+
     // Call the API
     const response = await client.queries.getAdminStats();
     console.log("API response for getAdminStats:", response);
-    
+
     // Process the data depending on its type
     if (response.data) {
       let parsedData: unknown;
-      
+
       // Check if response.data is already an object or a string that needs parsing
-      if (typeof response.data === 'string') {
+      if (typeof response.data === "string") {
         parsedData = safelyParseApiResponse(response.data);
-        console.log('Parsed admin stats data:', parsedData);
+        console.log("Parsed admin stats data:", parsedData);
       } else {
         // It's already an object
         parsedData = response.data;
-        console.log('Admin stats data (already an object):', parsedData);
+        console.log("Admin stats data (already an object):", parsedData);
       }
-      
+
       // Check if the returned data is already in the expected format
-      if (parsedData && typeof parsedData === 'object') {
+      if (parsedData && typeof parsedData === "object") {
         // If it has all required properties, it's in the right format
-        if ('users' in parsedData && 
-            'assessments' in parsedData && 
-            'complianceRate' in parsedData && 
-            'recentActivity' in parsedData) {
+        if (
+          "users" in parsedData &&
+          "assessments" in parsedData &&
+          "complianceRate" in parsedData &&
+          "recentActivity" in parsedData
+        ) {
           return parsedData as AdminStats;
         }
-        
+
         // If parsedData is an array of users, we need to format it as stats
         if (Array.isArray(parsedData)) {
-          console.log('Received an array of users, formatting as stats');
+          console.log("Received an array of users, formatting as stats");
           const users = parsedData as User[];
-          
+
           const stats: AdminStats = {
             users: {
               total: users.length,
-              active: users.filter((u: User) => u.status === 'CONFIRMED' && u.enabled).length,
-              pending: users.filter((u: User) => u.status === 'FORCE_CHANGE_PASSWORD' && 
-                (u.customStatus !== 'REJECTED' && u.customStatus !== 'SUSPENDED')).length,
-              rejected: users.filter((u: User) => u.customStatus === 'REJECTED').length,
-              suspended: users.filter((u: User) => u.customStatus === 'SUSPENDED').length
+              active: users.filter(
+                (u: User) => u.status === "CONFIRMED" && u.enabled,
+              ).length,
+              pending: users.filter(
+                (u: User) =>
+                  u.status === "FORCE_CHANGE_PASSWORD" &&
+                  u.customStatus !== "REJECTED" &&
+                  u.customStatus !== "SUSPENDED",
+              ).length,
+              rejected: users.filter((u: User) => u.customStatus === "REJECTED")
+                .length,
+              suspended: users.filter(
+                (u: User) => u.customStatus === "SUSPENDED",
+              ).length,
             },
             assessments: {
               total: 0,
               inProgress: 0,
               completed: 0,
               compliant: 0,
-              nonCompliant: 0
+              nonCompliant: 0,
             },
             complianceRate: 0,
-            recentActivity: []
+            recentActivity: [],
           };
-          
+
           return stats;
         }
       }
     }
-    
+
     // If we reach here, something went wrong
     console.error("Failed to get admin statistics");
-    
+
     // Return default values
     return {
       users: {
@@ -672,21 +713,21 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
         active: 0,
         pending: 0,
         rejected: 0,
-        suspended: 0
+        suspended: 0,
       },
       assessments: {
         total: 0,
         inProgress: 0,
         completed: 0,
         compliant: 0,
-        nonCompliant: 0
+        nonCompliant: 0,
       },
       complianceRate: 0,
-      recentActivity: []
+      recentActivity: [],
     };
   } catch (error) {
     console.error("Error fetching admin stats:", error);
-    
+
     // Return default values on error
     return {
       users: {
@@ -694,17 +735,17 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
         active: 0,
         pending: 0,
         rejected: 0,
-        suspended: 0
+        suspended: 0,
       },
       assessments: {
         total: 0,
         inProgress: 0,
         completed: 0,
         compliant: 0,
-        nonCompliant: 0
+        nonCompliant: 0,
       },
       complianceRate: 0,
-      recentActivity: []
+      recentActivity: [],
     };
   }
 };
@@ -726,20 +767,24 @@ export interface AuditLog {
 // Fetch audit logs
 export const fetchAuditLogs = async (
   dateRange?: { startDate?: string; endDate?: string },
-  filters?: { action?: string; performedBy?: string; affectedResource?: string }
+  filters?: {
+    action?: string;
+    performedBy?: string;
+    affectedResource?: string;
+  },
 ): Promise<AuditLog[]> => {
   try {
     console.log("Fetching audit logs with filters:", { dateRange, filters });
-    
+
     // Only use mock data if explicitly configured
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock audit log data");
-      
+
       // Create mock audit logs
       const now = new Date();
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
-      
+
       return [
         {
           id: "audit-1",
@@ -748,7 +793,7 @@ export const fetchAuditLogs = async (
           performedBy: "admin@example.com",
           affectedResource: "User",
           resourceId: "user1@example.com",
-          details: { notes: "User approved after verification" }
+          details: { notes: "User approved after verification" },
         },
         {
           id: "audit-2",
@@ -757,7 +802,7 @@ export const fetchAuditLogs = async (
           performedBy: "admin@example.com",
           affectedResource: "User",
           resourceId: "user2@example.com",
-          details: { reason: "Invalid information provided" }
+          details: { reason: "Invalid information provided" },
         },
         {
           id: "audit-3",
@@ -765,32 +810,32 @@ export const fetchAuditLogs = async (
           action: "SYSTEM_SETTING_UPDATED",
           performedBy: "admin@example.com",
           affectedResource: "SystemSettings",
-          details: { setting: "maxLoginAttempts", oldValue: 3, newValue: 5 }
-        }
+          details: { setting: "maxLoginAttempts", oldValue: 3, newValue: 5 },
+        },
       ];
     }
-    
+
     // Get the authenticated client
     const client = getClientSchema();
-    
+
     // Call the API
-    const response = await client.queries.getAuditLogs({ 
+    const response = await client.queries.getAuditLogs({
       dateRange: dateRange || undefined,
-      filters: filters || undefined
+      filters: filters || undefined,
     });
-    
+
     console.log("API response for getAuditLogs:", response);
-    
+
     // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      console.log('Parsed audit logs data:', parsedData);
-      
+      console.log("Parsed audit logs data:", parsedData);
+
       if (Array.isArray(parsedData)) {
         return parsedData as AuditLog[];
       }
     }
-    
+
     // If we reach here, something went wrong
     console.error("Failed to get audit logs");
     return [];
@@ -801,11 +846,11 @@ export const fetchAuditLogs = async (
 };
 
 // Define possible types for system setting values
-export type SystemSettingValue = 
-  | string 
-  | number 
-  | boolean 
-  | Record<string, unknown> 
+export type SystemSettingValue =
+  | string
+  | number
+  | boolean
+  | Record<string, unknown>
   | Array<unknown>;
 
 // System Setting interface
@@ -830,7 +875,7 @@ export interface UpdateSystemSettingsResponse {
 // Update system settings
 export const updateSystemSettings = async (
   settings: SystemSetting | SystemSetting[],
-  updatedBy?: string
+  updatedBy?: string,
 ): Promise<{
   success: boolean;
   updatedCount?: number;
@@ -839,54 +884,58 @@ export const updateSystemSettings = async (
 }> => {
   try {
     console.log("Updating system settings:", settings);
-    
+
     // Only simulate in mock mode
-    if (USE_MOCK_DATA && process.env.NODE_ENV !== 'production') {
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Simulating system settings update in mock mode");
-      
+
       // Return mock result
       return {
         success: true,
         updatedCount: Array.isArray(settings) ? settings.length : 1,
-        updatedSettings: Array.isArray(settings) ? settings : [settings]
+        updatedSettings: Array.isArray(settings) ? settings : [settings],
       };
     }
-    
+
     // Get the authenticated client
     const client = getClientSchema();
-    
+
     // Call the API
     const response = await client.mutations.updateSystemSettingsConfig({
       settings,
-      updatedBy: updatedBy || ''
+      updatedBy: updatedBy || "",
     });
-    
+
     console.log("API response for updateSystemSettingsConfig:", response);
-    
+
     // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      console.log('Parsed update settings response:', parsedData);
-      
+      console.log("Parsed update settings response:", parsedData);
+
       // Return the data or a fallback if it doesn't match expected format
-      if (parsedData && typeof parsedData === 'object' && 'success' in parsedData) {
+      if (
+        parsedData &&
+        typeof parsedData === "object" &&
+        "success" in parsedData
+      ) {
         return parsedData as UpdateSystemSettingsResponse;
       }
     }
-    
+
     // If we reach here, something went wrong
     console.error("Failed to update system settings");
-    
+
     return {
       success: false,
-      error: "Failed to update system settings"
+      error: "Failed to update system settings",
     };
   } catch (error) {
     console.error("Error updating system settings:", error);
-    
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
     };
   }
 };
@@ -897,50 +946,51 @@ export interface SystemSettingsResponse {
 }
 
 // Fetch system settings
-export const fetchSystemSettings = async (): Promise<SystemSettingsResponse> => {
-  try {
-    // Get the authenticated client
-    const client = getClientSchema();
-    
-    // Call the API
-    const response = await client.queries.getAllSystemSettings();
-    console.log("API response for getAllSystemSettings:", response);
-    
-    // Process the response
-    if (response.data) {
-      const parsedData = safelyParseApiResponse(response.data);
-      console.log('Parsed system settings data:', parsedData);
-      
-      // Ensure we return the proper structure even if data is null or not an array
-      if (parsedData && typeof parsedData === 'object') {
-        return parsedData as SystemSettingsResponse;
+export const fetchSystemSettings =
+  async (): Promise<SystemSettingsResponse> => {
+    try {
+      // Get the authenticated client
+      const client = getClientSchema();
+
+      // Call the API
+      const response = await client.queries.getAllSystemSettings();
+      console.log("API response for getAllSystemSettings:", response);
+
+      // Process the response
+      if (response.data) {
+        const parsedData = safelyParseApiResponse(response.data);
+        console.log("Parsed system settings data:", parsedData);
+
+        // Ensure we return the proper structure even if data is null or not an array
+        if (parsedData && typeof parsedData === "object") {
+          return parsedData as SystemSettingsResponse;
+        }
       }
+
+      // Always return a valid default structure
+      return {
+        settings: [],
+        settingsByCategory: {},
+      };
+    } catch (error) {
+      console.error("Error fetching system settings:", error);
+      return {
+        settings: [],
+        settingsByCategory: {},
+      };
     }
-    
-    // Always return a valid default structure
-    return {
-      settings: [],
-      settingsByCategory: {}
-    };
-  } catch (error) {
-    console.error("Error fetching system settings:", error);
-    return {
-      settings: [],
-      settingsByCategory: {}
-    };
-  }
-};
+  };
 
 // Cache helpers
 const getCachedUsers = (): User[] | null => {
   try {
     const cachedData = localStorage.getItem(USER_CACHE_KEY);
     const timestamp = localStorage.getItem(USER_CACHE_TIMESTAMP_KEY);
-    
+
     if (!cachedData || !timestamp) {
       return null;
     }
-    
+
     // Check if cache is expired
     const cacheTime = parseInt(timestamp, 10);
     const now = Date.now();
@@ -948,7 +998,7 @@ const getCachedUsers = (): User[] | null => {
       console.log("Cache expired, needs refresh");
       return null;
     }
-    
+
     // Parse and return the cached data
     const users = JSON.parse(cachedData) as User[];
     console.log(`Retrieved ${users.length} users from cache`);
@@ -964,11 +1014,11 @@ const getCachedUsersByStatus = (status: string): User[] | null => {
     const cacheKey = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
     const cachedData = localStorage.getItem(cacheKey);
     const timestamp = localStorage.getItem(`${cacheKey}_timestamp`);
-    
+
     if (!cachedData || !timestamp) {
       return null;
     }
-    
+
     // Check if cache is expired
     const cacheTime = parseInt(timestamp, 10);
     const now = Date.now();
@@ -976,10 +1026,12 @@ const getCachedUsersByStatus = (status: string): User[] | null => {
       console.log(`Cache for status ${status} expired, needs refresh`);
       return null;
     }
-    
+
     // Parse and return the cached data
     const users = JSON.parse(cachedData) as User[];
-    console.log(`Retrieved ${users.length} users with status ${status} from cache`);
+    console.log(
+      `Retrieved ${users.length} users with status ${status} from cache`,
+    );
     return users;
   } catch (error) {
     console.error(`Error reading ${status} status cache:`, error);
@@ -1014,16 +1066,19 @@ export const clearUserCache = (): void => {
     // Clear main user cache
     localStorage.removeItem(USER_CACHE_KEY);
     localStorage.removeItem(USER_CACHE_TIMESTAMP_KEY);
-    
+
     // Clear status-specific caches
-    ["pending", "active", "suspended", "rejected"].forEach(status => {
+    ["pending", "active", "suspended", "rejected"].forEach((status) => {
       const cacheKey = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
       localStorage.removeItem(cacheKey);
       localStorage.removeItem(`${cacheKey}_timestamp`);
     });
-    
+
     console.log("User cache cleared");
   } catch (error) {
     console.error("Error clearing cache:", error);
   }
 };
+
+// Add this export to expose the cognitoAdmin's createUser function
+export { createUser } from "./cognitoAdmin";

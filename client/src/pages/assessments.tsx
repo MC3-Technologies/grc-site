@@ -185,31 +185,33 @@ export function Assessments() {
         // Force refresh to ensure we get latest user data
         const users = await fetchUsers(true);
         const userMapping: Record<string, string> = {};
-        
-        users.forEach(user => {
+
+        users.forEach((user) => {
           // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
           const userId = user.attributes?.sub || user.email;
           // The actual email is in user.attributes.email or user.email if it's already an email
-          const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
-          
+          const userEmail =
+            user.attributes?.email ||
+            (user.email.includes("@") ? user.email : null);
+
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
             console.log(`Mapped user ID ${userId} to email ${userEmail}`);
           }
         });
-        
+
         setUserMap(userMapping);
         console.log("User ID to email mapping created:", userMapping);
       } catch (error) {
         console.error("Error creating user mapping:", error);
       }
     };
-    
+
     loadUserMap();
-    
+
     // Set up interval to periodically refresh user mapping
     const refreshInterval = setInterval(loadUserMap, 30000);
-    
+
     return () => {
       clearInterval(refreshInterval);
     };
@@ -500,7 +502,11 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {userMap[assessment.owner] || (assessment.owner?.includes('@') ? assessment.owner : assessment.owner)}
+                                  Owner:{" "}
+                                  {userMap[assessment.owner] ||
+                                    (assessment.owner?.includes("@")
+                                      ? assessment.owner
+                                      : assessment.owner)}
                                 </p>
                               )}
 
@@ -603,7 +609,11 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {userMap[assessment.owner] || (assessment.owner?.includes('@') ? assessment.owner : assessment.owner)}
+                                  Owner:{" "}
+                                  {userMap[assessment.owner] ||
+                                    (assessment.owner?.includes("@")
+                                      ? assessment.owner
+                                      : assessment.owner)}
                                 </p>
                               )}
 

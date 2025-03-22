@@ -1,5 +1,5 @@
 // Type declarations for Heroicons
-declare module '@heroicons/react/24/outline' {
+declare module "@heroicons/react/24/outline" {
   export const UserGroupIcon: React.FC<React.SVGProps<SVGSVGElement>>;
   export const UserIcon: React.FC<React.SVGProps<SVGSVGElement>>;
   export const ClockIcon: React.FC<React.SVGProps<SVGSVGElement>>;
@@ -9,4 +9,4 @@ declare module '@heroicons/react/24/outline' {
   export const DocumentIcon: React.FC<React.SVGProps<SVGSVGElement>>;
   export const CheckCircleIcon: React.FC<React.SVGProps<SVGSVGElement>>;
   export const ShieldCheckIcon: React.FC<React.SVGProps<SVGSVGElement>>;
-} 
+}

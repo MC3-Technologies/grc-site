@@ -6,23 +6,21 @@ interface AdminLayoutProps {
   setActiveSection: (section: string) => void;
 }
 
-const AdminLayout = ({ 
-  children, 
-  activeSection, 
-  setActiveSection 
+const AdminLayout = ({
+  children,
+  activeSection,
+  setActiveSection,
 }: AdminLayoutProps) => {
   return (
     <div className="flex">
-      <AdminSidebar 
-        activeSection={activeSection} 
+      <AdminSidebar
+        activeSection={activeSection}
         setActiveSection={setActiveSection}
       />
-      
-      <main className="flex-1 p-4">
-        {children}
-      </main>
+
+      <main className="flex-1 p-4">{children}</main>
     </div>
   );
 };
 
-export default AdminLayout; 
+export default AdminLayout;

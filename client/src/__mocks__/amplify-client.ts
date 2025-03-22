@@ -1,11 +1,28 @@
 // Mock implementation for the Amplify client schema models
 
+// Define more specific interfaces to replace 'any'
+interface AssessmentItem {
+  id: string;
+  userId?: string;
+  name?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  currentPage?: number;
+  percentCompleted?: number;
+  schemeId?: string;
+  status?: string;
+  score?: number;
+  [key: string]: unknown;
+}
+
 // Mock storage for database records
-const mockInProgressAssessments = new Map<string, any>();
-const mockCompletedAssessments = new Map<string, any>();
+const mockInProgressAssessments = new Map<string, AssessmentItem>();
+const mockCompletedAssessments = new Map<string, AssessmentItem>();
 
 // Define a type that matches what our tests are expecting
-type ModelItem = Record<string, any>;
+type ModelItem = Record<string, unknown> & {
+  id: string;  // Ensure id is always a string
+};
 
 const createMockModel = (storage: Map<string, ModelItem>) => {
   return {
@@ -82,18 +99,12 @@ export const __resetMockClient = () => {
 };
 
 // Add test data
-export const __setMockInProgressAssessment = (assessment: any) => {
-  mockInProgressAssessments.set(assessment.id, {
-    ...assessment,
-    createdAt: assessment.createdAt || new Date().toISOString(),
-    updatedAt: assessment.updatedAt || new Date().toISOString(),
-  });
+export const __setMockInProgressAssessment = (assessment: AssessmentItem) => {
+  mockInProgressAssessments.set(assessment.id, assessment);
+  return assessment;
 };
 
-export const __setMockCompletedAssessment = (assessment: any) => {
-  mockCompletedAssessments.set(assessment.id, {
-    ...assessment,
-    createdAt: assessment.createdAt || new Date().toISOString(),
-    updatedAt: assessment.updatedAt || new Date().toISOString(),
-  });
+export const __setMockCompletedAssessment = (assessment: AssessmentItem) => {
+  mockCompletedAssessments.set(assessment.id, assessment);
+  return assessment;
 };

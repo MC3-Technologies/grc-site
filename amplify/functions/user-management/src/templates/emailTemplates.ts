@@ -5,7 +5,9 @@ interface TemplateData {
 }
 
 // The URL where your logo is publicly accessible
-const LOGO_URL = process.env.LOGO_URL || "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png";
+const LOGO_URL =
+  process.env.LOGO_URL ||
+  "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png";
 
 // Base template that all emails will use
 const baseTemplate = (content: string): string => `
@@ -55,7 +57,7 @@ export const approvalTemplate = (data: TemplateData = {}): string => {
     <p>Thank you for choosing MC3 GRC Platform!</p>
     <p>Best regards,<br>The MC3 Admin Team</p>
   `;
-  
+
   return baseTemplate(content);
 };
 
@@ -66,11 +68,11 @@ export const rejectionTemplate = (data: TemplateData = {}): string => {
     <p>Dear User,</p>
     <p>Thank you for your interest in the MC3 GRC Platform.</p>
     <p>After reviewing your application, we regret to inform you that we are unable to approve your account at this time.</p>
-    ${data.reason ? `<p><strong>Reason:</strong> ${data.reason}</p>` : ''}
+    ${data.reason ? `<p><strong>Reason:</strong> ${data.reason}</p>` : ""}
     <p>If you believe this decision was made in error or if you have additional information that might support your application, please contact our support team.</p>
     <p>Best regards,<br>The MC3 Admin Team</p>
   `;
-  
+
   return baseTemplate(content);
 };
 
@@ -80,12 +82,12 @@ export const suspensionTemplate = (data: TemplateData = {}): string => {
     <h3>Account Suspension Notice</h3>
     <p>Dear User,</p>
     <p>We're writing to inform you that your account on the MC3 GRC Platform has been temporarily suspended.</p>
-    ${data.reason ? `<p><strong>Reason for suspension:</strong> ${data.reason}</p>` : ''}
+    ${data.reason ? `<p><strong>Reason for suspension:</strong> ${data.reason}</p>` : ""}
     <p>During this suspension period, you will not be able to access your account or use any of the platform services.</p>
     <p>If you have any questions about this suspension or would like to discuss reactivating your account, please contact our support team.</p>
     <p>Best regards,<br>The MC3 Admin Team</p>
   `;
-  
+
   return baseTemplate(content);
 };
 
@@ -106,6 +108,6 @@ export const reactivationTemplate = (data: TemplateData = {}): string => {
     <p>Welcome back to MC3 GRC Platform!</p>
     <p>Best regards,<br>The MC3 Admin Team</p>
   `;
-  
+
   return baseTemplate(content);
-}; 
+};

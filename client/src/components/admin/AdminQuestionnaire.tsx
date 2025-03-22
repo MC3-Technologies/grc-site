@@ -187,7 +187,10 @@ const AdminQuestionnaire = () => {
                         </div>
                         <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-300">
                           {element.choices.map(
-                            (choice: string | ChoiceItem, choiceIndex: number) => (
+                            (
+                              choice: string | ChoiceItem,
+                              choiceIndex: number,
+                            ) => (
                               <li key={choiceIndex}>
                                 {typeof choice === "object"
                                   ? choice.text
