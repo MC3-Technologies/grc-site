@@ -1,374 +1,472 @@
 import { useEffect, useState } from "react";
-import {
-  CompletedAssessment,
-  InProgressAssessment,
-} from "../../utils/assessment";
-import { getCurrentUser, User } from "../../amplify/auth";
-import { fetchUsers, createTestUser, getUserStatus } from "../../utils/adminUser";
+import { fetchAdminStats, type AuditLog as BackendAuditLog } from "../../utils/adminUser";
 import Spinner from "../Spinner";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
+import { UserIcon } from "@heroicons/react/24/outline";
+import { ClockIcon } from "@heroicons/react/24/outline";
+import { XCircleIcon } from "@heroicons/react/24/outline";
+import { NoSymbolIcon } from "@heroicons/react/24/outline";
+import { DocumentTextIcon } from "@heroicons/react/24/outline";
+import { DocumentIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import { ShieldCheckIcon } from "@heroicons/react/24/outline";
+import StatCard from "./StatCard";
 
-// Summary stats interface
-interface AdminStats {
-  totalUsers: number;
-  pendingUsers: number;
-  totalAssessments: {
+// Dashboard statistics interface
+interface AdminStatistics {
+  users: {
+    total: number;
+    active: number;
+    pending: number;
+    rejected: number;
+    suspended: number;
+  };
+  assessments: {
+    total: number;
     inProgress: number;
     completed: number;
+    compliant: number;
+    nonCompliant: number;
   };
   complianceRate: number;
+  recentActivity: BackendAuditLog[];
 }
 
-const AdminHome = () => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [debugMessage, setDebugMessage] = useState<string>("");
-  const [stats, setStats] = useState<AdminStats>({
-    totalUsers: 0,
-    pendingUsers: 0,
-    totalAssessments: {
-      inProgress: 0,
-      completed: 0,
-    },
-    complianceRate: 0,
-  });
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+export default function AdminHome() {
+  const [adminStats, setAdminStats] = useState<AdminStatistics | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+
+  // Function to navigate to different sections
+  const navigateTo = (section: string, params?: string) => {
+    setActiveTab(section);
+    if (params) {
+      window.location.href = `/admin/?section=${section}&${params}`;
+    } else {
+      window.location.href = `/admin/?section=${section}`;
+    }
+  };
+
+  const navigateToInProgress = () => {
+    window.location.href = `/admin/?section=assessments&tab=in-progress`;
+  };
+
+  const navigateToCompleted = () => {
+    window.location.href = `/admin/?section=assessments&tab=completed`;
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        // Get current admin user
-        const user = await getCurrentUser();
-        setCurrentUser(user);
-
-        // Fetch assessment data
-        const inProgressAssessments =
-          await InProgressAssessment.fetchAllAssessments();
-        const completedAssessments =
-          await CompletedAssessment.fetchAllCompletedAssessments();
-
-        // Get user data from backend
-        let userData = [];
-        let pendingUsers = 0;
-        try {
-          userData = await fetchUsers() || [];
-          
-          // Process users the same way AdminUsers does to ensure consistency
-          const processedUsers = userData.map(user => ({
-            ...user,
-            status: getUserStatus(user.status, user.enabled, user.customStatus)
-          }));
-          
-          // Now filter by the processed status
-          pendingUsers = processedUsers.filter(
-            (user) => user.status === "pending"
-          ).length;
-
-          console.log("Found pending users:", pendingUsers);
-        } catch (err) {
-          console.warn("Could not fetch users, using placeholder data instead", err);
-          // Fallback to placeholder data
-          userData = [];
-          pendingUsers = 0;
+        setIsLoading(true);
+        const stats = await fetchAdminStats();
+        console.log("Admin stats:", stats);
+        if (stats) {
+          setAdminStats(stats as unknown as AdminStatistics);
         }
-        
-        // Calculate compliance rate
-        const compliantAssessments = completedAssessments.filter(
-          (assessment) => assessment.isCompliant,
-        );
-        const complianceRate =
-          completedAssessments.length > 0
-            ? (compliantAssessments.length / completedAssessments.length) * 100
-            : 0;
-
-        // Set stats with real data or fallback values
-        setStats({
-          totalUsers: userData.length || 0,
-          pendingUsers: pendingUsers,
-          totalAssessments: {
-            inProgress: inProgressAssessments.length,
-            completed: completedAssessments.length,
-          },
-          complianceRate,
-        });
       } catch (error) {
-        console.error("Error fetching admin dashboard stats:", error);
+        console.error("Error fetching admin stats:", error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    // Initial fetch
     fetchStats();
-    
-    // Set up a refresh interval (every 30 seconds)
+
+    // Set up auto-refresh every 5 minutes
     const refreshInterval = setInterval(() => {
       console.log("Auto-refreshing dashboard stats...");
       fetchStats();
-    }, 30000); // 30 seconds
-    
-    // Clean up the interval when component unmounts
+    }, 5 * 60 * 1000);
+
     return () => clearInterval(refreshInterval);
   }, []);
 
-  // Debugging functions
-  const handleRefreshUsers = async () => {
-    setDebugMessage("Refreshing users list...");
-    try {
-      const users = await fetchUsers();
-      setDebugMessage(`Successfully fetched ${users.length} users.`);
-      
-      // Process users to ensure proper status mapping
-      const processedUsers = users.map(user => ({
-        ...user,
-        status: getUserStatus(user.status, user.enabled, user.customStatus)
-      }));
-      
-      // Count pending users using consistent logic
-      const pendingCount = processedUsers.filter(user => user.status === "pending").length;
-      setDebugMessage(prev => `${prev}\nPending users: ${pendingCount}`);
-      
-      setStats(prev => ({
-        ...prev,
-        totalUsers: users.length || 0,
-        pendingUsers: pendingCount
-      }));
-    } catch (error) {
-      setDebugMessage(`Error fetching users: ${error instanceof Error ? error.message : String(error)}`);
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
     }
-  };
-
-  const handleCreateTestUser = async () => {
-    setDebugMessage("Creating test user...");
-    try {
-      const result = await createTestUser();
-      if (result.success) {
-        setDebugMessage("Test user created successfully. Refreshing user list...");
-        handleRefreshUsers();
-      } else {
-        setDebugMessage(`Failed to create test user: ${result.error}`);
-      }
-    } catch (error) {
-      setDebugMessage(`Error creating test user: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
-  const checkBackendStatus = async () => {
-    setDebugMessage("Checking backend status...");
-    try {
-      // First check auth
-      const { getCurrentUser, isCurrentUserAdmin } = await import("../../amplify/auth");
-      try {
-        const user = await getCurrentUser();
-        setDebugMessage(`Authenticated as: ${user.email}`);
-        
-        // Check admin status
-        const isAdmin = await isCurrentUserAdmin();
-        setDebugMessage(prev => `${prev}\nAdmin status: ${isAdmin ? "✓ Admin" : "✗ Not admin"}`);
-        
-        // Now try to get users
-        const users = await fetchUsers();
-        setDebugMessage(prev => `${prev}\nFetched ${users.length} users (${users.length > 0 ? 'actual data' : 'mock data'})`);
-        
-        // Show the first user if any
-        if (users.length > 0) {
-          setDebugMessage(prev => `${prev}\nFirst user: ${users[0].email} (${users[0].status})`);
-        }
-      } catch (authError) {
-        setDebugMessage(prev => `${prev}\nAuth error: ${authError instanceof Error ? authError.message : String(authError)}`);
-      }
-    } catch (error) {
-      setDebugMessage(`Error checking backend: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <Spinner />
-      </div>
-    );
-  }
+  }, []);
 
   return (
-    <div>
-      {/* Welcome message */}
-      <div className="p-4 mb-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
-          Welcome, {currentUser?.email}
-        </h2>
-        <p className="mt-1 text-gray-600 dark:text-gray-400">
-          You have {stats.pendingUsers} pending user approval
-          {stats.pendingUsers !== 1 ? "s" : ""} and{" "}
-          {stats.totalAssessments.inProgress} in-progress assessment
-          {stats.totalAssessments.inProgress !== 1 ? "s" : ""}.
-        </p>
-        {process.env.NODE_ENV !== "production" && 
-          (typeof window !== 'undefined' && window.location.search.includes('mock=true')) && (
-          <div className="mt-2 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm rounded-md inline-block">
-            Development Mode: Using mock data for UI testing
-          </div>
-        )}
-      </div>
-
-      {/* Debugging tools - only visible in development */}
-      {process.env.NODE_ENV !== "production" && (
-        <div className="p-4 mb-6 bg-gray-100 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
-            Admin Debugging Tools
-          </h3>
-          <div className="flex gap-3 mb-3">
-            <button
-              onClick={handleRefreshUsers}
-              className="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Refresh Users
-            </button>
-            <button
-              onClick={handleCreateTestUser}
-              className="px-3 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Create Test User
-            </button>
-            <button
-              onClick={checkBackendStatus}
-              className="px-3 py-2 bg-purple-500 text-white rounded hover:bg-purple-600"
-            >
-              Check Backend Status
-            </button>
-          </div>
-          {debugMessage && (
-            <div className="p-3 bg-white border rounded dark:bg-gray-800 dark:border-gray-700">
-              <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{debugMessage}</pre>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Stats cards */}
-      <div className="grid grid-cols-1 gap-4 mb-6 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Users card */}
-        <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center">
-            <div className="p-3 mr-4 bg-primary-100 text-primary-600 rounded-full dark:bg-primary-900 dark:text-primary-300">
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Users
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {stats.totalUsers}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending users card */}
-        <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center">
-            <div className="p-3 mr-4 bg-yellow-100 text-yellow-600 rounded-full dark:bg-yellow-900 dark:text-yellow-300">
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
-                  clipRule="evenodd"
-                ></path>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Pending Approvals
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {stats.pendingUsers}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Assessments card */}
-        <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center">
-            <div className="p-3 mr-4 bg-blue-100 text-blue-600 rounded-full dark:bg-blue-900 dark:text-blue-300">
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-                <path
-                  fillRule="evenodd"
-                  d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-                  clipRule="evenodd"
-                ></path>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Assessments
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {stats.totalAssessments.inProgress +
-                  stats.totalAssessments.completed}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Compliance card */}
-        <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-          <div className="flex items-center">
-            <div className="p-3 mr-4 bg-green-100 text-green-600 rounded-full dark:bg-green-900 dark:text-green-300">
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                  clipRule="evenodd"
-                ></path>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Compliance Rate
-              </p>
-              <p className="text-2xl font-semibold text-gray-900 dark:text-white">
-                {stats.complianceRate.toFixed(0)}%
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent activity section - placeholder */}
-      <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-          Recent Activity
-        </h3>
+    <div className="p-4">
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
+          Dashboard
+        </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          This section will display recent user registrations, assessment
-          completions, and other activity. This will be implemented in a future
-          milestone.
+          Overview of users and assessments
         </p>
       </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <Spinner />
+        </div>
+      ) : (
+        <>
+          {/* User Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+            {/* Total Users Card */}
+            <StatCard
+              title="Total Users"
+              value={adminStats?.users?.total || (Array.isArray(adminStats?.users) ? adminStats?.users?.length : 0)}
+              icon={<UserGroupIcon className="h-8 w-8 text-primary-600" />}
+              color="blue"
+              onClick={() => navigateTo('users')}
+              clickable={true}
+            />
+            
+            {/* Active Users Card */}
+            <StatCard
+              title="Active Users"
+              value={adminStats?.users?.active || (Array.isArray(adminStats?.users) 
+                ? adminStats?.users?.filter(u => u.status === 'ACTIVE')?.length 
+                : 0)}
+              icon={<UserIcon className="h-8 w-8 text-green-600" />}
+              color="green"
+              onClick={() => navigateTo('users', 'tab=active')}
+              clickable={true}
+            />
+            
+            {/* Pending Users Card */}
+            <StatCard
+              title="Pending Approval"
+              value={adminStats?.users?.pending || (Array.isArray(adminStats?.users) 
+                ? adminStats?.users?.filter(u => u.status === 'PENDING')?.length 
+                : 0)}
+              icon={<ClockIcon className="h-8 w-8 text-yellow-600" />}
+              color="yellow"
+              onClick={() => navigateTo('users', 'tab=pending')}
+              clickable={true}
+            />
+            
+            {/* Rejected Users Card */}
+            <StatCard
+              title="Rejected Users"
+              value={adminStats?.users?.rejected || (Array.isArray(adminStats?.users) 
+                ? adminStats?.users?.filter(u => u.status === 'REJECTED')?.length 
+                : 0)}
+              icon={<XCircleIcon className="h-8 w-8 text-red-600" />}
+              color="red"
+              onClick={() => navigateTo('users', 'tab=rejected')}
+              clickable={true}
+            />
+            
+            {/* Suspended Users Card */}
+            <StatCard
+              title="Suspended Users"
+              value={adminStats?.users?.suspended || (Array.isArray(adminStats?.users) 
+                ? adminStats?.users?.filter(u => u.status === 'SUSPENDED')?.length 
+                : 0)}
+              icon={<NoSymbolIcon className="h-8 w-8 text-orange-600" />}
+              color="orange"
+              onClick={() => navigateTo('users', 'tab=suspended')}
+              clickable={true}
+            />
+          </div>
+
+          {/* Assessment Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Total Assessments Card */}
+            <StatCard
+              title="Total Assessments"
+              value={adminStats?.assessments?.total || 0}
+              icon={<DocumentTextIcon className="h-8 w-8 text-primary-600" />}
+              color="blue"
+              onClick={() => navigateTo('assessments')}
+              clickable={true}
+            />
+            
+            {/* In Progress Assessments Card */}
+            <StatCard
+              title="In Progress"
+              value={adminStats?.assessments?.inProgress || 0}
+              icon={<DocumentIcon className="h-8 w-8 text-yellow-600" />}
+              color="yellow"
+              onClick={navigateToInProgress}
+              clickable={true}
+            />
+            
+            {/* Completed Assessments Card */}
+            <StatCard
+              title="Completed"
+              value={adminStats?.assessments?.completed || 0}
+              icon={<CheckCircleIcon className="h-8 w-8 text-green-600" />}
+              color="green"
+              onClick={navigateToCompleted}
+              clickable={true}
+            />
+            
+            {/* Compliance Rate Card */}
+            <StatCard
+              title="Compliance Rate"
+              value={`${adminStats?.complianceRate || 0}%`}
+              icon={<ShieldCheckIcon className="h-8 w-8 text-blue-600" />}
+              color="blue"
+              onClick={() => navigateTo('assessments')}
+              clickable={true}
+            />
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Quick Actions
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {/* Add user card */}
+              <div
+                className={`p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${activeTab === 'users' ? 'active-card' : ''}`}
+                onClick={() => navigateTo('users')}
+              >
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Manage Users
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Add, approve, or modify user accounts
+                </p>
+              </div>
+
+              {/* View assessments card */}
+              <div
+                className={`p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${activeTab === 'assessments' ? 'active-card' : ''}`}
+                onClick={() => navigateTo('assessments')}
+              >
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  View Assessments
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Browse and review user assessments
+                </p>
+              </div>
+
+              {/* System settings card */}
+              <div
+                className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                onClick={() => navigateTo('settings')}
+              >
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  System Settings
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Configure application settings
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Activity Log */}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Recent Admin Activities
+            </h2>
+            
+            <div className="overflow-x-auto relative">
+              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" className="py-3 px-6">Time</th>
+                    <th scope="col" className="py-3 px-6">Action</th>
+                    <th scope="col" className="py-3 px-6">Admin</th>
+                    <th scope="col" className="py-3 px-6">Resource</th>
+                    <th scope="col" className="py-3 px-6">Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminStats?.recentActivity && adminStats.recentActivity.length > 0 ? (
+                    adminStats.recentActivity.map((activity) => (
+                      <tr key={activity.id} className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td className="py-4 px-6">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}>
+                            {formatActionName(activity.action)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">{activity.performedBy || 'System'}</td>
+                        <td className="py-4 px-6">
+                          {activity.affectedResource} 
+                          {activity.resourceId && (
+                            <span className="block text-xs text-gray-500 dark:text-gray-400">
+                              {activity.details?.email as string || activity.resourceId}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-4 px-6">
+                          {formatActivityDetails(activity)}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="py-4 px-6 text-center">
+                        No recent activities found
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
+}
+
+// Add these helper functions at the end of the component, before the final return statement
+// Function to format action names for display
+const formatActionName = (action: string): string => {
+  const actionMap: {[key: string]: string} = {
+    'USER_APPROVED': 'User Approved',
+    'USER_REJECTED': 'User Rejected',
+    'USER_SUSPENDED': 'User Suspended',
+    'USER_REACTIVATED': 'User Reactivated',
+    'USER_CREATED': 'User Created',
+    'USER_ROLE_UPDATED': 'Role Updated',
+    'USER_DELETED': 'User Deleted',
+    'ASSESSMENT_CREATED': 'Assessment Created', 
+    'ASSESSMENT_COMPLETED': 'Assessment Completed',
+    'ASSESSMENT_DELETED': 'Assessment Deleted'
+  };
+  
+  return actionMap[action] || action.replace(/_/g, ' ');
 };
 
-export default AdminHome;
+// Function to determine the badge style based on action
+const getActionBadgeStyle = (action: string): string => {
+  if (action.includes('APPROVED') || action.includes('REACTIVATED')) {
+    return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+  } else if (action.includes('REJECTED') || action.includes('DELETED')) {
+    return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+  } else if (action.includes('SUSPENDED')) {
+    return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300';
+  } else if (action.includes('CREATED')) {
+    return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+  } else if (action.includes('UPDATED') || action.includes('ROLE')) {
+    return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
+  } else {
+    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+  }
+};
+
+// Function to format activity details
+const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
+  if (!activity.details) return <></>;
+  
+  // Time-related properties to exclude from the details display
+  const timeKeys = ['timestamp', 'createdAt', 'updatedAt', 'completedAt'];
+  
+  // Find the first available time value to display
+  const getTimeValue = (details: Record<string, unknown>, defaultTime: string): string => {
+    const timeKey = timeKeys.find(key => details[key]);
+    return timeKey && details[timeKey] 
+      ? details[timeKey] as string 
+      : defaultTime;
+  };
+  
+  // Extract the most relevant details based on action type
+  switch(activity.action) {
+    case 'USER_ROLE_UPDATED':
+      return (
+        <span>
+          Changed role to <strong>{activity.details.newRole}</strong>
+          {activity.details.updatedAt && 
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              on {new Date(activity.details.updatedAt as string).toLocaleString()}
+            </span>
+          }
+        </span>
+      );
+    case 'USER_APPROVED':
+      return (
+        <span>
+          <strong>Approved</strong> on {activity.details.approvedAt ? 
+            new Date(activity.details.approvedAt as string).toLocaleString() :
+            new Date(activity.timestamp).toLocaleString()}
+        </span>
+      );
+    case 'USER_REACTIVATED':
+      return (
+        <span>
+          <strong>Reactivated</strong> on {activity.details.reactivatedAt ? 
+            new Date(activity.details.reactivatedAt as string).toLocaleString() :
+            new Date(activity.timestamp).toLocaleString()}
+        </span>
+      );
+    case 'USER_REJECTED':
+      return (
+        <span>
+          <strong>Rejected</strong>
+          {activity.details.rejectedAt && 
+            <span className="block text-xs">
+              on {new Date(activity.details.rejectedAt as string).toLocaleString()}
+            </span>
+          }
+          {activity.details.reason && 
+            <span className="block text-xs italic mt-1">
+              Reason: "{activity.details.reason}"
+            </span>
+          }
+        </span>
+      );
+    case 'USER_SUSPENDED':
+      return (
+        <span>
+          <strong>Suspended</strong>
+          {activity.details.suspendedAt && 
+            <span className="block text-xs">
+              on {new Date(activity.details.suspendedAt as string).toLocaleString()}
+            </span>
+          }
+          {activity.details.reason && 
+            <span className="block text-xs italic mt-1">
+              Reason: "{activity.details.reason}"
+            </span>
+          }
+        </span>
+      );
+    case 'USER_CREATED':
+      return (
+        <span>
+          Role: <strong>{activity.details.role || "user"}</strong>
+          <span className="block text-xs text-gray-500 dark:text-gray-400">
+            Created on {new Date(activity.details.createdAt as string || activity.timestamp).toLocaleString()}
+          </span>
+        </span>
+      );
+    case 'USER_DELETED':
+      return (
+        <span>
+          <strong>Deleted</strong> on {activity.details.deletedAt ? 
+            new Date(activity.details.deletedAt as string).toLocaleString() : 
+            new Date(activity.timestamp).toLocaleString()}
+        </span>
+      );
+    default: {
+      // For any other action types, try to extract and display the most relevant information
+      const timeValue = getTimeValue(activity.details, activity.timestamp);
+      
+      return (
+        <span>
+          {Object.entries(activity.details)
+            .filter(([key]) => !timeKeys.includes(key))
+            .map(([key, value]) => (
+              typeof value === 'object' ? null : 
+              <span key={key} className="block">
+                {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}: 
+                <strong> {String(value)}</strong>
+              </span>
+            ))}
+          <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {new Date(timeValue as string).toLocaleString()}
+          </span>
+        </span>
+      );
+    }
+  }
+};

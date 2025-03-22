@@ -23,6 +23,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
+      allow.groups(["GRC-Admin"]).to(["read"]),
     ]),
   InProgressAssessment: a
     .model({
@@ -36,6 +37,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
+      allow.groups(["GRC-Admin"]).to(["read"]),
     ]),
   gptCompletion: a
     .query()
@@ -55,6 +57,11 @@ const schema = a.schema({
       lastLogin: a.string(),
       registrationDate: a.string().required(),
       notes: a.string(), //optional
+      rejectionReason: a.string(), //optional
+      suspensionReason: a.string(), //optional
+      approvedBy: a.string(), //optional
+      lastStatusChange: a.string(), //optional
+      lastStatusChangeBy: a.string(), //optional
     })
     .authorization((allow) => [
       allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
@@ -85,10 +92,17 @@ const schema = a.schema({
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
 
+  getAdminStats: a
+    .query()
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
   approveUser: a
     .mutation()
     .arguments({
       email: a.string().required(),
+      adminEmail: a.string(),
     })
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
@@ -99,6 +113,7 @@ const schema = a.schema({
     .arguments({
       email: a.string().required(),
       reason: a.string(),
+      adminEmail: a.string(),
     })
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
@@ -109,6 +124,7 @@ const schema = a.schema({
     .arguments({
       email: a.string().required(),
       reason: a.string(),
+      adminEmail: a.string(),
     })
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
@@ -118,6 +134,7 @@ const schema = a.schema({
     .mutation()
     .arguments({
       email: a.string().required(),
+      adminEmail: a.string(),
     })
     .returns(a.boolean())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
@@ -129,6 +146,7 @@ const schema = a.schema({
       email: a.string().required(),
       role: a.string().required(),
       sendEmail: a.boolean(),
+      adminEmail: a.string(),
     })
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
@@ -139,8 +157,74 @@ const schema = a.schema({
     .arguments({
       email: a.string().required(),
       role: a.string().required(),
+      adminEmail: a.string(),
     })
     .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  deleteUser: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      adminEmail: a.string(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  // Admin Dashboard endpoints
+  AuditLog: a
+    .model({
+      id: a.id().required(),
+      timestamp: a.string().required(),
+      action: a.string().required(),
+      performedBy: a.string().required(),
+      affectedResource: a.string().required(),
+      resourceId: a.string(),
+      details: a.json(),
+    })
+    .authorization((allow) => [
+      allow.groups(["GRC-Admin"]).to(["read", "create"]),
+    ]),
+
+  SystemSettings: a
+    .model({
+      id: a.id().required(),
+      name: a.string().required(),
+      value: a.json().required(),
+      description: a.string(),
+      category: a.string(),
+      lastUpdated: a.string(),
+      updatedBy: a.string(),
+    })
+    .authorization((allow) => [
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update"]),
+    ]),
+
+  getAuditLogs: a
+    .query()
+    .arguments({
+      dateRange: a.json(),
+      filters: a.json(),
+    })
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  getAllSystemSettings: a
+    .query()
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  updateSystemSettingsConfig: a
+    .mutation()
+    .arguments({
+      settings: a.json().required(),
+      updatedBy: a.string(),
+    })
+    .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
 });

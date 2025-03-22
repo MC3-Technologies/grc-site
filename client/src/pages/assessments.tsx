@@ -182,14 +182,15 @@ export function Assessments() {
   useEffect(() => {
     const loadUserMap = async () => {
       try {
-        const users = await fetchUsers();
+        // Force refresh to ensure we get latest user data
+        const users = await fetchUsers(true);
         const userMapping: Record<string, string> = {};
         
         users.forEach(user => {
           // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
           const userId = user.attributes?.sub || user.email;
-          // The actual email is in user.attributes.email
-          const userEmail = user.attributes?.email;
+          // The actual email is in user.attributes.email or user.email if it's already an email
+          const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
           
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
@@ -205,6 +206,13 @@ export function Assessments() {
     };
     
     loadUserMap();
+    
+    // Set up interval to periodically refresh user mapping
+    const refreshInterval = setInterval(loadUserMap, 30000);
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
   }, []);
 
   // useEffect to handle assessment setting up and adding on completion handler
@@ -492,7 +500,7 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {userMap[assessment.owner] || (assessment.owner.includes('@') ? assessment.owner : assessment.owner)}
+                                  Owner: {userMap[assessment.owner] || (assessment.owner?.includes('@') ? assessment.owner : assessment.owner)}
                                 </p>
                               )}
 
@@ -595,7 +603,7 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {userMap[assessment.owner] || (assessment.owner.includes('@') ? assessment.owner : assessment.owner)}
+                                  Owner: {userMap[assessment.owner] || (assessment.owner?.includes('@') ? assessment.owner : assessment.owner)}
                                 </p>
                               )}
 

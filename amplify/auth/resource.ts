@@ -40,6 +40,7 @@ export const auth = defineAuth({
       "updateUserAttributes",
       "enableUser",
       "disableUser",
+      "deleteUser",
       "setUserPassword",
       "addUserToGroup",
       "removeUserFromGroup"

@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
 import { useEffect, useState } from "react";
+import { getCurrentUser, type AuthUser } from "aws-amplify/auth";
+import { BrowserRouter } from "react-router-dom";
 
 import "../index.css";
 
@@ -15,10 +17,12 @@ import AdminUsers from "../components/admin/AdminUsers";
 import AdminAssessments from "../components/admin/AdminAssessments";
 import AdminQuestionnaire from "../components/admin/AdminQuestionnaire";
 import AdminReports from "../components/admin/AdminReports";
+import AdminSystemSettings from "../components/admin/AdminSystemSettings";
 
 export function AdminDashboard() {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string>("home");
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     initFlowbite();
@@ -28,13 +32,24 @@ export function AdminDashboard() {
     const sectionParam = params.get("section");
     if (
       sectionParam &&
-      ["home", "users", "assessments", "questionnaire", "reports"].includes(
+      ["home", "users", "assessments", "questionnaire", "reports", "settings"].includes(
         sectionParam,
       )
     ) {
       setActiveSection(sectionParam);
     }
 
+    // Get the current user
+    const fetchUser = async () => {
+      try {
+        const user = await getCurrentUser();
+        setCurrentUser(user);
+      } catch (err) {
+        console.error("Error fetching current user:", err);
+      }
+    };
+    
+    fetchUser();
     setLoading(false);
   }, []);
 
@@ -49,6 +64,8 @@ export function AdminDashboard() {
         return <AdminQuestionnaire />;
       case "reports":
         return <AdminReports />;
+      case "settings":
+        return <AdminSystemSettings currentUser={currentUser} />;
       case "home":
       default:
         return <AdminHome />;
@@ -96,6 +113,8 @@ export function AdminDashboard() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AdminDashboard />
+    <BrowserRouter>
+      <AdminDashboard />
+    </BrowserRouter>
   </StrictMode>,
 );

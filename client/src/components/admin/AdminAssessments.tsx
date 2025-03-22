@@ -42,19 +42,47 @@ const AdminAssessments = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showUserDropdown, setShowUserDropdown] = useState<boolean>(false);
 
+  // Read the tab from URL and set activeTab accordingly
+  useEffect(() => {
+    const updateTabFromUrl = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      
+      if (tabParam === 'in-progress') {
+        setActiveTab("in-progress");
+      } else if (tabParam === 'completed') {
+        setActiveTab("completed");
+      } else {
+        setActiveTab("all");
+      }
+    };
+
+    // Set initial tab based on URL
+    updateTabFromUrl();
+
+    // Listen for URL changes (browser back/forward buttons)
+    window.addEventListener('popstate', updateTabFromUrl);
+    
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('popstate', updateTabFromUrl);
+    };
+  }, []);
+
   // Fetch users and create a mapping of user IDs to emails
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const fetchedUsers = await fetchUsers();
+        // Force refresh user data to ensure we get the latest mapping
+        const fetchedUsers = await fetchUsers(true);
         const userMapping: Record<string, string> = {};
         const userOptions: UserOption[] = [];
         
         fetchedUsers.forEach(user => {
           // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
           const userId = user.attributes?.sub || user.email;
-          // The actual email is in user.attributes.email
-          const userEmail = user.attributes?.email;
+          // The actual email is in user.attributes.email or user.email if it's an email
+          const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
           
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
@@ -72,6 +100,13 @@ const AdminAssessments = () => {
     };
     
     loadUsers();
+    
+    // Set up periodic refresh of user data every 30 seconds
+    const userRefreshInterval = setInterval(loadUsers, 30000);
+    
+    return () => {
+      clearInterval(userRefreshInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -83,14 +118,44 @@ const AdminAssessments = () => {
         const completedAssessments =
           await CompletedAssessment.fetchAllCompletedAssessments();
 
+        // Ensure we have the latest user mapping
+        const currentUserMap = {...userMap};
+        
+        // If user map is empty, try to fetch it again
+        if (Object.keys(currentUserMap).length === 0) {
+          try {
+            const fetchedUsers = await fetchUsers(true);
+            fetchedUsers.forEach(user => {
+              const userId = user.attributes?.sub || user.email;
+              const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
+              if (userId && userEmail) {
+                currentUserMap[userId] = userEmail;
+              }
+            });
+          } catch (err) {
+            console.error("Error refreshing user map:", err);
+          }
+        }
+
+        // Helper function to resolve owner email
+        const resolveOwnerEmail = (ownerId: string | null): string | null => {
+          if (!ownerId) return null;
+          
+          // If owner ID is already an email, return it
+          if (ownerId.includes('@')) return ownerId;
+          
+          // Look up in our mapping
+          if (currentUserMap[ownerId]) return currentUserMap[ownerId];
+          
+          // If no match, log and return owner ID (better than nothing)
+          console.log(`Could not find email for owner ID: ${ownerId}`);
+          return ownerId; 
+        };
+
         // Convert to unified format for UI
         const inProgressData: AssessmentData[] = inProgressAssessments.map(
           (assessment) => {
-            // Get owner email from userMap if available, otherwise check if owner is already an email
-            const ownerEmail = assessment.owner ? 
-              (userMap[assessment.owner] || 
-                (assessment.owner.includes('@') ? assessment.owner : assessment.owner)) 
-              : null;
+            const ownerEmail = resolveOwnerEmail(assessment.owner);
               
             return {
               id: assessment.id,
@@ -107,11 +172,7 @@ const AdminAssessments = () => {
 
         const completedData: AssessmentData[] = completedAssessments.map(
           (assessment) => {
-            // Get owner email from userMap if available, otherwise check if owner is already an email
-            const ownerEmail = assessment.owner ? 
-              (userMap[assessment.owner] || 
-                (assessment.owner.includes('@') ? assessment.owner : assessment.owner)) 
-              : null;
+            const ownerEmail = resolveOwnerEmail(assessment.owner);
               
             return {
               id: assessment.id,
@@ -209,7 +270,13 @@ const AdminAssessments = () => {
         <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
           <li className="mr-2">
             <button
-              onClick={() => setActiveTab("all")}
+              onClick={() => {
+                setActiveTab("all");
+                // Update URL without full page reload
+                const url = new URL(window.location.href);
+                url.searchParams.delete('tab');
+                window.history.pushState({}, '', url);
+              }}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "all"
                   ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
@@ -221,7 +288,13 @@ const AdminAssessments = () => {
           </li>
           <li className="mr-2">
             <button
-              onClick={() => setActiveTab("in-progress")}
+              onClick={() => {
+                setActiveTab("in-progress");
+                // Update URL without full page reload
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', 'in-progress');
+                window.history.pushState({}, '', url);
+              }}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "in-progress"
                   ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
@@ -236,7 +309,13 @@ const AdminAssessments = () => {
           </li>
           <li className="mr-2">
             <button
-              onClick={() => setActiveTab("completed")}
+              onClick={() => {
+                setActiveTab("completed");
+                // Update URL without full page reload
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', 'completed');
+                window.history.pushState({}, '', url);
+              }}
               className={`inline-block p-4 border-b-2 rounded-t-lg ${
                 activeTab === "completed"
                   ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"

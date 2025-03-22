@@ -15,6 +15,7 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
+import { fetchUsers } from "../utils/adminUser";
 
 type PageData = {
   assessment: Model | null;
@@ -73,6 +74,9 @@ export function CompletedAssessmentView() {
 
   // Page ready or not
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Add user map state for ID to email mapping
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     initFlowbite();
@@ -160,6 +164,36 @@ export function CompletedAssessmentView() {
     initialize().finally(() => setLoading(false));
   }, []);
 
+  // Add a useEffect to load user email mapping
+  useEffect(() => {
+    const loadUserMap = async () => {
+      try {
+        // Force refresh to ensure we get latest user data
+        const users = await fetchUsers(true);
+        const userMapping: Record<string, string> = {};
+        
+        users.forEach(user => {
+          // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
+          const userId = user.attributes?.sub || user.email;
+          // The actual email is in user.attributes.email or user.email if it's already an email
+          const userEmail = user.attributes?.email || (user.email.includes('@') ? user.email : null);
+          
+          if (userId && userEmail) {
+            userMapping[userId] = userEmail;
+            console.log(`Mapped user ID ${userId} to email ${userEmail}`);
+          }
+        });
+        
+        setUserMap(userMapping);
+        console.log("User ID to email mapping created:", userMapping);
+      } catch (error) {
+        console.error("Error creating user mapping:", error);
+      }
+    };
+    
+    loadUserMap();
+  }, []);
+
   // errorFeedback function to show error feedback and redirect after 5 seconds
   const errorFeedback = (message: string): React.JSX.Element => {
     return (
@@ -196,6 +230,21 @@ export function CompletedAssessmentView() {
       return () => clearTimeout(timer);
     }
   }, [pageData.error]);
+
+  // Update the owner display in getPageData to use the email mapping
+  const getOwnerEmail = (ownerId: string | null): string | null => {
+    if (!ownerId) return null;
+    
+    // If owner ID is already an email, return it
+    if (ownerId.includes('@')) return ownerId;
+    
+    // Look up in our mapping
+    if (userMap[ownerId]) return userMap[ownerId];
+    
+    // If no match, log and return owner ID (better than nothing)
+    console.log(`Could not find email for owner ID: ${ownerId}`);
+    return ownerId;
+  };
 
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {
@@ -289,7 +338,7 @@ export function CompletedAssessmentView() {
                             clipRule="evenodd"
                           ></path>
                         </svg>
-                        {assessmentData.owner}
+                        {getOwnerEmail(assessmentData.owner)}
                       </p>
                     )}
                   </div>

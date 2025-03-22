@@ -1,17 +1,20 @@
 // File: client/src/components/admin/AdminUsers.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
+  User,
   fetchUsers,
   fetchUsersByStatus,
+  refreshUserData,
   approveUser,
   rejectUser,
   suspendUser,
   reactivateUser,
-  User,
+  deleteUser,
   getUserStatus,
-  refreshUserData,
-  getClientSchema
+  getClientSchema,
+  createTestUser
 } from "../../utils/adminUser";
+import { getCurrentUser } from "../../amplify/auth";
 import Spinner from "../Spinner";
 
 // Interface to match our component needs
@@ -25,16 +28,57 @@ interface UserData {
   customStatus?: string | null;
 }
 
+// Add interface for new user form
+interface NewUserForm {
+  email: string;
+  password: string;
+  role: "user" | "admin";
+}
+
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [allUsers, setAllUsers] = useState<UserData[]>([]); // New state to track all users for counts
-  const [activeTab, setActiveTab] = useState<"all" | "pending" | "rejected" | "suspended">("all");
+  const [activeTab, setActiveTab] = useState("all");
   const [loading, setLoading] = useState<boolean>(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [currentAdminEmail, setCurrentAdminEmail] = useState<string | null>(null);
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [autoRefreshing, setAutoRefreshing] = useState(false);
+  const [timeCounter, setTimeCounter] = useState(0); // Add a counter state to force re-renders
+  
+  // Add state for new user modal
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState<boolean>(false);
+  const [newUserForm, setNewUserForm] = useState<NewUserForm>({
+    email: '',
+    password: '',
+    role: 'user'
+  });
+
+  // Set up a timer that updates every second to refresh the "time since last update" display
+  useEffect(() => {
+    const timerInterval = setInterval(() => {
+      setTimeCounter(prev => prev + 1);
+    }, 1000);
+    
+    return () => clearInterval(timerInterval);
+  }, []);
+
+  useEffect(() => {
+    // Get the tab parameter from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+    
+    fetchUsers();
+  }, []);
 
   // Auto-dismiss messages after timeout
   useEffect(() => {
@@ -57,6 +101,22 @@ const AdminUsers = () => {
       return () => clearTimeout(timer);
     }
   }, [error]);
+
+  // Fetch current admin email
+  useEffect(() => {
+    const getAdminEmail = async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser && currentUser.email) {
+          setCurrentAdminEmail(currentUser.email);
+        }
+      } catch (error) {
+        console.error("Error getting current admin email:", error);
+      }
+    };
+    
+    getAdminEmail();
+  }, []);
 
   // Function to transform API user data into the format we need
   const transformUserData = (fetchedUsers: User[]): UserData[] => {
@@ -104,74 +164,75 @@ const AdminUsers = () => {
     }).filter(Boolean) as UserData[]; // Remove any null entries
   };
 
-  // Fetch all users for counting badges
+  // Fetch all users for counting badges and establish auto-refresh
   useEffect(() => {
-    const fetchAllUsers = async () => {
+    // Function to fetch and update all user data
+    const fetchAndUpdateAllData = async () => {
       try {
-        const allFetchedUsers = await fetchUsers();
+        setAutoRefreshing(true);
+        
+        // Fetch all users with forceRefresh to bypass cache
+        const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
         setAllUsers(transformedAllUsers);
+        
+        // If we're on the "all" tab, update the main users list too
+        if (activeTab === "all") {
+          setUsers(transformedAllUsers);
+        } else {
+          // Otherwise, fetch and update the filtered users for the current tab
+          const filteredUsers = await fetchUsersByStatus(
+            activeTab as "pending" | "active" | "suspended" | "rejected", 
+            true
+          );
+          setUsers(transformUserData(filteredUsers));
+        }
+        
+        // Update last refresh timestamp
+        setLastRefreshTime(new Date());
       } catch (err) {
-        console.error("Error loading all users for counts:", err);
+        console.error("Error during auto-refresh:", err);
+        // Don't show error message on auto-refresh to avoid disrupting the user
+      } finally {
+        setAutoRefreshing(false);
       }
     };
 
-    fetchAllUsers();
-    // Set up periodic refresh for user counts
-    const refreshInterval = setInterval(fetchAllUsers, 60000); // Refresh every minute
+    // Initial fetch
+    fetchAndUpdateAllData();
     
+    // Set up auto-refresh interval (every 30 seconds)
+    const refreshInterval = setInterval(fetchAndUpdateAllData, 30 * 1000);
+    
+    // Clean up interval on component unmount
     return () => clearInterval(refreshInterval);
-  }, []);
+  }, [activeTab]); // Re-establish interval when active tab changes
 
-  // Load users for the current tab view
+  // Load users for the current tab view - only initial loading
   useEffect(() => {
-    const loadUsers = async () => {
+    const initialLoadUsers = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        console.log(`Loading users with activeTab: ${activeTab}`);
-        let fetchedUsers: User[];
-
-        if (activeTab === "pending") {
-          console.log("Fetching users with pending status");
-          fetchedUsers = await fetchUsersByStatus("pending");
-        } else if (activeTab === "rejected") {
-          console.log("Fetching users with rejected status");
-          fetchedUsers = await fetchUsersByStatus("rejected");
-        } else if (activeTab === "suspended") {
-          console.log("Fetching users with suspended status");
-          fetchedUsers = await fetchUsersByStatus("suspended");
-        } else {
-          console.log("Fetching all users");
-          fetchedUsers = await fetchUsers();
-          
-          // Also update the allUsers state when fetching all users
-          const transformedAllUsers = transformUserData(fetchedUsers);
-          setAllUsers(transformedAllUsers);
-        }
-        
-        console.log("Fetched users:", fetchedUsers);
-        
-        // Transform and set the users for the current view
-        const transformedUsers = transformUserData(fetchedUsers);
-        console.log("Transformed users:", transformedUsers);
-        setUsers(transformedUsers);
+        console.log("Initial loading of users");
+        // Initial loading will be handled by the auto-refresh effect
+        setLoading(false);
       } catch (err) {
-        console.error("Error loading users:", err);
+        console.error("Error in initial loading:", err);
         if (err instanceof Error) {
           setError(`An error occurred: ${err.message}`);
         } else {
           setError(`An error occurred: ${String(err)}`);
         }
         setUsers([]); // Ensure users is empty on error
-      } finally {
         setLoading(false);
       }
     };
 
-    loadUsers();
-  }, [activeTab]);
+    initialLoadUsers();
+    // Only run on initial mount, not when activeTab changes
+  }, []);
 
   // Handle user approval
   const handleApproveUser = async (email: string) => {
@@ -180,41 +241,22 @@ const AdminUsers = () => {
     setSuccess(null);
 
     try {
-      const response = await approveUser(email);
+      const response = await approveUser(email, currentAdminEmail || undefined);
       console.log(`Approve user response for ${email}:`, response);
       
       if (response) {
         setSuccess(`User ${email} has been approved.`);
         
-        // Refresh data to ensure UI is up to date
+        // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
         
-        // Update both users and allUsers states
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.email === email
-              ? { 
-                  ...user, 
-                  status: "active", 
-                  enabled: true,
-                  customStatus: null // Clear any custom status
-                }
-              : user
-          )
-        );
-        
-        setAllUsers((prev) =>
-          prev.map((user) =>
-            user.email === email
-              ? { 
-                  ...user, 
-                  status: "active", 
-                  enabled: true,
-                  customStatus: null
-                }
-              : user
-          )
-        );
+        // Update current view immediately by fetching fresh data
+        const refreshedUsers = activeTab === "all" 
+          ? await fetchUsers(true) 
+          : await fetchUsersByStatus(activeTab as "pending" | "active" | "suspended" | "rejected", true);
+          
+        setUsers(transformUserData(refreshedUsers));
+        setLastRefreshTime(new Date());
       } else {
         setError(`Failed to approve user ${email}.`);
       }
@@ -241,31 +283,21 @@ const AdminUsers = () => {
     setSuccess(null);
 
     try {
-      const response = await rejectUser(email, reason);
-      console.log(`Reject user response for ${email}:`, response);
+      const response = await rejectUser(email, reason, currentAdminEmail || undefined);
       
       if (response) {
         setSuccess(`User ${email} has been rejected.`);
         
-        // Refresh data to ensure UI is up to date
+        // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
         
-        // Update both users and allUsers states
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.email === email
-              ? { ...user, status: "rejected", enabled: false, customStatus: "REJECTED" }
-              : user
-          )
-        );
-        
-        setAllUsers((prev) =>
-          prev.map((user) =>
-            user.email === email
-              ? { ...user, status: "rejected", enabled: false, customStatus: "REJECTED" }
-              : user
-          )
-        );
+        // Update current view immediately by fetching fresh data
+        const refreshedUsers = activeTab === "all" 
+          ? await fetchUsers(true) 
+          : await fetchUsersByStatus(activeTab as "pending" | "active" | "suspended" | "rejected", true);
+          
+        setUsers(transformUserData(refreshedUsers));
+        setLastRefreshTime(new Date());
       } else {
         setError(`Failed to reject user ${email}.`);
       }
@@ -292,35 +324,30 @@ const AdminUsers = () => {
     setSuccess(null);
 
     try {
-      const result = await suspendUser(email, reason);
-      if (result) {
+      const response = await suspendUser(email, reason, currentAdminEmail || undefined);
+      
+      if (response) {
         setSuccess(`User ${email} has been suspended.`);
-
-        // Update both users and allUsers states
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.email === email
-              ? { ...user, status: "suspended", enabled: false }
-              : user,
-          ),
-        );
         
-        setAllUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.email === email
-              ? { ...user, status: "suspended", enabled: false }
-              : user,
-          ),
-        );
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+        
+        // Update current view immediately by fetching fresh data
+        const refreshedUsers = activeTab === "all" 
+          ? await fetchUsers(true) 
+          : await fetchUsersByStatus(activeTab as "pending" | "active" | "suspended" | "rejected", true);
+          
+        setUsers(transformUserData(refreshedUsers));
+        setLastRefreshTime(new Date());
       } else {
         setError(`Failed to suspend user ${email}.`);
       }
-    } catch (err) {
-      console.error(`Error suspending user ${email}:`, err);
-      if (err instanceof Error) {
-        setError(`An error occurred: ${err.message}`);
+    } catch (error) {
+      console.error("Error suspending user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
       } else {
-        setError(`An error occurred: ${String(err)}`);
+        setError(`An error occurred: ${String(error)}`);
       }
     } finally {
       setActionInProgress(null);
@@ -334,35 +361,76 @@ const AdminUsers = () => {
     setSuccess(null);
 
     try {
-      const result = await reactivateUser(email);
-      if (result) {
+      const response = await reactivateUser(email, currentAdminEmail || undefined);
+      console.log(`Reactivate user response for ${email}:`, response);
+      
+      if (response) {
         setSuccess(`User ${email} has been reactivated.`);
-
-        // Update both users and allUsers states
-        setUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.email === email
-              ? { ...user, status: "active", enabled: true }
-              : user,
-          ),
-        );
         
-        setAllUsers((prevUsers) =>
-          prevUsers.map((user) =>
-            user.email === email
-              ? { ...user, status: "active", enabled: true }
-              : user,
-          ),
-        );
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+        
+        // Update current view immediately by fetching fresh data
+        const refreshedUsers = activeTab === "all" 
+          ? await fetchUsers(true) 
+          : await fetchUsersByStatus(activeTab as "pending" | "active" | "suspended" | "rejected", true);
+          
+        setUsers(transformUserData(refreshedUsers));
+        setLastRefreshTime(new Date());
       } else {
         setError(`Failed to reactivate user ${email}.`);
       }
-    } catch (err) {
-      console.error(`Error reactivating user ${email}:`, err);
-      if (err instanceof Error) {
-        setError(`An error occurred: ${err.message}`);
+    } catch (error) {
+      console.error("Error reactivating user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
       } else {
-        setError(`An error occurred: ${String(err)}`);
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle user deletion
+  const handleDeleteUser = async (email: string) => {
+    setUserToDelete(null);
+    setIsDeleteModalOpen(false);
+    setActionInProgress(email);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await deleteUser(email, currentAdminEmail || undefined);
+      console.log(`Delete user response for ${email}:`, response);
+      
+      if (response.success) {
+        setSuccess(response.message || `User ${email} has been deleted.`);
+        
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+        
+        // Update current view immediately by fetching fresh data
+        const refreshedUsers = activeTab === "all" 
+          ? await fetchUsers(true) 
+          : await fetchUsersByStatus(activeTab as "pending" | "active" | "suspended" | "rejected", true);
+          
+        setUsers(transformUserData(refreshedUsers));
+        
+        // Also update the allUsers state for badge counts without requiring tab change
+        const allFetchedUsers = await fetchUsers(true);
+        setAllUsers(transformUserData(allFetchedUsers));
+        
+        setLastRefreshTime(new Date());
+      } else {
+        setError(response.message || `Failed to delete user ${email}.`);
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
       }
     } finally {
       setActionInProgress(null);
@@ -448,11 +516,12 @@ const AdminUsers = () => {
     
     try {
       const client = getClientSchema();
-      console.log(`Updating role for ${updatedUser.email} to ${updatedUser.role}`);
+      console.log(`Updating role for ${updatedUser.email} to ${updatedUser.role} by admin: ${currentAdminEmail || 'unknown'}`);
       
       const response = await client.mutations.updateUserRole({
         email: updatedUser.email,
         role: updatedUser.role,
+        adminEmail: currentAdminEmail || undefined
       });
       
       console.log("Update user role response:", response);
@@ -475,6 +544,8 @@ const AdminUsers = () => {
             user.email === updatedUser.email ? updatedUser : user
           )
         );
+        
+        setLastRefreshTime(new Date());
       } else {
         setError(`Failed to update role for ${updatedUser.email}`);
       }
@@ -488,6 +559,92 @@ const AdminUsers = () => {
     } finally {
       setActionInProgress(null);
       handleCloseEditModal();
+    }
+  };
+
+  // Format last refresh time - use useMemo with timeCounter as dependency to refresh every second
+  const formattedLastRefreshTime = useMemo(() => {
+    if (!lastRefreshTime) return "Not yet refreshed";
+    
+    // Get current time - using timeCounter to ensure dependency is used
+    const now = new Date(Date.now() + (timeCounter * 0));
+    const diff = now.getTime() - lastRefreshTime.getTime();
+    
+    // If less than a minute, show seconds
+    if (diff < 60000) {
+      const seconds = Math.floor(diff / 1000);
+      return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
+    }
+    
+    // If less than an hour, show minutes
+    if (diff < 3600000) {
+      const minutes = Math.floor(diff / 60000);
+      return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+    }
+    
+    // Otherwise show the full time
+    return lastRefreshTime.toLocaleTimeString();
+  }, [lastRefreshTime, timeCounter]); // Re-calculate when either lastRefreshTime changes or timeCounter changes
+
+  // Add function to handle form input changes
+  const handleNewUserInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setNewUserForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Add function to create test user
+  const handleCreateTestUser = async () => {
+    setActionInProgress('creating');
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Validate form
+      if (!newUserForm.email || !newUserForm.password) {
+        setError("Email and password are required");
+        setActionInProgress(null);
+        return;
+      }
+
+      const response = await createTestUser({
+        email: newUserForm.email,
+        password: newUserForm.password, 
+        role: newUserForm.role,
+        adminEmail: currentAdminEmail || undefined
+      });
+      
+      if (response && response.success) {
+        setSuccess(`Test user ${newUserForm.email} has been created successfully.`);
+        
+        // Close modal and reset form
+        setIsAddUserModalOpen(false);
+        setNewUserForm({
+          email: '',
+          password: '',
+          role: 'user'
+        });
+        
+        // Refresh data
+        await refreshUserData();
+        const refreshedUsers = await fetchUsers(true);
+        setUsers(transformUserData(refreshedUsers));
+        setAllUsers(transformUserData(refreshedUsers));
+        setLastRefreshTime(new Date());
+      } else {
+        setError(response?.message || "Failed to create test user.");
+      }
+    } catch (error) {
+      console.error("Error creating test user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
     }
   };
 
@@ -545,71 +702,154 @@ const AdminUsers = () => {
       )}
 
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
-        <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
-          <li className="mr-2">
+        <div className="flex justify-between items-center">
+          <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
+            <li className="mr-2">
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                  activeTab === "all"
+                    ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                    : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
+                }`}
+              >
+                All Users
+                {allUsers.length > 0 && (
+                  <span className="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
+                    {allUsers.length}
+                  </span>
+                )}
+              </button>
+            </li>
+            <li className="mr-2">
+              <button
+                onClick={() => setActiveTab("pending")}
+                className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                  activeTab === "pending"
+                    ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                    : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
+                }`}
+              >
+                Pending Approval
+                {allUsers.filter((user) => user.status === "pending").length > 0 && (
+                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
+                    {allUsers.filter((user) => user.status === "pending").length}
+                  </span>
+                )}
+              </button>
+            </li>
+            <li className="mr-2">
+              <button
+                onClick={() => setActiveTab("rejected")}
+                className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                  activeTab === "rejected"
+                    ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                    : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
+                }`}
+              >
+                Rejected
+                {allUsers.filter((user) => user.status === "rejected").length > 0 && (
+                  <span className="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
+                    {allUsers.filter((user) => user.status === "rejected").length}
+                  </span>
+                )}
+              </button>
+            </li>
+            <li className="mr-2">
+              <button
+                onClick={() => setActiveTab("suspended")}
+                className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                  activeTab === "suspended"
+                    ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
+                    : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
+                }`}
+              >
+                Suspended
+                {allUsers.filter((user) => user.status === "suspended").length > 0 && (
+                  <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+                    {allUsers.filter((user) => user.status === "suspended").length}
+                  </span>
+                )}
+              </button>
+            </li>
+          </ul>
+          
+          <div className="flex gap-2">
+            {/* Add Test User button */}
             <button
-              onClick={() => setActiveTab("all")}
-              className={`inline-block p-4 border-b-2 rounded-t-lg ${
-                activeTab === "all"
-                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
-                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
-              }`}
+              onClick={() => setIsAddUserModalOpen(true)}
+              className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center"
             >
-              All Users
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+              </svg>
+              Add Test User
             </button>
-          </li>
-          <li className="mr-2">
-            <button
-              onClick={() => setActiveTab("pending")}
-              className={`inline-block p-4 border-b-2 rounded-t-lg ${
-                activeTab === "pending"
-                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
-                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
-              }`}
-            >
-              Pending Approval
-              {allUsers.filter((user) => user.status === "pending").length > 0 && (
-                <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
-                  {allUsers.filter((user) => user.status === "pending").length}
-                </span>
-              )}
-            </button>
-          </li>
-          <li className="mr-2">
-            <button
-              onClick={() => setActiveTab("rejected")}
-              className={`inline-block p-4 border-b-2 rounded-t-lg ${
-                activeTab === "rejected"
-                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
-                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
-              }`}
-            >
-              Rejected
-              {allUsers.filter((user) => user.status === "rejected").length > 0 && (
-                <span className="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
-                  {allUsers.filter((user) => user.status === "rejected").length}
-                </span>
-              )}
-            </button>
-          </li>
-          <li className="mr-2">
-            <button
-              onClick={() => setActiveTab("suspended")}
-              className={`inline-block p-4 border-b-2 rounded-t-lg ${
-                activeTab === "suspended"
-                  ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
-                  : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
-              }`}
-            >
-              Suspended
-              {allUsers.filter((user) => user.status === "suspended").length > 0 && (
-                <span className="ml-2 bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
-                  {allUsers.filter((user) => user.status === "suspended").length}
-                </span>
-              )}
-            </button>
-          </li>
-        </ul>
+          
+            {/* Manual refresh button with tooltip */}
+            <div className="relative group">
+              <button
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    // Force refresh from API
+                    await refreshUserData();
+                    
+                    // Reload current data
+                    const refreshedUsers = activeTab === "all" 
+                      ? await fetchUsers(true) 
+                      : await fetchUsersByStatus(activeTab as "pending" | "active" | "suspended" | "rejected", true);
+                      
+                    setUsers(transformUserData(refreshedUsers));
+                    
+                    // Refresh all users counts as well
+                    const allFetchedUsers = await fetchUsers(true);
+                    setAllUsers(transformUserData(allFetchedUsers));
+                    
+                    // Update last refresh time
+                    setLastRefreshTime(new Date());
+                    
+                    // Notify the user
+                    setSuccess("Data refreshed successfully");
+                  } catch (error) {
+                    console.error("Error refreshing data:", error);
+                    setError("Failed to refresh data");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center"
+                disabled={loading}
+              >
+                <svg className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                {loading ? 'Refreshing...' : 'Manual Refresh'}
+              </button>
+              <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
+                Data auto-refreshes every 30 seconds. Use this button only if you need immediate updates.
+                <div className="absolute w-3 h-3 bg-gray-900 dark:bg-gray-700 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-6px]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Add last updated info after the tab navigation */}
+      <div className="flex justify-end mb-4 text-xs text-gray-500 dark:text-gray-400 italic">
+        <div className="flex items-center">
+          {autoRefreshing ? (
+            <svg className="w-3 h-3 mr-1 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+          ) : (
+            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          )}
+          Last updated: {formattedLastRefreshTime}
+          {autoRefreshing && <span className="ml-1 text-blue-500">Refreshing...</span>}
+        </div>
       </div>
 
       {loading ? (
@@ -662,13 +902,13 @@ const AdminUsers = () => {
                     <td className="px-6 py-4">
                       {formatDate(user.lastLogin || "")}
                     </td>
-                    <td className="px-6 py-4 space-x-2">
+                    <td className="px-6 py-4 flex flex-col space-y-2">
                       {user.status === "pending" && (
-                        <>
+                        <div className="flex flex-col space-y-2">
                           <button
                             onClick={() => handleApproveUser(user.email)}
                             disabled={actionInProgress === user.email}
-                            className={`px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-lg ${
+                            className={`px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-lg w-full ${
                               actionInProgress === user.email
                                 ? "opacity-50 cursor-not-allowed"
                                 : "hover:bg-green-700"
@@ -681,22 +921,22 @@ const AdminUsers = () => {
                           <button
                             onClick={() => handleRejectUser(user.email)}
                             disabled={actionInProgress === user.email}
-                            className={`px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-lg ${
+                            className={`px-3 py-1 text-xs font-medium text-white bg-orange-600 rounded-lg w-full ${
                               actionInProgress === user.email
                                 ? "opacity-50 cursor-not-allowed"
-                                : "hover:bg-red-700"
+                                : "hover:bg-orange-700"
                             }`}
                           >
                             Reject
                           </button>
-                        </>
+                        </div>
                       )}
 
                       {user.status === "active" && (
                         <button
                           onClick={() => handleSuspendUser(user.email)}
                           disabled={actionInProgress === user.email}
-                          className={`px-3 py-1 text-xs font-medium text-white bg-yellow-600 rounded-lg ${
+                          className={`px-3 py-1 text-xs font-medium text-white bg-yellow-600 rounded-lg w-full ${
                             actionInProgress === user.email
                               ? "opacity-50 cursor-not-allowed"
                               : "hover:bg-yellow-700"
@@ -712,7 +952,7 @@ const AdminUsers = () => {
                         <button
                           onClick={() => handleReactivateUser(user.email)}
                           disabled={actionInProgress === user.email}
-                          className={`px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-lg ${
+                          className={`px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-lg w-full ${
                             actionInProgress === user.email
                               ? "opacity-50 cursor-not-allowed"
                               : "hover:bg-blue-700"
@@ -728,9 +968,22 @@ const AdminUsers = () => {
                       {(user.status === "active" || user.status === "pending") && (
                         <button 
                           onClick={() => handleEditUser(user)}
-                          className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                          className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg w-full hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                         >
                           Edit
+                        </button>
+                      )}
+                      
+                      {/* Delete button for all users except those being processed */}
+                      {actionInProgress !== user.email && (
+                        <button 
+                          onClick={() => {
+                            setUserToDelete(user.email);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-lg w-full hover:bg-red-700"
+                        >
+                          Delete
                         </button>
                       )}
                     </td>
@@ -805,6 +1058,146 @@ const AdminUsers = () => {
                     className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                   >
                     Save changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {isDeleteModalOpen && userToDelete && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-50 flex items-center justify-center">
+          <div className="relative p-4 w-full max-w-md max-h-full">
+            <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Confirm User Deletion
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setUserToDelete(null);
+                  }}
+                  className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                >
+                  <span className="sr-only">Close modal</span>
+                  ✕
+                </button>
+              </div>
+              <div className="p-4 md:p-5">
+                <div className="mb-4 text-center">
+                  <svg className="w-12 h-12 mx-auto text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                  </svg>
+                  <h3 className="mt-4 mb-2 text-lg font-medium text-gray-800 dark:text-gray-300">Are you sure you want to delete this user?</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    You are about to delete <span className="font-bold">{userToDelete}</span>. This action cannot be undone and will permanently remove the user and all associated data.
+                  </p>
+                </div>
+                <div className="flex justify-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsDeleteModalOpen(false);
+                      setUserToDelete(null);
+                    }}
+                    className="text-gray-500 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                  >
+                    No, Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteUser(userToDelete)}
+                    className="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800"
+                  >
+                    Yes, Delete User
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-50 flex items-center justify-center">
+          <div className="relative p-4 w-full max-w-md max-h-full">
+            <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <div className="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Add Test User
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsAddUserModalOpen(false)}
+                  className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                >
+                  <span className="sr-only">Close modal</span>
+                  ✕
+                </button>
+              </div>
+              <div className="p-4">
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                    value={newUserForm.email}
+                    onChange={handleNewUserInputChange}
+                    placeholder="test@example.com"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    name="password"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                    value={newUserForm.password}
+                    onChange={handleNewUserInputChange}
+                    placeholder="Password"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Role
+                  </label>
+                  <select
+                    name="role"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    value={newUserForm.role}
+                    onChange={handleNewUserInputChange}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddUserModalOpen(false)}
+                    className="text-gray-500 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateTestUser}
+                    disabled={actionInProgress === 'creating'}
+                    className="text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800"
+                  >
+                    {actionInProgress === 'creating' ? 'Creating...' : 'Create User'}
                   </button>
                 </div>
               </div>
