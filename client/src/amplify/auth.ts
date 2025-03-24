@@ -68,11 +68,23 @@ const signOutCurrentUser = async (): Promise<void> => {
   redirectHome();
 };
 
+const isUserAccountActive = async (): Promise<boolean> => {
+  const userAttributes = await fetchUserAttributes();
+  return userAttributes.email_verified === "true" && userAttributes['custom:status'] !== 'SUSPENDED';
+};
+
+const getUserAccountStatus = async (): Promise<string> => {
+  const userAttributes = await fetchUserAttributes();
+  return userAttributes['custom:status'] || 'PENDING';
+};
+
 export {
   getCurrentUser,
   signOutCurrentUser,
   isLoggedIn,
   isCurrentUserAdmin,
   isCurrentUserVerified,
+  isUserAccountActive,
+  getUserAccountStatus,
 };
 export type { User, ListenData };
