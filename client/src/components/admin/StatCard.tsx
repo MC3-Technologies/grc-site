@@ -20,11 +20,17 @@ const StatCard: React.FC<StatCardProps> = ({
   const colorClasses = {
     blue: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300",
     green: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300",
-    yellow:
-      "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300",
+    yellow: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300",
     red: "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300",
-    orange:
-      "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300",
+    orange: "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300",
+  };
+
+  const textColorClasses = {
+    blue: "text-blue-600 dark:text-blue-300",
+    green: "text-green-600 dark:text-green-300",
+    yellow: "text-yellow-600 dark:text-yellow-300",
+    red: "text-red-600 dark:text-red-300",
+    orange: "text-orange-600 dark:text-orange-300",
   };
 
   return (
@@ -44,7 +50,7 @@ const StatCard: React.FC<StatCardProps> = ({
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </p>
-          <p className="text-2xl font-semibold text-gray-900 dark:text-white">
+          <p className={`text-2xl font-semibold ${textColorClasses[color]}`}>
             {value}
           </p>
         </div>

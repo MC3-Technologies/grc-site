@@ -114,7 +114,7 @@ export default function AdminHome() {
       ) : (
         <>
           {/* User Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
             {/* Total Users Card */}
             <StatCard
               title="Total Users"
@@ -196,7 +196,7 @@ export default function AdminHome() {
           </div>
 
           {/* Assessment Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {/* Total Assessments Card */}
             <StatCard
               title="Total Assessments"
@@ -243,7 +243,7 @@ export default function AdminHome() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Quick Actions
             </h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Add user card */}
               <div
                 className={`p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${activeTab === "users" ? "active-card" : ""}`}
@@ -375,6 +375,7 @@ const formatActionName = (action: string): string => {
     USER_CREATED: "User Created",
     USER_ROLE_UPDATED: "Role Updated",
     USER_DELETED: "User Deleted",
+    USER_STATUS_UPDATED: "User Status Updated",
     ASSESSMENT_CREATED: "Assessment Created",
     ASSESSMENT_COMPLETED: "Assessment Completed",
     ASSESSMENT_DELETED: "Assessment Deleted",
@@ -386,17 +387,17 @@ const formatActionName = (action: string): string => {
 // Function to determine the badge style based on action
 const getActionBadgeStyle = (action: string): string => {
   if (action.includes("APPROVED") || action.includes("REACTIVATED")) {
-    return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300";
+    return "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300";
   } else if (action.includes("REJECTED") || action.includes("DELETED")) {
-    return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300";
+    return "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300";
   } else if (action.includes("SUSPENDED")) {
-    return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300";
+    return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
   } else if (action.includes("CREATED")) {
-    return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300";
+    return "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300";
   } else if (action.includes("UPDATED") || action.includes("ROLE")) {
-    return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300";
+    return "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300";
   } else {
-    return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300";
+    return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
   }
 };
 
