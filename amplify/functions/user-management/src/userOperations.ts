@@ -21,6 +21,7 @@ import {
   PutItemCommand,
   QueryCommand,
   ScanCommand,
+  GetItemCommand,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { env } from "$amplify/env/user-management";
@@ -136,7 +137,7 @@ const getUserPoolId = (): string | null => {
   try {
     // In a Lambda environment, these should be set
     const userPoolId = env.USER_POOL_ID;
-    console.log(`getUserPoolId: env.USER_POOL_ID from mock: ${userPoolId}`);
+    console.log(`getUserPoolId: env.USER_POOL_ID: ${userPoolId}`);
 
     if (!userPoolId) {
       console.warn("USER_POOL_ID is not set in environment variables.");
@@ -245,6 +246,72 @@ interface AuditLog {
   details?: any;
 }
 
+interface UserStatus {
+  id: string;
+  email: string;
+  status: "pending" | "active" | "suspended" | "rejected" | "deleted";
+  role: "user" | "admin";
+  lastLogin?: string;
+  registrationDate: string;
+  notes?: string;
+  rejectionReason?: string;
+  suspensionReason?: string;
+  approvedBy?: string;
+  lastStatusChange?: string;
+  lastStatusChangeBy?: string;
+}
+
+// Helper to update user status in DynamoDB and log it
+const updateUserStatus = async (
+  email: string,
+  newStatus: UserStatus["status"],
+  updatedBy: string = "system",
+  ttl?: number
+): Promise<void> => {
+  const tableName = process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE";
+  const timestamp = new Date().toISOString();
+  
+  // Ensure status is always lowercase for consistency in DynamoDB
+  const normalizedStatus = newStatus.toLowerCase() as UserStatus["status"];
+
+  // Prepare the item to store in DynamoDB
+  const item: any = {
+    id: email,
+    email,
+    status: normalizedStatus,
+    lastStatusChange: timestamp,
+    lastStatusChangeBy: updatedBy,
+  };
+  
+  // Add TTL if provided (for deleted items)
+  if (ttl) {
+    item.ttl = ttl;
+  }
+
+  const updateCommand = new PutItemCommand({
+    TableName: tableName,
+    Item: marshall(item),
+  });
+
+  await dynamodb.send(updateCommand);
+  console.log(`Updated UserStatus: ${email} → ${normalizedStatus}`);
+
+  // Also create an audit log entry
+  await createAuditLogEntry({
+    timestamp,
+    action: "USER_STATUS_UPDATED",
+    performedBy: updatedBy,
+    affectedResource: "user",
+    resourceId: email,
+    details: {
+      email,
+      newStatus: normalizedStatus,
+      updatedAt: timestamp,
+      ttl: ttl ? new Date(ttl * 1000).toISOString() : undefined,
+    },
+  });
+};
+
 // Create an audit log entry
 const createAuditLogEntry = async (logEntry: Omit<AuditLog, "id">) => {
   try {
@@ -319,19 +386,7 @@ export const userOperations = {
       }
 
       const cognito = getCognitoClient();
-      if (!cognito) {
-        console.error("Cognito client not initialized");
-        return JSON.stringify({
-          users: [],
-          error: "Cognito client not initialized",
-        });
-      }
-
-      // Log environment variables for debugging
-      console.log("Environment variables check:", {
-        AUTH_USERPOOL_ID: userPoolId ? "Set" : "Not set",
-        EMAIL_SENDER: process.env.EMAIL_SENDER ? "Set" : "Not set",
-      });
+      const dynamodb = getDynamoDBClient();
 
       const command = new ListUsersCommand({
         UserPoolId: userPoolId,
@@ -341,11 +396,7 @@ export const userOperations = {
       const response = await cognito.send(command);
       const users = response.Users || [];
 
-      console.log(`Cognito ListUsers response: Found ${users.length} users`);
-
-      // Map users to a more usable format
-      const mappedUsers = users.map((user) => {
-        // Extract attributes into an easy to access object
+      const enrichedUsers = await Promise.all(users.map(async (user) => {
         const attributes: Record<string, string> = {};
         user.Attributes?.forEach((attr) => {
           if (attr.Name && attr.Value) {
@@ -353,21 +404,35 @@ export const userOperations = {
           }
         });
 
-        // Get custom status if available
+        const email = attributes["email"] || user.Username;
         const customStatus = attributes["custom:status"] || null;
 
-        return {
-          email: user.Username,
-          status: user.UserStatus,
-          enabled: user.Enabled,
-          created: user.UserCreateDate,
-          lastModified: user.UserLastModifiedDate,
-          attributes,
-          customStatus,
-        };
-      });
+        let dbStatus: Partial<UserStatus> = {};
+        try {
+          const dbResponse = await dynamodb.send(new GetItemCommand({
+            TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus",
+            Key: marshall({ id: email }),
+          }));
 
-      return JSON.stringify(mappedUsers);
+          if (dbResponse.Item) {
+            dbStatus = unmarshall(dbResponse.Item) as Partial<UserStatus>;
+          }
+        } catch (err) {
+          console.warn(`No DynamoDB UserStatus record found for ${email}`, err);
+        }
+
+        return {
+          email,
+          status: dbStatus.status || customStatus || user.UserStatus,
+          role: dbStatus.role || attributes["custom:role"] || "user",
+          registrationDate: dbStatus.registrationDate || user.UserCreateDate,
+          lastModified: dbStatus.lastStatusChange || user.UserLastModifiedDate,
+          enabled: user.Enabled,
+          attributes,
+        };
+      }));
+
+      return JSON.stringify(enrichedUsers);
     } catch (error) {
       console.error("Error listing users:", error);
       return JSON.stringify({
@@ -380,63 +445,49 @@ export const userOperations = {
   // Get users by status
   getUsersByStatus: async (status: string): Promise<string> => {
     try {
-      const usersResult = await userOperations.listUsers();
-      let allUsers: UserData[] = [];
-
-      try {
-        // Parse the result string
-        const parsedResult = JSON.parse(usersResult);
-
-        // Check if it's an error response
-        if (parsedResult.error) {
-          console.error("Error in listUsers:", parsedResult.error);
-          return JSON.stringify([]);
-        }
-
-        // If it's an array, use it
-        if (Array.isArray(parsedResult)) {
-          allUsers = parsedResult;
-        } else if (parsedResult.users && Array.isArray(parsedResult.users)) {
-          // If it has a users property that's an array, use that
-          allUsers = parsedResult.users;
-        } else {
-          console.error("Unexpected response format from listUsers");
-          return JSON.stringify([]);
-        }
-      } catch (parseError) {
-        console.error("Error parsing listUsers result:", parseError);
-        return JSON.stringify([]);
+      const tableName = process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE";
+      const indexName = "status-index";
+      const dynamodb = getDynamoDBClient();
+  
+      // Validate status is provided
+      if (!status) {
+        throw new Error("Status parameter is required.");
       }
-
-      const filteredUsers = allUsers.filter((user: UserData) => {
-        // Get custom status from attributes if available
-        const customStatus = user.attributes?.["custom:status"];
-
-        switch (status.toLowerCase()) {
-          case "pending":
-            // Only count as pending if FORCE_CHANGE_PASSWORD and not rejected
-            return (
-              user.status === "FORCE_CHANGE_PASSWORD" &&
-              customStatus !== "REJECTED"
-            );
-          case "active":
-            return user.status === "CONFIRMED" && user.enabled;
-          case "suspended":
-            return (
-              customStatus === "SUSPENDED" ||
-              (!user.enabled && customStatus !== "REJECTED")
-            );
-          case "rejected":
-            return customStatus === "REJECTED";
-          default:
-            return true;
-        }
+  
+      const queryCommand = new QueryCommand({
+        TableName: tableName,
+        IndexName: indexName,
+        KeyConditionExpression: "#status = :statusVal",
+        ExpressionAttributeNames: {
+          "#status": "status",
+        },
+        ExpressionAttributeValues: {
+          ":statusVal": { S: status.toLowerCase() },
+        },
       });
-
-      return JSON.stringify(filteredUsers);
+  
+      const response = await dynamodb.send(queryCommand);
+  
+      const users = (response.Items || []).map((item) => {
+        const parsed = unmarshall(item) as UserStatus;
+      
+        // Transform to match listUsers() format that the UI expects
+        return {
+          email: parsed.email,
+          status: parsed.status,
+          customStatus: parsed.status,  // Add this for frontend consistency
+          role: parsed.role || "user",
+          created: parsed.registrationDate,
+          lastModified: parsed.lastStatusChange,
+          enabled: true,  // Assume enabled since we're returning active records
+        };
+      });
+  
+      console.log(`Found ${users.length} users with status: ${status}`);
+      return JSON.stringify(users);
     } catch (error) {
-      console.error("Error getting users by status:", error);
-      return JSON.stringify([]);
+      console.error("Error in getUsersByStatus:", error);
+      return JSON.stringify({ error: "Failed to retrieve users by status" });
     }
   },
 
@@ -528,6 +579,9 @@ export const userOperations = {
         message: approvalTemplate(),
       });
 
+      // Update user status in DynamoDB
+      await updateUserStatus(email, "active", adminEmail);
+
       return true;
     } catch (error) {
       console.error(`Error approving user ${email}:`, error);
@@ -578,6 +632,9 @@ export const userOperations = {
       });
 
       await cognito.send(updateUserAttributesCommand);
+
+      // Update user status in DynamoDB
+      await updateUserStatus(email, "rejected", adminEmail);
 
       // Create audit log entry for rejection
       await createAuditLogEntry({
@@ -646,6 +703,9 @@ export const userOperations = {
 
       await cognito.send(updateUserAttributesCommand);
 
+      // Update user status in DynamoDB
+      await updateUserStatus(email, "suspended", adminEmail);
+
       // Create audit log entry for suspension
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -711,6 +771,9 @@ export const userOperations = {
       });
 
       await cognito.send(updateUserAttributesCommand);
+
+      // Update user status in DynamoDB
+      await updateUserStatus(email, "active", adminEmail);
 
       // Create audit log entry for reactivation
       await createAuditLogEntry({
@@ -779,6 +842,10 @@ export const userOperations = {
             Name: "custom:role",
             Value: role,
           },
+          {
+            Name: "custom:status",
+            Value: "PENDING",
+          },
         ],
         TemporaryPassword: tempPassword,
         // Set message action based on shouldSendEmail flag
@@ -797,6 +864,31 @@ export const userOperations = {
       });
 
       await cognito.send(addToGroupCommand);
+      
+      // Create UserStatus entry in DynamoDB
+      const userStatusItem: UserStatus = {
+        id: email,
+        email,
+        status: "pending",
+        role: role === "admin" ? "admin" : "user",
+        registrationDate: new Date().toISOString(),
+        lastStatusChange: new Date().toISOString(),
+        lastStatusChangeBy: performedBy || "system",
+      };
+
+      console.log("About to write UserStatus with data:", JSON.stringify(userStatusItem));
+      try {
+        const putUserStatus = new PutItemCommand({
+          TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+          Item: marshall(userStatusItem),
+        });
+
+        await dynamodb.send(putUserStatus);
+        console.log(`SUCCESS: UserStatus record created for ${email}`);
+      } catch (error) {
+        console.error(`ERROR creating UserStatus for ${email}:`, error);
+        throw error; // Re-throw to be caught by the outer try/catch
+      }
 
       // Create audit log entry for user creation
       await createAuditLogEntry({
@@ -868,6 +960,9 @@ export const userOperations = {
       });
       await cognito.send(updateAttributesCommand);
       console.log(`User attributes updated for ${email}`);
+
+      // Sync status in DynamoDB
+      await updateUserStatus(email, "active", adminEmail);
 
       // Get current groups
       try {
@@ -1137,6 +1232,7 @@ export const userOperations = {
   },
 
   // Get audit logs
+
   getAuditLogs: async (
     dateRange?: { startDate?: string; endDate?: string },
     filters?: {
@@ -1146,73 +1242,70 @@ export const userOperations = {
     },
   ): Promise<string> => {
     try {
-      console.log("Fetching audit logs with filters:", { dateRange, filters });
-
-      // Default to retrieving logs from the last 30 days if no date range is specified
-      const defaultStartDate = new Date();
-      defaultStartDate.setDate(defaultStartDate.getDate() - 30);
-
+      const tableName = process.env.AUDIT_LOG_TABLE_NAME || "AuditLog";
+      const indexName = "performedByIndex";
+      const dynamodb = getDynamoDBClient();
+  
+      // Ensure performedBy is provided (required for GSI query)
+      if (!filters?.performedBy) {
+        throw new Error("performedBy filter is required to query by GSI.");
+      }
+      const performedBy = filters.performedBy;
+  
+      // Set default date range to last 30 days
       const startDate = dateRange?.startDate
-        ? new Date(dateRange.startDate)
-        : defaultStartDate;
+        ? new Date(dateRange.startDate).toISOString()
+        : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  
       const endDate = dateRange?.endDate
-        ? new Date(dateRange.endDate)
-        : new Date();
-
-      // For now, we'll use a scan operation with client-side filtering
-      // In a production environment, you would use query operations with indexes
-      const command = new ScanCommand({
-        TableName: process.env.AUDIT_LOG_TABLE_NAME || "AuditLog",
-        Limit: 100, // Reasonable limit to prevent excessive data transfer
+        ? new Date(dateRange.endDate).toISOString()
+        : new Date().toISOString();
+  
+      const queryCommand = new QueryCommand({
+        TableName: tableName,
+        IndexName: indexName,
+        KeyConditionExpression:
+          "performedBy = :performedBy AND #ts BETWEEN :start AND :end",
+        ExpressionAttributeNames: {
+          "#ts": "timestamp",
+        },
+        ExpressionAttributeValues: {
+          ":performedBy": { S: performedBy },
+          ":start": { S: startDate },
+          ":end": { S: endDate },
+        },
       });
-
-      const response = await dynamodb.send(command);
-
-      if (!response.Items || response.Items.length === 0) {
-        return JSON.stringify([]);
+  
+      const response = await dynamodb.send(queryCommand);
+  
+      let logs = (response.Items || []).map((item) =>
+        unmarshall(item),
+      ) as AuditLog[];
+  
+      // Optional post-filtering
+      if (filters?.action) {
+        logs = logs.filter((log) => log.action.includes(filters.action!));
       }
-
-      // Convert DynamoDB items to JavaScript objects
-      let logs = response.Items.map((item) => unmarshall(item)) as AuditLog[];
-
-      // Filter by date range
-      logs = logs.filter((log) => {
-        const logDate = new Date(log.timestamp);
-        return logDate >= startDate && logDate <= endDate;
-      });
-
-      // Apply additional filters if provided
-      if (filters) {
-        if (filters.action) {
-          logs = logs.filter((log) => log.action.includes(filters.action!));
-        }
-
-        if (filters.performedBy) {
-          logs = logs.filter((log) =>
-            log.performedBy.includes(filters.performedBy!),
-          );
-        }
-
-        if (filters.affectedResource) {
-          logs = logs.filter((log) =>
-            log.affectedResource.includes(filters.affectedResource!),
-          );
-        }
+  
+      if (filters?.affectedResource) {
+        logs = logs.filter((log) =>
+          log.affectedResource.includes(filters.affectedResource!),
+        );
       }
-
-      // Sort by timestamp (newest first)
+  
+      // Sort by timestamp descending
       logs.sort(
         (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
-
+  
       return JSON.stringify(logs);
     } catch (error) {
       console.error("Error retrieving audit logs:", error);
       return JSON.stringify({ error: "Failed to retrieve audit logs" });
     }
   },
-
+  
   // Get system settings
   getAllSystemSettings: async (): Promise<string> => {
     try {
@@ -1413,6 +1506,11 @@ export const userOperations = {
       await createAuditLogEntry(auditLogEntry);
       console.log("Created audit log for user deletion");
 
+      // Update user status in DynamoDB to "deleted" with TTL (30 days from now)
+      const thirtyDaysInSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
+      const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds; // Current time + 30 days in Unix timestamp
+      await updateUserStatus(email, "deleted", adminEmail, ttl);
+
       // Step 2: Delete user's assessments
       // This would require finding any assessments owned by this user and deleting them
       // We'll need to scan the InProgressAssessment and CompletedAssessment tables
@@ -1462,7 +1560,7 @@ export const userOperations = {
               });
 
               // We would also need to delete associated files from S3 here
-              // This would depend on your S3 bucket structure
+              // This would depend on our S3 bucket structure
             }
           }
         }
@@ -1471,8 +1569,51 @@ export const userOperations = {
         const completedAssessmentTableName =
           process.env.API_GRCSITE2_COMPLETEDASSESSMENTTABLE_NAME;
         if (completedAssessmentTableName) {
-          // Similar code for completed assessments
-          // ... for brevity, we're omitting this part but it would be similar to the above
+          const completedScanCommand = new ScanCommand({
+            TableName: completedAssessmentTableName,
+            FilterExpression: "owner = :owner",
+            ExpressionAttributeValues: marshall({
+              ":owner": userId,
+            }),
+          });
+
+          const completedAssessments = await dynamodb.send(completedScanCommand);
+          console.log(
+            `Found ${completedAssessments.Items?.length || 0} completed assessments for user`,
+          );
+
+          // Delete each assessment
+          if (
+            completedAssessments.Items &&
+            completedAssessments.Items.length > 0
+          ) {
+            for (const item of completedAssessments.Items) {
+              const deleteParams = {
+                TableName: completedAssessmentTableName,
+                Key: {
+                  id: item.id,
+                },
+              };
+
+              // Create audit log for assessment deletion
+              await createAuditLogEntry({
+                timestamp: new Date().toISOString(),
+                action: "ASSESSMENT_DELETED",
+                performedBy: adminEmail,
+                affectedResource: "assessment",
+                resourceId: item.id.S,
+                details: {
+                  assessmentName: item.name?.S || "Unknown",
+                  status: "completed",
+                  reason: "User account deletion",
+                  deletedAt: new Date().toISOString(),
+                },
+              });
+
+              // We would also need to delete associated files from S3 here
+              // This would depend on your S3 bucket structure
+            }
+          }
         }
       } catch (error) {
         console.error("Error cleaning up user assessments:", error);
@@ -1498,6 +1639,80 @@ export const userOperations = {
         success: false,
         message: `Failed to delete user: ${error instanceof Error ? error.message : String(error)}`,
       };
+    }
+  },
+
+
+  migrateUsersToDynamoDB: async (): Promise<string> => {
+    try {
+      // Get all users from Cognito
+      console.log("Starting migration: fetching users from Cognito");
+      const users = await fetchUsersFromCognito();
+      console.log(`Found ${users.length} users in Cognito`);
+      
+      let migratedCount = 0;
+      let failures = [];
+      
+      for (const user of users) {
+        const email = user.email || "";
+        if (!email) {
+          console.log("Skipping user with no email");
+          continue;
+        }
+        
+        console.log(`Processing user: ${email}`);
+        
+        // Determine status
+        let status: UserStatus["status"] = "pending";
+        if (user.attributes?.["custom:status"] === "REJECTED") {
+          status = "rejected";
+        } else if (user.attributes?.["custom:status"] === "SUSPENDED") {
+          status = "suspended";
+        } else if (user.status === "CONFIRMED" && user.enabled) {
+          status = "active";
+        }
+        
+        // Determine role
+        const role = user.attributes?.["custom:role"] === "admin" ? "admin" : "user";
+        
+        // Create UserStatus entry with detailed logging
+        console.log(`Creating UserStatus for ${email} with status: ${status}, role: ${role}`);
+        
+        try {
+          // Create UserStatus entry
+          await updateUserStatus(email, status, "system-migration");
+          
+          // Update role if needed
+          await dynamodb.send(new PutItemCommand({
+            TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus",
+            Item: marshall({
+              id: email,
+              email,
+              status,
+              role,
+              registrationDate: user.created?.toISOString() || new Date().toISOString(),
+              lastStatusChange: new Date().toISOString(),
+              lastStatusChangeBy: "system-migration"
+            })
+          }));
+          
+          console.log(`Successfully added ${email} to DynamoDB`);
+          migratedCount++;
+        } catch (error) {
+          console.error(`Failed to migrate user ${email}:`, error);
+          failures.push({ email, error: String(error) });
+        }
+      }
+      
+      return JSON.stringify({ 
+        success: true, 
+        migratedCount,
+        totalUsers: users.length,
+        failures: failures.length > 0 ? failures : undefined 
+      });
+    } catch (error) {
+      console.error("Error migrating users:", error);
+      return JSON.stringify({ success: false, error: String(error) });
     }
   },
 };

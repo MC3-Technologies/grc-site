@@ -3,6 +3,7 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { chatGptFunction } from "../functions/chat-gpt/resource";
 import { userManagementFunction } from "../functions/user-management/resource";
 
+
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
 adding a new "isDone" field as a boolean. The authorization rule below
@@ -48,7 +49,7 @@ const schema = a.schema({
     .handler(a.handler.function(chatGptFunction))
     .authorization((allow) => [allow.authenticated("userPools")]),
 
-  UserStatus: a
+    UserStatus: a
     .model({
       id: a.id().required(),
       email: a.string().required(),
@@ -56,16 +57,23 @@ const schema = a.schema({
       role: a.enum(["user", "admin"]),
       lastLogin: a.string(),
       registrationDate: a.string().required(),
-      notes: a.string(), //optional
-      rejectionReason: a.string(), //optional
-      suspensionReason: a.string(), //optional
-      approvedBy: a.string(), //optional
-      lastStatusChange: a.string(), //optional
-      lastStatusChangeBy: a.string(), //optional
+      notes: a.string(),
+      rejectionReason: a.string(),
+      suspensionReason: a.string(),
+      approvedBy: a.string(),
+      lastStatusChange: a.string(),
+      lastStatusChangeBy: a.string(),
+      nickname: a.string(),
     })
+    .secondaryIndexes((index) => [
+      index("status")
+        .sortKeys(["registrationDate"]) // helpful to query recent users per status
+        .name("status-index"),
+    ])
     .authorization((allow) => [
       allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
     ]),
+  
 
   // User management queries and mutations
   listUsers: a
@@ -174,19 +182,27 @@ const schema = a.schema({
     .handler(a.handler.function(userManagementFunction)),
 
   // Admin Dashboard endpoints
-  AuditLog: a
-    .model({
-      id: a.id().required(),
-      timestamp: a.string().required(),
-      action: a.string().required(),
-      performedBy: a.string().required(),
-      affectedResource: a.string().required(),
-      resourceId: a.string(),
-      details: a.json(),
-    })
-    .authorization((allow) => [
-      allow.groups(["GRC-Admin"]).to(["read", "create"]),
-    ]),
+// File: amplify/data/resource.ts
+
+AuditLog: a
+  .model({
+    id: a.id().required(),
+    timestamp: a.string().required(),
+    action: a.string().required(),
+    performedBy: a.string().required(),
+    affectedResource: a.string().required(),
+    resourceId: a.string(),
+    details: a.json(),
+  })
+  .secondaryIndexes((index) => [
+    index("performedBy")
+      .sortKeys(["timestamp"])
+      .name("performedBy"),
+  ])
+  .authorization((allow: any) => [
+    allow.groups(["GRC-Admin"]).to(["read", "create"]),
+  ]),
+
 
   SystemSettings: a
     .model({
@@ -227,7 +243,16 @@ const schema = a.schema({
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
+
+  migrateUsersToDynamoDB: a
+    .mutation()
+    .returns(a.json())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+  
 });
+
+
 
 export type Schema = ClientSchema<typeof schema>;
 

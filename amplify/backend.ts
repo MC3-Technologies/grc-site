@@ -79,3 +79,19 @@ backend.preSignUpFunction.resources.lambda.addToRolePolicy(
     resources: ["*"],
   }),
 );
+
+// Add Cognito permissions to the auth-triggers Lambda function
+backend.preSignUpFunction.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: [
+      "cognito-idp:AdminDisableUser",
+      "cognito-idp:AdminEnableUser",
+      "cognito-idp:AdminGetUser",
+      "cognito-idp:AdminUpdateUserAttributes",
+      "cognito-idp:AdminAddUserToGroup",
+      "cognito-idp:AdminRemoveUserFromGroup",
+      "cognito-idp:ListUsers"
+    ],
+    resources: ["*"],
+  }),
+);

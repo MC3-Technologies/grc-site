@@ -9,14 +9,11 @@ export const userManagementFunction = defineFunction({
   environment: {
     EMAIL_SENDER:
       process.env.EMAIL_SENDER || "cmmc.support@mc3technologies.com",
-    // Add a LOGO_URL environment variable that can be set to the publicly accessible URL of your logo
     LOGO_URL:
       process.env.LOGO_URL ||
       "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png",
 
-    // Cognito user pool ID - we'll need to set this during deployment
     USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_10IP1yz5s",
-
     // DynamoDB table names
     SYSTEM_SETTINGS_TABLE_NAME:
       "SystemSettings-fk4antj52jgh3j6qjhbhwur5qa-NONE",

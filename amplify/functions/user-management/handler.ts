@@ -137,6 +137,10 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
           event.arguments?.updatedBy,
         );
 
+      case "migrateUsersToDynamoDB":
+        return await userOperations.migrateUsersToDynamoDB();
+        
+
       default:
         // If operation is not recognized, log warning and default to listUsers
         log.warn(`Unknown operation: ${fieldName}, defaulting to listUsers`);

@@ -29,6 +29,9 @@ export interface User {
   customStatus?: string | null;
 }
 
+// Add type-safe enum for statuses
+export type UserStatusType = "pending" | "active" | "suspended" | "rejected" | "deleted";
+
 // Generate mock users for development when API fails
 export const getMockUsers = (): User[] => {
   const now = new Date().toISOString();
@@ -69,7 +72,7 @@ export const getMockUsers = (): User[] => {
 };
 
 // Helper to filter mock users by status
-export const getFilteredMockUsers = (status: string): User[] => {
+export const getFilteredMockUsers = (status: UserStatusType): User[] => {
   console.log(`Filtering mock users by status: ${status}`);
   return getMockUsers().filter((user) => {
     switch (status) {
@@ -85,6 +88,8 @@ export const getFilteredMockUsers = (status: string): User[] => {
         return !user.enabled && user.customStatus === "SUSPENDED";
       case "rejected":
         return user.customStatus === "REJECTED";
+      case "deleted":
+        return user.customStatus === "DELETED";
       default:
         return true;
     }
@@ -120,31 +125,51 @@ export const getUserStatus = (
   status: string,
   enabled: boolean,
   customStatus?: string | null,
-): "active" | "pending" | "rejected" | "suspended" => {
-  // First check custom status which overrides default
-  if (customStatus === "REJECTED") {
+): UserStatusType => {
+  console.log(`getUserStatus called with: status=${status}, enabled=${enabled}, customStatus=${customStatus}`);
+  
+  // First check for exact match on customStatus or status (to handle DynamoDB format)
+  if (customStatus === "REJECTED" || status === "rejected") {
+    console.log(`getUserStatus: returning 'rejected' (explicit match)`);
     return "rejected";
   }
 
-  if (customStatus === "SUSPENDED") {
+  if (customStatus === "SUSPENDED" || status === "suspended") {
+    console.log(`getUserStatus: returning 'suspended' (explicit match)`);
     return "suspended";
   }
 
   // If user is disabled but not rejected or suspended, treat as rejected
   if (!enabled && !customStatus) {
+    console.log(`getUserStatus: returning 'rejected' (disabled user)`);
     return "rejected";
   }
 
   // Map Cognito status to our UI status
   if (status === "CONFIRMED" && enabled) {
+    console.log(`getUserStatus: returning 'active' (confirmed and enabled)`);
     return "active";
   } else if (
     ["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)
   ) {
+    console.log(`getUserStatus: returning 'pending' (password change/unconfirmed)`);
+    return "pending";
+  }
+
+  // Check for active status from DynamoDB
+  if (status === "active") {
+    console.log(`getUserStatus: returning 'active' (explicit DynamoDB match)`);
+    return "active";
+  }
+
+  // Check for pending status from DynamoDB
+  if (status === "pending") {
+    console.log(`getUserStatus: returning 'pending' (explicit DynamoDB match)`);
     return "pending";
   }
 
   // Default to pending for any other status
+  console.log(`getUserStatus: returning 'pending' (default fallback)`);
   return "pending";
 };
 
@@ -226,23 +251,26 @@ export const fetchUsers = async (
 
 // Fetch users filtered by status
 export const fetchUsersByStatus = async (
-  status: "pending" | "active" | "rejected" | "suspended",
+  status: UserStatusType,
   forceRefresh: boolean = false,
 ): Promise<User[]> => {
+  // Ensure status is lowercase for consistency
+  const normalizedStatus = status.toLowerCase() as UserStatusType;
+  
   try {
-    console.log(`Fetching users with status: ${status}`);
+    console.log(`Fetching users with status: ${normalizedStatus}`);
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock filtered data");
-      return getFilteredMockUsers(status);
+      return getFilteredMockUsers(normalizedStatus);
     }
 
     // Check cache first if not forcing a refresh
     if (!forceRefresh) {
-      const cachedUsers = getCachedUsersByStatus(status);
+      const cachedUsers = getCachedUsersByStatus(normalizedStatus);
       if (cachedUsers) {
-        console.log(`Using cached user data for status: ${status}`);
+        console.log(`Using cached user data for status: ${normalizedStatus}`);
         return cachedUsers;
       }
     }
@@ -250,8 +278,8 @@ export const fetchUsersByStatus = async (
     // Get the authenticated client
     const client = getClientSchema();
 
-    // Call the API with the status parameter
-    const response = await client.queries.getUsersByStatus({ status });
+    // Call the API with the normalized status parameter
+    const response = await client.queries.getUsersByStatus({ status: normalizedStatus });
     console.log("API response for getUsersByStatus:", response);
 
     // Process the data depending on its type
@@ -260,30 +288,67 @@ export const fetchUsersByStatus = async (
       console.log("Parsed status filtered data:", parsedData);
 
       if (Array.isArray(parsedData)) {
-        // Apply specific filters as needed
-        let filteredData: User[] = parsedData as User[];
-
-        if (status === "pending") {
+        console.log(`Raw data from getUsersByStatus(${normalizedStatus}):`, parsedData);
+        
+        let filteredData = parsedData.map(item => {
+          const mappedItem = {
+            email: item.email,
+            status: item.status,
+            // Convert status to uppercase to match Cognito format for customStatus
+            customStatus: item.status.toUpperCase(),
+            role: item.role || "user",
+            created: item.registrationDate, // Map to expected field name
+            lastModified: item.lastStatusChange, // Map to expected field name
+            enabled: item.status !== "suspended" && item.status !== "rejected", // Derive this
+          };
+          
+          console.log(`Mapped item for ${item.email}:`, mappedItem);
+          return mappedItem;
+        });
+        
+        console.log(`After mapping, before filtering (${filteredData.length} items):`, filteredData);
+        
+        if (normalizedStatus === "pending") {
           filteredData = filteredData.filter(
-            (user) =>
-              user.customStatus !== "REJECTED" && user.status !== "rejected",
+            (user) => {
+              const shouldInclude = 
+                user.customStatus !== "REJECTED" && 
+                user.status !== "rejected" &&
+                user.customStatus !== "SUSPENDED" &&
+                user.status !== "suspended";
+              
+              console.log(`Filter pending: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`);
+              return shouldInclude;
+            }
           );
-        } else if (status === "rejected") {
-          // Return users with REJECTED customStatus or rejected status
+        } else if (normalizedStatus === "rejected") {
           filteredData = filteredData.filter(
-            (user) =>
-              user.customStatus === "REJECTED" || user.status === "rejected",
+            (user) => {
+              const shouldInclude = 
+                user.customStatus === "REJECTED" || 
+                user.status === "rejected";
+              
+              console.log(`Filter rejected: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`);
+              return shouldInclude;
+            }
           );
-        } else if (status === "suspended") {
-          // Return users with SUSPENDED customStatus or suspended status
+        } else if (normalizedStatus === "suspended") {
           filteredData = filteredData.filter(
-            (user) =>
-              user.customStatus === "SUSPENDED" || user.status === "suspended",
+            (user) => {
+              const shouldInclude = 
+                user.customStatus === "SUSPENDED" || 
+                user.status === "suspended";
+              
+              console.log(`Filter suspended: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`);
+              return shouldInclude;
+            }
           );
         }
 
+        console.log(`Final filtered data for ${normalizedStatus} (${filteredData.length} items):`, filteredData);
+
         // Cache the filtered results
-        cacheUsersByStatus(status, filteredData);
+        cacheUsersByStatus(normalizedStatus, filteredData);
 
         return filteredData;
       } else {
@@ -292,10 +357,10 @@ export const fetchUsersByStatus = async (
     }
 
     // If we reach here, something went wrong
-    console.error(`Failed to get users with status ${status}`);
+    console.error(`Failed to get users with status ${normalizedStatus}`);
     return [];
   } catch (error) {
-    console.error(`Error fetching users with status ${status}:`, error);
+    console.error(`Error fetching users with status ${normalizedStatus}:`, error);
     return [];
   }
 };
@@ -382,17 +447,24 @@ export const rejectUser = async (
     }
 
     const client = getClientSchema();
+    console.log(`Rejecting user ${email} with reason: ${reason || "None"}`);
+    
     const response = await client.mutations.rejectUser({
       email,
       reason,
       adminEmail: adminEmail || "admin@example.com",
     });
 
+    console.log(`Reject user API response:`, response);
+
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
     if (result) {
       // Clear cache on successful operation
+      console.log("Rejection successful, clearing user cache...");
       clearUserCache();
+      // Force refresh
+      await fetchUsers(true);
       return true;
     }
     return false;
@@ -1009,32 +1081,35 @@ const getCachedUsers = (): User[] | null => {
   }
 };
 
-const getCachedUsersByStatus = (status: string): User[] | null => {
+const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
   try {
-    const cacheKey = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
-    const cachedData = localStorage.getItem(cacheKey);
-    const timestamp = localStorage.getItem(`${cacheKey}_timestamp`);
+    const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
+    const cachedData = localStorage.getItem(key);
+    const cacheTimestamp = localStorage.getItem(`${key}_timestamp`);
 
-    if (!cachedData || !timestamp) {
+    if (!cachedData || !cacheTimestamp) {
       return null;
     }
 
-    // Check if cache is expired
-    const cacheTime = parseInt(timestamp, 10);
+    // Check if cache is still valid
+    const timestamp = parseInt(cacheTimestamp, 10);
     const now = Date.now();
-    if (now - cacheTime > CACHE_DURATION_MS) {
-      console.log(`Cache for status ${status} expired, needs refresh`);
+    
+    if (now - timestamp > CACHE_DURATION_MS) {
+      console.log(`Cache for status ${status} has expired`);
       return null;
     }
 
     // Parse and return the cached data
-    const users = JSON.parse(cachedData) as User[];
-    console.log(
-      `Retrieved ${users.length} users with status ${status} from cache`,
-    );
-    return users;
+    const parsedData = JSON.parse(cachedData);
+    if (Array.isArray(parsedData)) {
+      console.log(`Retrieved ${parsedData.length} users from cache with status ${status}`);
+      return parsedData;
+    }
+    
+    return null;
   } catch (error) {
-    console.error(`Error reading ${status} status cache:`, error);
+    console.error(`Error reading cache for status ${status}:`, error);
     return null;
   }
 };
@@ -1049,14 +1124,15 @@ const cacheUsers = (users: User[]): void => {
   }
 };
 
-const cacheUsersByStatus = (status: string, users: User[]): void => {
+const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
   try {
-    const cacheKey = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
-    localStorage.setItem(cacheKey, JSON.stringify(users));
-    localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+    // Cache in localStorage for simple persistence
+    const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
+    localStorage.setItem(key, JSON.stringify(users));
+    localStorage.setItem(`${key}_timestamp`, Date.now().toString());
     console.log(`Cached ${users.length} users with status ${status}`);
   } catch (error) {
-    console.error(`Error writing ${status} status cache:`, error);
+    console.error(`Error caching users with status ${status}:`, error);
   }
 };
 

@@ -57,9 +57,6 @@ export const userStatusOperations = {
 
       console.log(`Created UserStatus record for ${email} with pending status`);
 
-      // Notify admins about the new user
-      await userStatusOperations.notifyAdminsAboutNewUser(email);
-
       return true;
     } catch (error) {
       console.error(`Error creating UserStatus for ${email}:`, error);
@@ -143,6 +140,68 @@ export const userStatusOperations = {
     } catch (error) {
       console.error(
         `Error notifying admin about new user ${userEmail}:`,
+        error,
+      );
+      return false;
+    }
+  },
+
+  /**
+   * Sends a notification to the user about their application being in review
+   * @param userEmail The email of the user who signed up
+   * @returns Promise<boolean> Success status
+   */
+  sendApplicationReviewEmail: async (userEmail: string): Promise<boolean> => {
+    try {
+      // Create email parameters
+      const params = {
+        Destination: {
+          ToAddresses: [userEmail],
+        },
+        Message: {
+          Body: {
+            Html: {
+              Charset: "UTF-8",
+              Data: `
+                <html>
+                <body>
+                  <h1>Application Under Review</h1>
+                  <p>Dear User,</p>
+                  <p>Thank you for creating an account with MC3's GRC Platform.</p>
+                  <p>Your application is currently under review by our administrators. You will receive a notification once your application has been approved or rejected.</p>
+                  <p>If you have any questions, please contact our support team at ${FROM_EMAIL}.</p>
+                  <p>Thank you for your patience.</p>
+                  <p>MC3 GRC Team</p>
+                </body>
+                </html>
+              `,
+            },
+            Text: {
+              Charset: "UTF-8",
+              Data: `Application Under Review: Thank you for creating an account with MC3's GRC Platform. Your application is currently under review by our administrators. You will receive a notification once your application has been approved or rejected.`,
+            },
+          },
+          Subject: {
+            Charset: "UTF-8",
+            Data: "Your MC3 GRC Platform Application Status",
+          },
+        },
+        Source: FROM_EMAIL,
+      };
+
+      // Attempt to send email
+      try {
+        const command = new SendEmailCommand(params);
+        await sesClient.send(command);
+        console.log(`Application review email sent to user: ${userEmail}`);
+        return true;
+      } catch (emailError) {
+        console.error("Error sending application review email:", emailError);
+        return false;
+      }
+    } catch (error) {
+      console.error(
+        `Error sending application review email to ${userEmail}:`,
         error,
       );
       return false;

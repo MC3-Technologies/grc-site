@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from "react";
 import {
   User,
   fetchUsers,
-  fetchUsersByStatus,
   refreshUserData,
   approveUser,
   rejectUser,
@@ -13,6 +12,7 @@ import {
   getUserStatus,
   getClientSchema,
   createTestUser,
+  UserStatusType,
 } from "../../utils/adminUser";
 import { getCurrentUser } from "../../amplify/auth";
 import Spinner from "../Spinner";
@@ -20,7 +20,7 @@ import Spinner from "../Spinner";
 // Interface to match our component needs
 interface UserData {
   email: string;
-  status: "active" | "pending" | "suspended" | "rejected";
+  status: UserStatusType;
   role: "user" | "admin";
   created: string;
   lastLogin?: string;
@@ -38,7 +38,7 @@ interface NewUserForm {
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [allUsers, setAllUsers] = useState<UserData[]>([]); // New state to track all users for counts
-  const [activeTab, setActiveTab] = useState("all");
+  const [activeTab, setActiveTab] = useState<UserStatusType>("active");
   const [loading, setLoading] = useState<boolean>(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +76,7 @@ const AdminUsers = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get("tab");
     if (tabParam) {
-      setActiveTab(tabParam);
+      setActiveTab(tabParam as UserStatusType);
     }
 
     fetchUsers();
@@ -127,6 +127,8 @@ const AdminUsers = () => {
       return [];
     }
 
+    console.log("transformUserData called with:", fetchedUsers);
+
     // Helper function to determine user role
     const determineUserRole = (user: User): "user" | "admin" => {
       if (user.attributes?.["cognito:groups"]) {
@@ -144,20 +146,33 @@ const AdminUsers = () => {
     };
 
     // Transform the API data
-    return fetchedUsers
+    const transformedUsers = fetchedUsers
       .map((user) => {
         if (!user || !user.email) {
           console.warn("Invalid user object in response:", user);
           return null;
         }
 
+        // Debug raw user status values before transformation
+        console.log(`User ${user.email} raw status:`, {
+          status: user.status,
+          enabled: user.enabled,
+          customStatus: user.customStatus,
+          attributes: user.attributes
+        });
+
+        const transformedStatus = getUserStatus(
+          user.status || "",
+          Boolean(user.enabled),
+          user.customStatus || undefined,
+        );
+
+        // Debug transformed status
+        console.log(`User ${user.email} transformed status:`, transformedStatus);
+
         return {
           email: user.attributes?.email || user.email,
-          status: getUserStatus(
-            user.status || "",
-            Boolean(user.enabled),
-            user.customStatus || undefined,
-          ),
+          status: transformedStatus,
           role: determineUserRole(user),
           created: user.created,
           lastLogin: user.lastModified,
@@ -166,6 +181,9 @@ const AdminUsers = () => {
         };
       })
       .filter(Boolean) as UserData[]; // Remove any null entries
+    
+    console.log("transformUserData result:", transformedUsers);
+    return transformedUsers;
   };
 
   // Fetch all users for counting badges and establish auto-refresh
@@ -174,23 +192,19 @@ const AdminUsers = () => {
     const fetchAndUpdateAllData = async () => {
       try {
         setAutoRefreshing(true);
+        console.log("Auto-refresh started for tab:", activeTab);
 
-        // Fetch all users with forceRefresh to bypass cache
+        // Always fetch all users for badges and counters using listUsers()
         const allFetchedUsers = await fetchUsers(true);
+        console.log("All users fetched for counters:", allFetchedUsers.length);
         const transformedAllUsers = transformUserData(allFetchedUsers);
         setAllUsers(transformedAllUsers);
 
-        // If we're on the "all" tab, update the main users list too
-        if (activeTab === "all") {
-          setUsers(transformedAllUsers);
-        } else {
-          // Otherwise, fetch and update the filtered users for the current tab
-          const filteredUsers = await fetchUsersByStatus(
-            activeTab as "pending" | "active" | "suspended" | "rejected",
-            true,
-          );
-          setUsers(transformUserData(filteredUsers));
-        }
+        // Filter users based on the active tab (we no longer have an "all" tab)
+        console.log(`Filtering users for tab: ${activeTab}`);
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        console.log(`Found ${filteredUsers.length} users for ${activeTab} tab`);
+        setUsers(filteredUsers);
 
         // Update last refresh timestamp
         setLastRefreshTime(new Date());
@@ -254,16 +268,17 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
 
-        // Update current view immediately by fetching fresh data
-        const refreshedUsers =
-          activeTab === "all"
-            ? await fetchUsers(true)
-            : await fetchUsersByStatus(
-                activeTab as "pending" | "active" | "suspended" | "rejected",
-                true,
-              );
-
-        setUsers(transformUserData(refreshedUsers));
+        // Get all users consistently from listUsers
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to approve user ${email}.`);
@@ -304,16 +319,17 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
 
-        // Update current view immediately by fetching fresh data
-        const refreshedUsers =
-          activeTab === "all"
-            ? await fetchUsers(true)
-            : await fetchUsersByStatus(
-                activeTab as "pending" | "active" | "suspended" | "rejected",
-                true,
-              );
-
-        setUsers(transformUserData(refreshedUsers));
+        // Get all users consistently from listUsers
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to reject user ${email}.`);
@@ -353,16 +369,17 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
 
-        // Update current view immediately by fetching fresh data
-        const refreshedUsers =
-          activeTab === "all"
-            ? await fetchUsers(true)
-            : await fetchUsersByStatus(
-                activeTab as "pending" | "active" | "suspended" | "rejected",
-                true,
-              );
-
-        setUsers(transformUserData(refreshedUsers));
+        // Get all users consistently from listUsers
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to suspend user ${email}.`);
@@ -398,16 +415,17 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
 
-        // Update current view immediately by fetching fresh data
-        const refreshedUsers =
-          activeTab === "all"
-            ? await fetchUsers(true)
-            : await fetchUsersByStatus(
-                activeTab as "pending" | "active" | "suspended" | "rejected",
-                true,
-              );
-
-        setUsers(transformUserData(refreshedUsers));
+        // Get all users consistently from listUsers
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to reactivate user ${email}.`);
@@ -442,21 +460,17 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date (this will clear cache)
         await refreshUserData();
 
-        // Update current view immediately by fetching fresh data
-        const refreshedUsers =
-          activeTab === "all"
-            ? await fetchUsers(true)
-            : await fetchUsersByStatus(
-                activeTab as "pending" | "active" | "suspended" | "rejected",
-                true,
-              );
-
-        setUsers(transformUserData(refreshedUsers));
-
-        // Also update the allUsers state for badge counts without requiring tab change
+        // Get all users consistently from listUsers
         const allFetchedUsers = await fetchUsers(true);
-        setAllUsers(transformUserData(allFetchedUsers));
-
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(response.message || `Failed to delete user ${email}.`);
@@ -518,18 +532,6 @@ const AdminUsers = () => {
           </span>
         );
     }
-  };
-
-  // Get filtered users based on active tab
-  const getFilteredUsers = () => {
-    if (activeTab === "pending") {
-      return users.filter((user) => user.status === "pending");
-    } else if (activeTab === "rejected") {
-      return users.filter((user) => user.status === "rejected");
-    } else if (activeTab === "suspended") {
-      return users.filter((user) => user.status === "suspended");
-    }
-    return users;
   };
 
   // Handle opening the edit modal
@@ -674,8 +676,15 @@ const AdminUsers = () => {
         // Refresh data
         await refreshUserData();
         const refreshedUsers = await fetchUsers(true);
-        setUsers(transformUserData(refreshedUsers));
-        setAllUsers(transformUserData(refreshedUsers));
+        const transformedUsers = transformUserData(refreshedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedUsers);
+        
+        // Filter based on active tab
+        const filteredUsers = transformedUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(response?.message || "Failed to create test user.");
@@ -786,17 +795,17 @@ const AdminUsers = () => {
           <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
             <li className="mr-2">
               <button
-                onClick={() => setActiveTab("all")}
+                onClick={() => setActiveTab("active")}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
-                  activeTab === "all"
+                  activeTab === "active"
                     ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
                     : "border-transparent text-white bg-gray-700 hover:text-black hover:bg-gray-200 hover:border-gray-300 dark:text-gray-100 dark:bg-gray-800 dark:hover:text-white"
                 }`}
               >
-                All Users
-                {allUsers.length > 0 && (
-                  <span className="ml-2 bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
-                    {allUsers.length}
+                Active
+                {allUsers.filter((user) => user.status === "active").length > 0 && (
+                  <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
+                    {allUsers.filter((user) => user.status === "active").length}
                   </span>
                 )}
               </button>
@@ -898,25 +907,17 @@ const AdminUsers = () => {
                     // Force refresh from API
                     await refreshUserData();
 
-                    // Reload current data
-                    const refreshedUsers =
-                      activeTab === "all"
-                        ? await fetchUsers(true)
-                        : await fetchUsersByStatus(
-                            activeTab as
-                              | "pending"
-                              | "active"
-                              | "suspended"
-                              | "rejected",
-                            true,
-                          );
-
-                    setUsers(transformUserData(refreshedUsers));
-
-                    // Refresh all users counts as well
+                    // Get all users from listUsers
                     const allFetchedUsers = await fetchUsers(true);
-                    setAllUsers(transformUserData(allFetchedUsers));
-
+                    const transformedAllUsers = transformUserData(allFetchedUsers);
+                    
+                    // Update all users counter
+                    setAllUsers(transformedAllUsers);
+                    
+                    // Filter based on active tab
+                    const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+                    setUsers(filteredUsers);
+                    
                     // Update last refresh time
                     setLastRefreshTime(new Date());
 
@@ -1030,7 +1031,7 @@ const AdminUsers = () => {
                 </tr>
               </thead>
               <tbody>
-                {getFilteredUsers().map((user) => (
+                {users.map((user) => (
                   <tr
                     key={user.email}
                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -1141,7 +1142,7 @@ const AdminUsers = () => {
             </table>
           </div>
 
-          {getFilteredUsers().length === 0 && (
+          {users.length === 0 && (
             <div className="p-4 mt-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-900 dark:text-blue-300">
               No users found matching the selected filter.
             </div>
