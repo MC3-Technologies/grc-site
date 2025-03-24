@@ -3,6 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
+import { baseTemplate } from "../../user-management/src/templates/emailTemplates";
 
 // Try to import env variables, fallback to process.env if not available
 let amplifyEnv: any;
@@ -72,7 +73,13 @@ export const userStatusOperations = {
    */
   notifyAdminsAboutNewUser: async (userEmail: string): Promise<boolean> => {
     try {
-      // Create email parameters
+      const content = `
+        <h1>New User Registration</h1>
+        <p>A new user has registered with the email: <strong>${userEmail}</strong></p>
+        <p>This user is awaiting approval. Please login to the admin panel to approve or reject this user.</p>
+        <p><a href="${amplifyEnv.ADMIN_URL || "#"}">Go to Admin Panel</a></p>
+      `;
+
       const params = {
         Destination: {
           ToAddresses: [ADMIN_EMAIL],
@@ -81,16 +88,7 @@ export const userStatusOperations = {
           Body: {
             Html: {
               Charset: "UTF-8",
-              Data: `
-                <html>
-                <body>
-                  <h1>New User Registration</h1>
-                  <p>A new user has registered with the email: <strong>${userEmail}</strong></p>
-                  <p>This user is awaiting approval. Please login to the admin panel to approve or reject this user.</p>
-                  <p><a href="${amplifyEnv.ADMIN_URL || "#"}">Go to Admin Panel</a></p>
-                </body>
-                </html>
-              `,
+              Data: baseTemplate(content),
             },
             Text: {
               Charset: "UTF-8",
@@ -105,13 +103,31 @@ export const userStatusOperations = {
         Source: FROM_EMAIL,
       };
 
+      // Log the email parameters for debugging
+      console.log("Sending admin notification with params:", {
+        to: ADMIN_EMAIL,
+        from: FROM_EMAIL,
+        subject: params.Message.Subject.Data,
+      });
+
       // Attempt to send email
       try {
         const command = new SendEmailCommand(params);
         await sesClient.send(command);
         console.log(`Admin notification email sent for new user: ${userEmail}`);
+        return true;
       } catch (emailError) {
         console.error("Error sending admin notification email:", emailError);
+        
+        // Log more details about the error
+        if (emailError instanceof Error) {
+          console.error("Error details:", {
+            message: emailError.message,
+            stack: emailError.stack,
+            name: emailError.name
+          });
+        }
+
         // Fallback to SNS if email fails
         try {
           const snsParams = {
@@ -123,25 +139,19 @@ export const userStatusOperations = {
           if (amplifyEnv.ADMIN_NOTIFICATION_TOPIC_ARN) {
             const snsCommand = new PublishCommand(snsParams);
             await snsClient.send(snsCommand);
-            console.log(
-              `Admin SNS notification sent for new user: ${userEmail}`,
-            );
+            console.log(`Admin SNS notification sent for new user: ${userEmail}`);
+            return true;
           } else {
-            console.warn(
-              "SNS Topic ARN not configured, skipping SNS notification",
-            );
+            console.warn("SNS Topic ARN not configured, skipping SNS notification");
+            return false;
           }
         } catch (snsError) {
           console.error("Error sending SNS notification:", snsError);
+          return false;
         }
       }
-
-      return true;
     } catch (error) {
-      console.error(
-        `Error notifying admin about new user ${userEmail}:`,
-        error,
-      );
+      console.error(`Error notifying admin about new user ${userEmail}:`, error);
       return false;
     }
   },
@@ -153,7 +163,16 @@ export const userStatusOperations = {
    */
   sendApplicationReviewEmail: async (userEmail: string): Promise<boolean> => {
     try {
-      // Create email parameters
+      const content = `
+        <h1>Application Under Review</h1>
+        <p>Dear User,</p>
+        <p>Thank you for creating an account with MC3's GRC Platform.</p>
+        <p>Your application is currently under review by our administrators. You will receive a notification once your application has been approved or rejected.</p>
+        <p>If you have any questions, please contact our support team at ${FROM_EMAIL}.</p>
+        <p>Thank you for your patience.</p>
+        <p>MC3 GRC Team</p>
+      `;
+
       const params = {
         Destination: {
           ToAddresses: [userEmail],
@@ -162,19 +181,7 @@ export const userStatusOperations = {
           Body: {
             Html: {
               Charset: "UTF-8",
-              Data: `
-                <html>
-                <body>
-                  <h1>Application Under Review</h1>
-                  <p>Dear User,</p>
-                  <p>Thank you for creating an account with MC3's GRC Platform.</p>
-                  <p>Your application is currently under review by our administrators. You will receive a notification once your application has been approved or rejected.</p>
-                  <p>If you have any questions, please contact our support team at ${FROM_EMAIL}.</p>
-                  <p>Thank you for your patience.</p>
-                  <p>MC3 GRC Team</p>
-                </body>
-                </html>
-              `,
+              Data: baseTemplate(content),
             },
             Text: {
               Charset: "UTF-8",

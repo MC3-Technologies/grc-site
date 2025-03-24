@@ -139,10 +139,16 @@ export const getUserStatus = (
     return "suspended";
   }
 
-  // If user is disabled but not rejected or suspended, treat as rejected
+  // If user is disabled but no custom status, treat as pending
   if (!enabled && !customStatus) {
-    console.log(`getUserStatus: returning 'rejected' (disabled user)`);
-    return "rejected";
+    console.log(`getUserStatus: returning 'pending' (disabled user)`);
+    return "pending";
+  }
+
+  // Check for active status from customStatus
+  if (customStatus === "ACTIVE") {
+    console.log(`getUserStatus: returning 'active' (explicit custom status)`);
+    return "active";
   }
 
   // Map Cognito status to our UI status

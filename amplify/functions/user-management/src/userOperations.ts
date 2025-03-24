@@ -550,16 +550,35 @@ export const userOperations = {
 
       console.log(`Approving user ${email} by admin: ${adminEmail}`);
 
-      // Add user to appropriate groups
+      // 1. Enable the user in Cognito
+      const enableCommand = new AdminEnableUserCommand({
+        UserPoolId: userPoolId,
+        Username: email,
+      });
+      await cognito.send(enableCommand);
+
+      // 2. Update user attributes to mark as active
+      const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
+        UserPoolId: userPoolId,
+        Username: email,
+        UserAttributes: [
+          {
+            Name: "custom:status",
+            Value: "ACTIVE",
+          },
+        ],
+      });
+      await cognito.send(updateAttributesCommand);
+
+      // 3. Add user to appropriate groups
       const addToGroupCommand = new AdminAddUserToGroupCommand({
         UserPoolId: userPoolId,
         Username: email,
         GroupName: "Approved-Users",
       });
-
       await cognito.send(addToGroupCommand);
 
-      // Create audit log entry for approval
+      // 4. Create audit log entry for approval
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
         action: "USER_APPROVED",
@@ -572,15 +591,15 @@ export const userOperations = {
         },
       });
 
-      // Send approval email
+      // 5. Update user status in DynamoDB
+      await updateUserStatus(email, "active", adminEmail);
+
+      // 6. Send approval email
       await sendEmail({
         to: email,
         subject: "Welcome to MC3 GRC Platform - Your Account is Approved",
         message: approvalTemplate(),
       });
-
-      // Update user status in DynamoDB
-      await updateUserStatus(email, "active", adminEmail);
 
       return true;
     } catch (error) {

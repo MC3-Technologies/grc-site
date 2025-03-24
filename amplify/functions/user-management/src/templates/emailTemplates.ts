@@ -1,3 +1,6 @@
+import { SendEmailCommandInput } from "@aws-sdk/client-ses";
+import { FROM_EMAIL } from "../config";
+
 // Email templates for various user management actions
 
 interface TemplateData {
@@ -10,7 +13,7 @@ const LOGO_URL =
   "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png";
 
 // Base template that all emails will use
-const baseTemplate = (content: string): string => `
+export const baseTemplate = (content: string): string => `
 <!DOCTYPE html>
 <html>
 <head>
@@ -110,4 +113,43 @@ export const reactivationTemplate = (data: TemplateData = {}): string => {
   `;
 
   return baseTemplate(content);
+};
+
+export const sendApplicationReviewEmail = (userEmail: string, status: string): SendEmailCommandInput => {
+  const content = `
+    <h1>Application Status Update</h1>
+    <p>Your application has been reviewed.</p>
+    <p>Status: <strong>${status}</strong></p>
+    ${status === 'APPROVED' 
+      ? '<p>You can now log in to your account.</p>'
+      : '<p>Unfortunately, your application has been rejected. If you believe this is a mistake, please contact support.</p>'
+    }
+  `;
+
+  return {
+    Destination: {
+      ToAddresses: [userEmail],
+    },
+    Message: {
+      Body: {
+        Html: {
+          Charset: "UTF-8",
+          Data: baseTemplate(content),
+        },
+        Text: {
+          Charset: "UTF-8",
+          Data: `Your application has been reviewed. Status: ${status}. ${
+            status === 'APPROVED'
+              ? 'You can now log in to your account.'
+              : 'Unfortunately, your application has been rejected. If you believe this is a mistake, please contact support.'
+          }`,
+        },
+      },
+      Subject: {
+        Charset: "UTF-8",
+        Data: "Application Status Update",
+      },
+    },
+    Source: FROM_EMAIL,
+  };
 };
