@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "GRC-Site is a free MC3 Technologies Cyber Security assessment tool for businesses based on the CMMC Cyber Security Model.",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format-project": "npm --prefix amplify run format && npm --prefix client run format"
@@ -20,13 +21,16 @@
   },
   "dependencies": {
     "@aws-amplify/api": "^6.3.5",
-    "@aws-sdk/client-cognito-identity-provider": "^3.768.0",
+    "@aws-amplify/auth": "^6.11.6",
+    "@aws-sdk/client-cognito-identity-provider": "^3.772.0",
     "@aws-sdk/client-dynamodb": "^3.767.0",
     "@aws-sdk/lib-dynamodb": "^3.767.0",
     "@dotenvx/dotenvx": "^1.38.4",
     "@types/dompurify": "^3.0.5",
-    "aws-amplify": "^6.12.0",
+    "aws-amplify": "^6.13.6",
     "dompurify": "^3.2.4",
+    "dotenv": "^16.4.7",
+    "node-fetch": "^3.3.2",
     "openai": "^4.80.1",
     "react-hot-toast": "^2.5.2"
   }

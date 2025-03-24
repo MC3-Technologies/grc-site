@@ -40,16 +40,19 @@ const Navbar = () => {
       try {
         const user = await getCurrentUser();
         setCurrentUser(user);
-        checkUserAdmin();
+        if (user) {
+          await checkUserAdmin();
+        }
       } catch (error) {
         console.error("Error checking user session:", error);
         setCurrentUser(null);
+      } finally {
+        setLoading(false);
       }
     };
 
     checkUser();
     initFlowbite();
-    setLoading(false);
 
     return () => {
       // Stop listening for data memory leaks

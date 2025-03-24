@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { isCurrentUserAdmin, isLoggedIn } from "../../amplify/auth";
+import { isCurrentUserAdmin, isLoggedIn, isCurrentUserApproved } from "../../amplify/auth";
 import { redirectToSignIn } from "../../utils/routing";
 import Spinner from "../Spinner";
 
@@ -17,6 +17,14 @@ const AdminProtected = ({ children }: AdminProtectedProps) => {
         // First check if user is logged in
         const loggedIn = await isLoggedIn();
         if (!loggedIn) {
+          redirectToSignIn();
+          return;
+        }
+
+        // Check if the user is approved
+        const approved = await isCurrentUserApproved();
+        if (!approved) {
+          alert("Your account is not approved. Please wait for admin approval.");
           redirectToSignIn();
           return;
         }

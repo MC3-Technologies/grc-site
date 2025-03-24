@@ -1,0 +1,60 @@
+# Memory MCP Server Test
+
+This file contains test commands to verify that the Memory MCP server is properly installed and functioning. After restarting Cursor to activate the Memory MCP server, run these commands one by one to test its functionality.
+
+## Step 1: Create a test entity
+
+<use_mcp_tool>
+<server_name>github.com/modelcontextprotocol/servers/tree/main/src/memory</server_name>
+<tool_name>create_entities</tool_name>
+<arguments>
+{
+  "entities": [
+    {
+      "name": "User_Ibrahim",
+      "entityType": "person",
+      "observations": ["Uses Cursor as code editor", "Is working on GRC site project", "Located in Hawaii"]
+    }
+  ]
+}
+</arguments>
+</use_mcp_tool>
+
+## Step 2: Read the knowledge graph to verify the entity was created
+
+<use_mcp_tool>
+<server_name>github.com/modelcontextprotocol/servers/tree/main/src/memory</server_name>
+<tool_name>read_graph</tool_name>
+<arguments>
+{}
+</arguments>
+</use_mcp_tool>
+
+## Step 3: Add more observations to the entity
+
+<use_mcp_tool>
+<server_name>github.com/modelcontextprotocol/servers/tree/main/src/memory</server_name>
+<tool_name>add_observations</tool_name>
+<arguments>
+{
+  "observations": [
+    {
+      "entityName": "User_Ibrahim",
+      "contents": ["Successfully installed Memory MCP server", "Uses Claude AI assistant"]
+    }
+  ]
+}
+</arguments>
+</use_mcp_tool>
+
+## Step 4: Search for specific information in the knowledge graph
+
+<use_mcp_tool>
+<server_name>github.com/modelcontextprotocol/servers/tree/main/src/memory</server_name>
+<tool_name>search_nodes</tool_name>
+<arguments>
+{
+  "query": "Hawaii"
+}
+</arguments>
+</use_mcp_tool>

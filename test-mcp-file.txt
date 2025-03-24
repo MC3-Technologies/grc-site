@@ -1,0 +1,6 @@
+This is a test file to demonstrate filesystem operations.
+The MCP filesystem server would allow capabilities like:
+- Reading and writing files
+- Listing directories
+- Searching for files
+- Getting file information

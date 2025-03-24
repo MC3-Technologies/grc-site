@@ -14,7 +14,7 @@ import {
   createTestUser,
   UserStatusType,
 } from "../../utils/adminUser";
-import { getCurrentUser } from "../../amplify/auth";
+import { getCurrentUser, signOutCurrentUser } from "../../amplify/auth";
 import Spinner from "../Spinner";
 
 // Interface to match our component needs
@@ -280,6 +280,10 @@ const AdminUsers = () => {
         setUsers(filteredUsers);
         
         setLastRefreshTime(new Date());
+        
+        // Force sign out after approval to make sure the next login session has fresh tokens
+        await signOutCurrentUser();
+        window.location.href = "/auth/?tab=sign-in";
       } else {
         setError(`Failed to approve user ${email}.`);
       }

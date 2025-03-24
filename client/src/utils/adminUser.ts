@@ -1,4 +1,12 @@
 // File: client/src/utils/adminUser.ts
+import { getUserAccountStatus } from "../amplify/auth";
+import { getCurrentUser } from "../amplify/auth";
+import { signOutCurrentUser } from "../amplify/auth";
+import { isUserAccountActive } from "../amplify/auth";
+import { isLoggedIn } from "../amplify/auth";
+import { isCurrentUserAdmin } from "../amplify/auth";
+import { isCurrentUserApproved } from "../amplify/auth";
+import { isCurrentUserVerified } from "../amplify/auth";
 import { getClientSchema } from "../amplify/schema";
 //import { useState, useEffect } from "react";
 
@@ -1158,3 +1166,37 @@ export const clearUserCache = (): void => {
 
 // Add this export to expose the cognitoAdmin's createUser function
 export { createUser } from "./cognitoAdmin";
+
+// Manual approval function for specific email
+export const approveSpecificUser = async (): Promise<boolean> => {
+  try {
+    const email = "imatar77@hawaii.edu";
+    console.log(`Manually approving user: ${email}`);
+    
+    // Call the existing approveUser function
+    const result = await approveUser(email, "admin@example.com");
+    
+    if (result) {
+      console.log(`Successfully approved user: ${email}`);
+      return true;
+    } else {
+      console.error(`Failed to approve user: ${email}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`Error in manual approval:`, error);
+    return false;
+  }
+};
+
+// Export it with other functions
+export {
+  getCurrentUser,
+  signOutCurrentUser,
+  isLoggedIn,
+  isCurrentUserAdmin,
+  isCurrentUserVerified,  
+  isCurrentUserApproved,
+  isUserAccountActive,
+  getUserAccountStatus,
+};
