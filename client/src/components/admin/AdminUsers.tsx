@@ -61,6 +61,11 @@ const AdminUsers = () => {
     role: "user",
   });
 
+  // Add state for suspension modal
+  const [isSuspendModalOpen, setIsSuspendModalOpen] = useState<boolean>(false);
+  const [userToSuspend, setUserToSuspend] = useState<string | null>(null);
+  const [suspensionReason, setSuspensionReason] = useState<string>("");
+
   // Add the new UI refresh controls
   const [dataChangeDetected, setDataChangeDetected] = useState<boolean>(false);
   const [lastEventTime, setLastEventTime] = useState<Date | null>(null);
@@ -623,14 +628,25 @@ const AdminUsers = () => {
 
   // Handle user suspension
   const handleSuspendUser = async (email: string) => {
-    // In a real implementation, we'd show a confirmation dialog
-    // and possibly collect a reason for suspension
-    const reason = "Your account has been suspended by an administrator.";
+    // Open the suspension modal instead of immediately suspending
+    setUserToSuspend(email);
+    setSuspensionReason(""); // Reset reason when opening modal
+    setIsSuspendModalOpen(true);
+  };
 
+  // Function to execute the actual suspension after reason is provided
+  const executeSuspension = async () => {
+    if (!userToSuspend) return;
+    
+    const email = userToSuspend;
+    // Use the custom reason or fall back to default if empty
+    const reason = suspensionReason.trim() || "Your account has been suspended by an administrator.";
+    
     setActionInProgress(email);
     setError(null);
     setSuccess(null);
-
+    setIsSuspendModalOpen(false); // Close the modal
+    
     try {
       const response = await suspendUser(
         email,
@@ -668,6 +684,7 @@ const AdminUsers = () => {
       }
     } finally {
       setActionInProgress(null);
+      setUserToSuspend(null);
     }
   };
 
@@ -1412,6 +1429,76 @@ const AdminUsers = () => {
                     className="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800"
                   >
                     Yes, Delete User
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Suspend User Modal */}
+      {isSuspendModalOpen && userToSuspend && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-50 flex items-center justify-center">
+          <div className="relative p-4 w-full max-w-md max-h-full">
+            <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
+              <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Suspend User Account
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSuspendModalOpen(false);
+                    setUserToSuspend(null);
+                  }}
+                  className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                >
+                  <span className="sr-only">Close modal</span>✕
+                </button>
+              </div>
+              <div className="p-4 md:p-5">
+                <div className="mb-4">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                    You are about to suspend <span className="font-bold">{userToSuspend}</span>. 
+                    This will prevent the user from accessing the system until their account is reactivated.
+                  </p>
+                  
+                  <label 
+                    htmlFor="suspensionReason" 
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    Reason for Suspension
+                  </label>
+                  <textarea
+                    id="suspensionReason"
+                    rows={4}
+                    className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    placeholder="Enter a reason for this suspension (this will be visible to the user)"
+                    value={suspensionReason}
+                    onChange={(e) => setSuspensionReason(e.target.value)}
+                  />
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    This reason will be included in the notification email sent to the user and will be visible in the admin dashboard.
+                  </p>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSuspendModalOpen(false);
+                      setUserToSuspend(null);
+                    }}
+                    className="text-gray-500 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={executeSuspension}
+                    className="text-white bg-yellow-600 hover:bg-yellow-700 focus:ring-4 focus:outline-none focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-yellow-600 dark:hover:bg-yellow-700 dark:focus:ring-yellow-800"
+                  >
+                    Suspend User
                   </button>
                 </div>
               </div>

@@ -1170,7 +1170,18 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             )}
           </span>
         );
-      case "USER_SUSPENDED":
+      case "USER_SUSPENDED": {
+        // Function to truncate reason if too long
+        const truncateReason = (reason: string, maxLength = 50) => {
+          if (!reason) return "";
+          if (reason.length <= maxLength) return reason;
+          return `${reason.substring(0, maxLength)}...`;
+        };
+
+        // Get the reason from details
+        const reason = activity.details.reason as string || "Your account has been suspended by an administrator.";
+        const isTruncated = reason.length > 50;
+        
         return (
           <span>
             <strong className="text-orange-600 dark:text-orange-400">Suspended</strong>
@@ -1180,13 +1191,19 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on {safeTimeDisplay(activity.details.suspendedAt as string || activity.timestamp)}
             </span>
-            {activity.details.reason && (
-              <span className="block text-xs italic mt-1">
-                Reason: "{activity.details.reason}"
-              </span>
-            )}
+            <span className="block text-xs italic mt-1 relative group">
+              Reason: "{isTruncated ? truncateReason(reason) : reason}"
+              
+              {/* Hover tooltip for truncated reason */}
+              {isTruncated && (
+                <span className="hidden group-hover:block absolute z-10 w-64 p-2 mt-1 text-xs text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700">
+                  {reason}
+                </span>
+              )}
+            </span>
           </span>
         );
+      }
       case "USER_CREATED":
         return (
           <span>
