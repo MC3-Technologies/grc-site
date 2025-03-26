@@ -2,8 +2,10 @@ import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-import { SNSClient, PublishCommand } from "@aws-sdk/client-sns";
-import { baseTemplate } from "../../user-management/src/templates/emailTemplates";
+import { 
+  baseTemplate, 
+  adminNotificationTemplate 
+} from "../../user-management/src/templates/emailTemplates";
 
 // Try to import env variables, fallback to process.env if not available
 let amplifyEnv: any;
@@ -20,12 +22,24 @@ const cognito = new CognitoIdentityProviderClient();
 const dynamoClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const sesClient = new SESClient();
-const snsClient = new SNSClient();
 
 // Admin email - Could be stored in environment variables
 const ADMIN_EMAIL =
-  amplifyEnv.ADMIN_EMAIL || "cmmc.support@mc3technologies.com";
-const FROM_EMAIL = amplifyEnv.FROM_EMAIL || "cmmc.support@mc3technologies.com";
+  amplifyEnv.ADMIN_EMAIL || process.env.ADMIN_EMAIL || "cmmc.support@mc3technologies.com";
+const FROM_EMAIL = 
+  amplifyEnv.EMAIL_SENDER || process.env.EMAIL_SENDER || amplifyEnv.FROM_EMAIL || process.env.FROM_EMAIL || "cmmc.support@mc3technologies.com";
+
+// Log email configuration for debugging
+console.log("Email configuration:", {
+  ADMIN_EMAIL,
+  FROM_EMAIL,
+  amplifyEnvAdminEmail: amplifyEnv.ADMIN_EMAIL,
+  processEnvAdminEmail: process.env.ADMIN_EMAIL,
+  amplifyEnvEmailSender: amplifyEnv.EMAIL_SENDER,
+  processEnvEmailSender: process.env.EMAIL_SENDER,
+  amplifyEnvFromEmail: amplifyEnv.FROM_EMAIL,
+  processEnvFromEmail: process.env.FROM_EMAIL
+});
 
 // User status operations
 export const userStatusOperations = {
@@ -73,14 +87,20 @@ export const userStatusOperations = {
    */
   notifyAdminsAboutNewUser: async (userEmail: string): Promise<boolean> => {
     try {
-      const content = `
-        <h1>New User Registration</h1>
-        <p>A new user has registered with the email: <strong>${userEmail}</strong></p>
-        <p>This user is awaiting approval. Please login to the admin panel to approve or reject this user.</p>
-        <p><a href="${amplifyEnv.ADMIN_URL || "#"}">Go to Admin Panel</a></p>
-      `;
+      // Use the admin notification template
+      const emailContent = adminNotificationTemplate({
+        userEmail,
+        adminUrl: amplifyEnv.ADMIN_URL || process.env.ADMIN_URL || "#"
+      });
 
-      const params = {
+      console.log("Attempting to send admin notification email:", {
+        to: ADMIN_EMAIL,
+        from: FROM_EMAIL,
+        subject: "New User Registration - Action Required"
+      });
+
+      // Use direct SES sending instead of centralized function for better error visibility
+      const command = new SendEmailCommand({
         Destination: {
           ToAddresses: [ADMIN_EMAIL],
         },
@@ -88,11 +108,7 @@ export const userStatusOperations = {
           Body: {
             Html: {
               Charset: "UTF-8",
-              Data: baseTemplate(content),
-            },
-            Text: {
-              Charset: "UTF-8",
-              Data: `New User Registration: A new user has registered with the email: ${userEmail}. This user is awaiting approval. Please login to the admin panel to approve or reject this user.`,
+              Data: emailContent,
             },
           },
           Subject: {
@@ -101,54 +117,24 @@ export const userStatusOperations = {
           },
         },
         Source: FROM_EMAIL,
-      };
-
-      // Log the email parameters for debugging
-      console.log("Sending admin notification with params:", {
-        to: ADMIN_EMAIL,
-        from: FROM_EMAIL,
-        subject: params.Message.Subject.Data,
       });
 
-      // Attempt to send email
       try {
-        const command = new SendEmailCommand(params);
-        await sesClient.send(command);
-        console.log(`Admin notification email sent for new user: ${userEmail}`);
+        const result = await sesClient.send(command);
+        console.log("SES send result:", JSON.stringify(result, null, 2));
+        console.log(`Admin notification email sent successfully for new user: ${userEmail}`);
         return true;
-      } catch (emailError) {
-        console.error("Error sending admin notification email:", emailError);
+      } catch (sesError) {
+        console.error("SES Error details:", {
+          message: sesError instanceof Error ? sesError.message : String(sesError),
+          code: (sesError as any)?.Code,
+          name: sesError instanceof Error ? sesError.name : undefined,
+          stack: sesError instanceof Error ? sesError.stack : undefined
+        });
         
-        // Log more details about the error
-        if (emailError instanceof Error) {
-          console.error("Error details:", {
-            message: emailError.message,
-            stack: emailError.stack,
-            name: emailError.name
-          });
-        }
-
-        // Fallback to SNS if email fails
-        try {
-          const snsParams = {
-            Message: `New user registration: ${userEmail} is pending approval.`,
-            Subject: "New User Registration",
-            TopicArn: amplifyEnv.ADMIN_NOTIFICATION_TOPIC_ARN,
-          };
-
-          if (amplifyEnv.ADMIN_NOTIFICATION_TOPIC_ARN) {
-            const snsCommand = new PublishCommand(snsParams);
-            await snsClient.send(snsCommand);
-            console.log(`Admin SNS notification sent for new user: ${userEmail}`);
-            return true;
-          } else {
-            console.warn("SNS Topic ARN not configured, skipping SNS notification");
-            return false;
-          }
-        } catch (snsError) {
-          console.error("Error sending SNS notification:", snsError);
-          return false;
-        }
+        // Email sending failed
+        console.warn("Email sending failed");
+        return false;
       }
     } catch (error) {
       console.error(`Error notifying admin about new user ${userEmail}:`, error);

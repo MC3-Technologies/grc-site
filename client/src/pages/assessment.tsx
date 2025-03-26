@@ -658,17 +658,17 @@ export function Assessment() {
                 id="completion-modal-title"
                 className="mb-4 text-xl font-medium text-gray-900 dark:text-white"
               >
-                Assessment Completed!
+                Assessment Completed
               </h3>
               <p className="mb-6 text-base text-center text-gray-500 dark:text-gray-400">
-                Thank you! Your assessment has been completed successfully.
+                Your assessment has been submitted successfully.
               </p>
               <button
                 type="button"
                 onClick={handleCompletionConfirm}
                 className="text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
               >
-                Continue
+                View Results
               </button>
 
               {/* Close button */}

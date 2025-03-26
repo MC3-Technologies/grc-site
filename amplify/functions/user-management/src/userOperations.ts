@@ -84,7 +84,7 @@ interface EmailOptions {
 }
 
 // Helper to send email notifications
-const sendEmail = async ({
+export const sendEmail = async ({
   to,
   subject,
   message,
@@ -290,26 +290,15 @@ const updateUserStatus = async (
 
   const updateCommand = new PutItemCommand({
     TableName: tableName,
-    Item: marshall(item),
+    Item: marshall(item, { removeUndefinedValues: true }),
   });
 
   await dynamodb.send(updateCommand);
   console.log(`Updated UserStatus: ${email} → ${normalizedStatus}`);
 
-  // Also create an audit log entry
-  await createAuditLogEntry({
-    timestamp,
-    action: "USER_STATUS_UPDATED",
-    performedBy: updatedBy,
-    affectedResource: "user",
-    resourceId: email,
-    details: {
-      email,
-      newStatus: normalizedStatus,
-      updatedAt: timestamp,
-      ttl: ttl ? new Date(ttl * 1000).toISOString() : undefined,
-    },
-  });
+  // REMOVED: No longer creating generic USER_STATUS_UPDATED audit log entries
+  // Specific user actions (approve, reject, etc.) should create their own
+  // targeted audit logs with appropriate action types
 };
 
 // Create an audit log entry
@@ -324,12 +313,21 @@ const createAuditLogEntry = async (logEntry: Omit<AuditLog, "id">) => {
       ...logEntry,
     };
 
-    // Marshall the data for DynamoDB
-    const item = marshall(completeLogEntry);
+    // Clean up any undefined values in the details object
+    if (completeLogEntry.details) {
+      Object.keys(completeLogEntry.details).forEach(key => {
+        if (completeLogEntry.details && completeLogEntry.details[key] === undefined) {
+          delete completeLogEntry.details[key];
+        }
+      });
+    }
+
+    // Marshall the data for DynamoDB with removeUndefinedValues option
+    const item = marshall(completeLogEntry, { removeUndefinedValues: true });
 
     // Put the item in the AuditLog table
     const command = new PutItemCommand({
-      TableName: process.env.AUDIT_LOG_TABLE_NAME || "AuditLog",
+      TableName: process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE ",
       Item: item,
     });
 
@@ -899,7 +897,7 @@ export const userOperations = {
       try {
         const putUserStatus = new PutItemCommand({
           TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
-          Item: marshall(userStatusItem),
+          Item: marshall(userStatusItem, { removeUndefinedValues: true }),
         });
 
         await dynamodb.send(putUserStatus);
@@ -1069,24 +1067,32 @@ export const userOperations = {
       // Get all users
       try {
         console.log("Fetching user statistics");
-        const users = await fetchUsersFromCognito();
-        console.log(`Fetched ${users.length} users from Cognito`);
+        const tableName = process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE";
+        const scanCommand = new ScanCommand({
+          TableName: tableName,
+          ConsistentRead: true
+        });
+
+        const response = await dynamodb.send(scanCommand);
+        const users = response.Items ? response.Items.map(item => unmarshall(item) as UserStatus) : [];
+        console.log(`Fetched ${users.length} users from DynamoDB`);
 
         if (users.length > 0) {
           stats.users.total = users.length;
-          users.forEach((user: UserData) => {
-            const customStatus = user.attributes?.["custom:status"];
-            if (customStatus === "REJECTED") {
-              stats.users.rejected++;
-            } else if (customStatus === "SUSPENDED") {
-              stats.users.suspended++;
-            } else if (user.status === "CONFIRMED" && user.enabled) {
-              stats.users.active++;
-            } else if (
-              user.status === "FORCE_CHANGE_PASSWORD" &&
-              customStatus !== "REJECTED"
-            ) {
-              stats.users.pending++;
+          users.forEach((user) => {
+            switch(user.status) {
+              case "active":
+                stats.users.active++;
+                break;
+              case "pending":
+                stats.users.pending++;
+                break;
+              case "rejected":
+                stats.users.rejected++;
+                break;
+              case "suspended":
+                stats.users.suspended++;
+                break;
             }
           });
         }
@@ -1204,21 +1210,34 @@ export const userOperations = {
       try {
         console.log("Fetching recent activity");
         const scanCommand = new ScanCommand({
-          TableName: process.env.AUDIT_LOG_TABLE_NAME || "AuditLog",
-          Limit: 10,
+          TableName: process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+          // Increase limit to ensure we get latest events
+          Limit: 50,
         });
 
         const auditResponse = await dynamodb.send(scanCommand);
         if (auditResponse.Items) {
-          stats.recentActivity = auditResponse.Items.map(
-            (item) => unmarshall(item) as AuditLog,
-          )
-            .sort(
-              (a, b) =>
-                new Date(b.timestamp).getTime() -
-                new Date(a.timestamp).getTime(),
-            )
-            .slice(0, 10);
+          // Map items and explicitly convert timestamp strings to Date objects for sorting
+          const auditLogs = auditResponse.Items.map(
+            (item) => {
+              const log = unmarshall(item) as AuditLog;
+              // Ensure timestamp is in correct format
+              if (!log.timestamp) {
+                log.timestamp = new Date().toISOString();
+              }
+              return log;
+            }
+          );
+          
+          // Sort by timestamp, newest first
+          auditLogs.sort((a, b) => {
+            const dateA = new Date(a.timestamp).getTime();
+            const dateB = new Date(b.timestamp).getTime();
+            return dateB - dateA; // Descending order (newest first)
+          });
+          
+          // Take only the first 10 after sorting
+          stats.recentActivity = auditLogs.slice(0, 10);
         }
         console.log("Recent activity:", stats.recentActivity);
       } catch (error) {
@@ -1405,7 +1424,7 @@ export const userOperations = {
           }
 
           // Marshall the data for DynamoDB
-          const item = marshall(setting);
+          const item = marshall(setting, { removeUndefinedValues: true });
 
           // Put the item in the SystemSettings table
           const command = new PutItemCommand({
@@ -1543,7 +1562,7 @@ export const userOperations = {
             FilterExpression: "owner = :owner",
             ExpressionAttributeValues: marshall({
               ":owner": userId,
-            }),
+            }, { removeUndefinedValues: true }),
           });
 
           const inProgressAssessments = await dynamodb.send(scanCommand);
@@ -1593,7 +1612,7 @@ export const userOperations = {
             FilterExpression: "owner = :owner",
             ExpressionAttributeValues: marshall({
               ":owner": userId,
-            }),
+            }, { removeUndefinedValues: true }),
           });
 
           const completedAssessments = await dynamodb.send(completedScanCommand);
@@ -1712,7 +1731,7 @@ export const userOperations = {
               registrationDate: user.created?.toISOString() || new Date().toISOString(),
               lastStatusChange: new Date().toISOString(),
               lastStatusChangeBy: "system-migration"
-            })
+            }, { removeUndefinedValues: true })
           }));
           
           console.log(`Successfully added ${email} to DynamoDB`);

@@ -153,3 +153,15 @@ export const sendApplicationReviewEmail = (userEmail: string, status: string): S
     Source: FROM_EMAIL,
   };
 };
+
+// Template for admin notification emails
+export const adminNotificationTemplate = (data: { userEmail: string, adminUrl: string }): string => {
+  const content = `
+    <h1>New User Registration</h1>
+    <p>A new user has registered with the email: <strong>${data.userEmail}</strong></p>
+    <p>This user is awaiting approval. Please login to the admin panel to approve or reject this user.</p>
+    <p><a href="${data.adminUrl}" style="display: inline-block; background-color: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Go to Admin Panel</a></p>
+  `;
+
+  return baseTemplate(content);
+};

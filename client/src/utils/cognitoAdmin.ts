@@ -16,7 +16,7 @@ import {
 } from "@aws-sdk/client-cognito-identity-provider";
 
 // Import existing User type
-import { User } from "./adminUser";
+import { User, UserStatusType } from "./adminUser";
 import { getCognitoConfig } from "./cognitoConfig";
 
 // Cognito client setup
@@ -116,7 +116,7 @@ export const getUsersByStatus = async (status: string): Promise<User[]> => {
         "DEVELOPMENT MODE: Using filtered mock users instead of Cognito API call",
       );
       const { getFilteredMockUsers } = await import("./adminUser");
-      return getFilteredMockUsers(status);
+      return getFilteredMockUsers(status as UserStatusType);
     }
 
     const { client, userPoolId } = initCognitoClient();

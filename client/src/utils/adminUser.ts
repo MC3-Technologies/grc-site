@@ -9,10 +9,15 @@ export { getClientSchema };
 const USE_MOCK_DATA = false;
 
 // Cache configuration
-const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes by default
+const CACHE_DURATION_MS = 2 * 60 * 1000; // 5 minutes
 const USER_CACHE_KEY = "admin_users_cache";
 const USER_CACHE_TIMESTAMP_KEY = "admin_users_cache_timestamp";
 const USER_CACHE_BY_STATUS_PREFIX = "admin_users_cache_status_";
+
+// Cache configuration for admin stats
+const ADMIN_STATS_CACHE_KEY = "admin_stats_cache";
+const ADMIN_STATS_CACHE_TIMESTAMP_KEY = "admin_stats_cache_timestamp";
+const ADMIN_STATS_CACHE_DURATION_MS = 60 * 1000; // 1 minute cache for admin stats
 
 // User interface
 export interface User {
@@ -425,8 +430,9 @@ export const approveUser = async (
     if (response && response.data) {
       const result = safelyParseApiResponse(response.data);
       if (result) {
-        // Clear cache on successful operation
         clearUserCache();
+        clearAdminStatsCache();
+        emitAdminEvent(AdminEvents.USER_APPROVED);
         return true;
       }
     }
@@ -466,11 +472,9 @@ export const rejectUser = async (
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
     if (result) {
-      // Clear cache on successful operation
-      console.log("Rejection successful, clearing user cache...");
       clearUserCache();
-      // Force refresh
-      await fetchUsers(true);
+      clearAdminStatsCache();
+      emitAdminEvent(AdminEvents.USER_REJECTED);
       return true;
     }
     return false;
@@ -503,8 +507,9 @@ export const suspendUser = async (
 
     const result = safelyParseApiResponse(response.data);
     if (result) {
-      // Clear cache on successful operation
       clearUserCache();
+      clearAdminStatsCache();
+      emitAdminEvent(AdminEvents.USER_SUSPENDED);
       return true;
     }
     return false;
@@ -527,16 +532,33 @@ export const reactivateUser = async (
       return true;
     }
 
+    console.log(`Reactivating user ${email} by admin ${adminEmail || "unknown"}`);
+
+    // Clear caches before the operation to ensure fresh data is fetched after
+    clearUserCache();
+    clearAdminStatsCache();
+
     const client = getClientSchema();
     const response = await client.mutations.reactivateUser({
       email,
       adminEmail: adminEmail || "admin@example.com",
     });
 
+    console.log(`Reactivation response for ${email}:`, response);
+
+    // Regardless of the result, wait a bit to ensure backend has processed the change
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
     const result = safelyParseApiResponse(response.data);
     if (result) {
-      // Clear cache on successful operation
-      clearUserCache();
+      // Emit event after a brief delay to ensure client-side state is updated
+      setTimeout(() => {
+        emitAdminEvent(AdminEvents.USER_REACTIVATED);
+      }, 100);
+      
+      // Force a manual refresh of the cache after operation
+      await refreshUserData();
+      
       return true;
     }
     return false;
@@ -577,8 +599,9 @@ export const deleteUser = async (
       if (result && typeof result === "object" && "success" in result) {
         const typedResult = result as { success: boolean; message: string };
         if (typedResult.success) {
-          // Clear cache on successful operation
           clearUserCache();
+          clearAdminStatsCache();
+          emitAdminEvent(AdminEvents.USER_DELETED);
         }
         return typedResult;
       }
@@ -679,15 +702,46 @@ interface AdminStats {
   recentActivity: ActivityItem[];
 }
 
-// Fetch admin dashboard statistics
-export const fetchAdminStats = async (): Promise<AdminStats> => {
+// Function to clear admin stats cache
+export const clearAdminStatsCache = (): void => {
   try {
-    console.log("Fetching admin statistics");
+    localStorage.removeItem(ADMIN_STATS_CACHE_KEY);
+    localStorage.removeItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY);
+    console.log("Admin stats cache cleared");
+  } catch (error) {
+    console.error("Error clearing admin stats cache:", error);
+  }
+};
+
+// Fetch admin dashboard statistics
+export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<AdminStats> => {
+  try {
+    console.log("Fetching admin statistics, forceRefresh:", forceRefresh);
+
+    // Check cache first if not forcing refresh
+    if (!forceRefresh) {
+      try {
+        const cachedData = localStorage.getItem(ADMIN_STATS_CACHE_KEY);
+        const timestamp = localStorage.getItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY);
+
+        if (cachedData && timestamp) {
+          // Check if cache is valid
+          const cacheTime = parseInt(timestamp, 10);
+          const now = Date.now();
+          if (now - cacheTime <= ADMIN_STATS_CACHE_DURATION_MS) {
+            console.log("Using cached admin stats data");
+            const parsedStats = JSON.parse(cachedData) as AdminStats;
+            return parsedStats;
+          }
+        }
+      } catch (error) {
+        console.error("Error reading from admin stats cache:", error);
+      }
+    }
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock statistics data");
-
       // Create mock stats
       return {
         users: {
@@ -711,8 +765,12 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
 
     // Get the authenticated client
     const client = getClientSchema();
-
-    // Call the API
+    
+    // Create a timestamp for cache busting
+    const timestamp = Date.now();
+    console.log(`Requesting fresh admin stats at ${timestamp}`);
+    
+    // Call the API directly without any options
     const response = await client.queries.getAdminStats();
     console.log("API response for getAdminStats:", response);
 
@@ -739,7 +797,18 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
           "complianceRate" in parsedData &&
           "recentActivity" in parsedData
         ) {
-          return parsedData as AdminStats;
+          const adminStats = parsedData as AdminStats;
+          
+          // Cache the stats data
+          try {
+            localStorage.setItem(ADMIN_STATS_CACHE_KEY, JSON.stringify(adminStats));
+            localStorage.setItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+            console.log("Admin stats cached");
+          } catch (error) {
+            console.error("Error caching admin stats:", error);
+          }
+          
+          return adminStats;
         }
 
         // If parsedData is an array of users, we need to format it as stats
@@ -1162,5 +1231,22 @@ export const clearUserCache = (): void => {
   }
 };
 
-// Add this export to expose the cognitoAdmin's createUser function
+
 export { createUser } from "./cognitoAdmin";
+
+// Event bus for admin dashboard updates
+export const AdminEvents = {
+  USER_UPDATED: 'USER_UPDATED',
+  USER_DELETED: 'USER_DELETED',
+  USER_APPROVED: 'USER_APPROVED',
+  USER_REJECTED: 'USER_REJECTED',
+  USER_SUSPENDED: 'USER_SUSPENDED',
+  USER_REACTIVATED: 'USER_REACTIVATED',
+  USER_CREATED: 'USER_CREATED'
+};
+
+// Custom event emitter for admin actions
+export const emitAdminEvent = (eventType: string) => {
+  const event = new CustomEvent('adminAction', { detail: { type: eventType } });
+  document.dispatchEvent(event);
+};

@@ -502,7 +502,10 @@ const AdminAssessments = () => {
                 Created
               </th>
               <th scope="col" className="px-6 py-3 hidden lg:table-cell">
-                {activeTab === "completed" ? "Completed" : "Last Updated"}
+                Completed
+              </th>
+              <th scope="col" className="px-6 py-3 hidden lg:table-cell">
+                Compliance Score
               </th>
               <th scope="col" className="px-6 py-3">
                 Actions
@@ -607,6 +610,24 @@ const AdminAssessments = () => {
                   {assessment.status === "completed"
                     ? formatDate(assessment.completedAt || "")
                     : formatDate(assessment.updatedAt)}
+                </td>
+                <td className="px-6 py-4 hidden lg:table-cell">
+                  {assessment.status === "completed" ? (
+                    <div className="flex items-center">
+                      <span className={`font-medium ${assessment.isCompliant ? 'text-green-600' : 'text-red-600'}`}>
+                        {assessment.score}%
+                      </span>
+                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                        assessment.isCompliant
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                      }`}>
+                        {assessment.isCompliant ? "Compliant" : "Non-Compliant"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 space-x-2 flex flex-wrap gap-1">
                   <button

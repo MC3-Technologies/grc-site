@@ -1,6 +1,6 @@
 // File: amplify/functions/user-management/resource.ts
 import { defineFunction } from "@aws-amplify/backend";
-import { auth } from "../../auth/resource";
+
 
 // Create the Lambda function definition
 export const userManagementFunction = defineFunction({
@@ -23,6 +23,8 @@ export const userManagementFunction = defineFunction({
     IN_PROGRESS_ASSESSMENT_TABLE_NAME:
       "InProgressAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
     USER_STATUS_TABLE_NAME: "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+    FROM_EMAIL:
+      process.env.FROM_EMAIL || "cmmc.support@mc3technologies.com",
   },
   timeoutSeconds: 60,
 });

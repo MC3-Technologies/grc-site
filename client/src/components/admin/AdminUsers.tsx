@@ -947,7 +947,7 @@ const AdminUsers = () => {
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                   ></path>
                 </svg>
-                {loading ? "Refreshing..." : "Manual Refresh"}
+                {loading ? "Refreshing..." : "Refresh Now"}
               </button>
               <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
                 Data auto-refreshes every 30 seconds. Use this button only if
