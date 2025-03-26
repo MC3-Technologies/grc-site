@@ -1,6 +1,6 @@
 import { uploadData, downloadData } from "aws-amplify/storage";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { surveyJson } from "../assessmentQuestions";
+import { getLatestQuestionnaireData } from "./questionnaireUtils";
 import { Model } from "survey-core";
 import { getClientSchema } from "../amplify/schema";
 import { remove } from "aws-amplify/storage";
@@ -197,7 +197,7 @@ class InProgressAssessment extends Assessment {
     const idHash = this._generateUrlSafeHash();
 
     // Create new assessment JSON to upload
-    const jsonString = JSON.stringify(new Model(surveyJson).data, null, 2);
+    const jsonString = JSON.stringify(new Model(getLatestQuestionnaireData()).data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const file = new File([blob], `${idHash}.json`, {
       type: "application/json",

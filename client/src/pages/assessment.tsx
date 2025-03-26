@@ -11,7 +11,7 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
-import { surveyJson } from "../assessmentQuestions";
+import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
@@ -337,7 +337,7 @@ export function Assessment() {
           );
 
         // Create assessment and give assessment data and current page
-        const assessment = new Model(surveyJson);
+        const assessment = new Model(getLatestQuestionnaireData());
         assessment.data = JSON.parse(assessmentJsonData as string);
         assessment.currentPageNo = assessmentEntryData.currentPage;
 

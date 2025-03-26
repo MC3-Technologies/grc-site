@@ -10,7 +10,7 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
 import { CompletedAssessment } from "../utils/assessment";
-import { surveyJson } from "../assessmentQuestions";
+import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
@@ -142,7 +142,7 @@ export function CompletedAssessmentView() {
           );
 
         // Create assessment and give assessment data
-        const assessment = new Model(surveyJson);
+        const assessment = new Model(getLatestQuestionnaireData());
         assessment.data = JSON.parse(assessmentJsonData as string);
 
         // Set survey to display mode (read-only)

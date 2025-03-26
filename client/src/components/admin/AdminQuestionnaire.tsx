@@ -1,35 +1,13 @@
 import { useState } from "react";
 import { surveyJson } from "../../assessmentQuestions";
-
-// Survey element types
-interface SurveyElement {
-  type: string;
-  name?: string;
-  title?: string;
-  description?: string;
-  isRequired?: boolean;
-  visibleIf?: string;
-  choices?: Array<string | ChoiceItem>;
-}
-
-// Choice item type for multiple choice questions
-interface ChoiceItem {
-  value: string | number;
-  text: string;
-}
-
-// Interface for questionnaire page
-interface QuestionPage {
-  title: string;
-  elements: SurveyElement[];
-  id: string;
-}
-
-// Interface for original survey page before adding ID
-interface SurveyPage {
-  title: string;
-  elements: SurveyElement[];
-}
+import { 
+  SurveyElement, 
+  ChoiceItem, 
+  QuestionPage, 
+  SurveyPage, 
+  loadSavedQuestionnaire,
+  QUESTIONNAIRE_STORAGE_KEY
+} from "../../utils/questionnaireUtils";
 
 // New interface for edit form element state
 interface EditFormElement extends SurveyElement {
@@ -37,13 +15,20 @@ interface EditFormElement extends SurveyElement {
 }
 
 const AdminQuestionnaire = () => {
-  // Extract pages from the surveyJson for the UI
-  const [pages, setPages] = useState<QuestionPage[]>(
-    surveyJson.pages.map((page: SurveyPage, index: number) => ({
+  // Extract pages from the surveyJson for the UI, with localStorage persistence
+  const [pages, setPages] = useState<QuestionPage[]>(() => {
+    const savedData = loadSavedQuestionnaire();
+    if (savedData) {
+      console.log("Loaded saved questionnaire data from localStorage");
+      return savedData;
+    }
+    
+    console.log("Using default questionnaire data");
+    return surveyJson.pages.map((page: SurveyPage, index: number) => ({
       ...page,
       id: `page-${index}`,
-    })),
-  );
+    }));
+  });
 
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
@@ -60,6 +45,15 @@ const AdminQuestionnaire = () => {
   
   // Success notification
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Event for notifying other components of questionnaire updates
+  const notifyQuestionnaireUpdate = () => {
+    // Create a custom event to notify other components that the questionnaire has been updated
+    const event = new CustomEvent("questionnaireUpdated", {
+      detail: { timestamp: new Date().toISOString() }
+    });
+    document.dispatchEvent(event);
+  };
 
   // View a specific page's questions
   const handleViewPage = (pageId: string) => {
@@ -121,6 +115,7 @@ const AdminQuestionnaire = () => {
       // Create a new element with default values
       const newElement: EditFormElement = {
         id: `element-${editForm.elements.length}`,
+        name: `question_${Date.now()}`, // Add a unique name for the question
         type: "text",
         title: "New Question",
         isRequired: false,
@@ -228,11 +223,17 @@ const AdminQuestionnaire = () => {
       // Update the state
       setPages(updatedPages);
       
-      // In a real implementation, this would save the changes to the surveyJson
+      // Save to localStorage for persistence
+      localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+      
+      // Notify other components that the questionnaire has been updated
+      notifyQuestionnaireUpdate();
+      
+      // In a real implementation, this would also save the changes to the backend
       console.log("Saving changes:", updatedPage);
       
       // Show success message
-      setSuccessMessage("Section updated successfully!");
+      setSuccessMessage("Section updated successfully! Changes have been saved and will persist.");
       setTimeout(() => setSuccessMessage(null), 3000);
       
       // Exit edit mode
@@ -291,7 +292,7 @@ const AdminQuestionnaire = () => {
       )}
       
       {/* Pages list */}
-      <div className="w-full md:w-1/3">
+      <div className="w-full md:w-1/4">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4">
           <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
             Questionnaire Sections
@@ -319,7 +320,7 @@ const AdminQuestionnaire = () => {
       </div>
 
       {/* Page detail view */}
-      <div className="w-full md:w-2/3">
+      <div className="w-full md:w-3/4">
         {selectedPage ? (
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4">
             <div className="flex justify-between items-center mb-4">
@@ -712,22 +713,6 @@ const AdminQuestionnaire = () => {
             </p>
           </div>
         )}
-      </div>
-
-      {/* Version Control UI - For future implementation */}
-      <div className="w-full mt-6">
-        <div className="p-4 text-center bg-gray-50 border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
-          <p className="text-gray-600 dark:text-gray-400 mb-2">
-            Features Implemented:
-          </p>
-          <ul className="text-sm text-left list-disc list-inside text-gray-500 dark:text-gray-400">
-            <li>Visual question editor</li>
-            <li>Question reordering with drag-and-drop</li>
-            <li>Add/delete questions</li>
-            <li>Custom options for multiple choice questions</li>
-            <li>Basic conditional logic</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
