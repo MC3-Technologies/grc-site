@@ -17,7 +17,6 @@ import { DocumentIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { ShieldCheckIcon } from "@heroicons/react/24/outline";
 import StatCard from "./StatCard";
-import AdminDebugPanel from "./AdminDebugPanel"; // Import the debug panel
 
 // Dashboard statistics interface
 interface AdminStats {
@@ -39,9 +38,6 @@ interface AdminStats {
   recentActivity: BackendAuditLog[];
   debugTimestamp?: string;
 }
-
-
-
 
 // Helper function to format dates in HST
 const formatDateToHST = (dateString: string): string => {
@@ -224,32 +220,82 @@ export default function AdminHome() {
     }
   }, []);
 
-  // Add event debugging effect
+  // Improved event handling with a single debounced handler
   useEffect(() => {
-    const debugListener = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      console.log("Admin event captured in AdminHome:", {
-        type: customEvent.detail.type,
-        timestamp: new Date().toISOString(),
-        source: event.target
-      });
+    // Create a debounced handler function
+    let timeout: NodeJS.Timeout | null = null;
+    const debouncedRefresh = (eventType: string) => {
+      console.log(`Debounced refresh triggered by: ${eventType}`);
       
-      // Force a refresh after a short delay
-      setTimeout(() => {
-        console.log("Forcing refresh due to admin event");
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      
+      // Set loading state to indicate refresh is happening
+      setIsLoading(true);
+      
+      // Clear cache immediately
+      clearAdminStatsCache();
+      
+      // Add a timeout before refreshing
+      timeout = setTimeout(() => {
+        console.log(`Executing refresh for event: ${eventType}`);
         fetchStats(true);
-      }, 1000);
+        timeout = null;
+      }, 1500);
+    };
+
+    // Handle admin actions with the debounced handler
+    const handleAdminAction = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const eventType = customEvent.detail.type;
+      
+      logDebug(`Admin action detected: ${eventType}`);
+      if (eventType === AdminEvents.USER_DELETED ||
+          eventType === AdminEvents.USER_UPDATED ||
+          eventType === AdminEvents.USER_APPROVED ||
+          eventType === AdminEvents.USER_REJECTED ||
+          eventType === AdminEvents.USER_SUSPENDED ||
+          eventType === AdminEvents.USER_REACTIVATED ||
+          eventType === AdminEvents.USER_ROLE_UPDATED ||
+          eventType === AdminEvents.USER_CREATED) {
+        
+        logDebug("Action requires refresh, initiating debounced refresh");
+        debouncedRefresh(eventType);
+      }
+    };
+
+    // Only add event listener to document, not window
+    document.addEventListener('adminAction', handleAdminAction);
+
+    // Set up auto-refresh every 30 seconds (reduced from 1 minute)
+    const refreshInterval = setInterval(() => {
+      logDebug("Running scheduled refresh (30 second interval)");
+      fetchStats(true); // Always force refresh
+    }, 30 * 1000);
+
+    // Add visibility change listener with improved handling
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const timeSinceLastRefresh = new Date().getTime() - lastRefreshTimeRef.current.getTime();
+        if (timeSinceLastRefresh > 5000) { // 5 seconds (reduced from 10)
+          logDebug("Tab became visible, refreshing stats...");
+          fetchStats(true); // Force refresh when tab becomes visible
+        }
+      }
     };
     
-    // Listen on both document and window
-    document.addEventListener('adminAction', debugListener);
-    window.addEventListener('adminAction', debugListener);
-    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      document.removeEventListener('adminAction', debugListener);
-      window.removeEventListener('adminAction', debugListener);
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      clearInterval(refreshInterval);
+      document.removeEventListener('adminAction', handleAdminAction);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchStats]);
+  }, [fetchStats, forceRefreshCounter]);
 
   // Function to add debug info
   const logDebug = (message: string) => {
@@ -559,7 +605,11 @@ export default function AdminHome() {
               }
               icon={<UserIcon className="h-8 w-8 text-green-600" />}
               color="green"
-              onClick={() => navigateTo("users", "tab=active")}
+              onClick={() => {
+                navigateTo("users", "tab=active");
+                // Force the correct tab content to load
+                window.localStorage.setItem("forceTabLoad", "active");
+              }}
               clickable={true}
             />
 
@@ -575,7 +625,11 @@ export default function AdminHome() {
               }
               icon={<ClockIcon className="h-8 w-8 text-yellow-600" />}
               color="yellow"
-              onClick={() => navigateTo("users", "tab=pending")}
+              onClick={() => {
+                navigateTo("users", "tab=pending");
+                // Force the correct tab content to load
+                window.localStorage.setItem("forceTabLoad", "pending");
+              }}
               clickable={true}
             />
 
@@ -591,7 +645,11 @@ export default function AdminHome() {
               }
               icon={<XCircleIcon className="h-8 w-8 text-red-600" />}
               color="red"
-              onClick={() => navigateTo("users", "tab=rejected")}
+              onClick={() => {
+                navigateTo("users", "tab=rejected");
+                // Force the correct tab content to load
+                window.localStorage.setItem("forceTabLoad", "rejected");
+              }}
               clickable={true}
             />
 
@@ -607,7 +665,11 @@ export default function AdminHome() {
               }
               icon={<NoSymbolIcon className="h-8 w-8 text-orange-600" />}
               color="orange"
-              onClick={() => navigateTo("users", "tab=suspended")}
+              onClick={() => {
+                navigateTo("users", "tab=suspended");
+                // Force the correct tab content to load
+                window.localStorage.setItem("forceTabLoad", "suspended");
+              }}
               clickable={true}
             />
           </div>
@@ -856,10 +918,6 @@ export default function AdminHome() {
                               >
                                 {formatActionName(activity.action)}
                               </span>
-                              {/* Include activity ID to help with debugging */}
-                              <span className="block text-xs mt-1 text-gray-500">
-                                ID: {activity.id?.substring(0, 8) || "unknown"}
-                              </span>
                             </td>
                             <td className="py-4 px-6">
                               {activity.performedBy || "System"}
@@ -979,9 +1037,6 @@ export default function AdminHome() {
           </div>
         </>
       )}
-
-      {/* Conditionally render debug panel */}
-      <AdminDebugPanel />
     </div>
   );
 }
@@ -1070,11 +1125,11 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
         return (
           <span>
             {activity.details.changeDirection === "promotion" ? (
-              <span className="font-medium text-green-600 dark:text-green-400">Promoted to admin</span>
+              <span className="font-medium text-purple-600 dark:text-purple-400">Promoted to admin</span>
             ) : activity.details.changeDirection === "demotion" ? (
-              <span className="font-medium text-orange-600 dark:text-orange-400">Changed to regular user</span>
+              <span className="font-medium text-purple-600 dark:text-purple-400">Changed to regular user</span>
             ) : (
-              <span>Changed role to <strong>{activity.details.newRole || "unknown role"}</strong></span>
+              <span>Changed role to <strong className="text-purple-600 dark:text-purple-400">{activity.details.newRole || "unknown role"}</strong></span>
             )}
             
             {activity.details.previousRole && (
@@ -1092,7 +1147,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_DELETED":
         return (
           <span>
-            <strong>Deleted</strong> by {activity.performedBy}
+            <strong className="text-red-600 dark:text-red-400">Deleted</strong> by {activity.performedBy}
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {activity.details.deletedAt
@@ -1121,7 +1176,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_APPROVED":
         return (
           <span>
-            <strong>Approved</strong> on{" "}
+            <strong className="text-green-600 dark:text-green-400">Approved</strong> on{" "}
             {activity.details.approvedAt
               ? new Date(activity.details.approvedAt as string).toLocaleString()
               : new Date(activity.timestamp).toLocaleString()}
@@ -1130,7 +1185,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_REJECTED":
         return (
           <span>
-            <strong>Rejected</strong>
+            <strong className="text-red-600 dark:text-red-400">Rejected</strong>
             {activity.details.rejectedAt && (
               <span className="block text-xs">
                 on{" "}
@@ -1147,7 +1202,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_SUSPENDED":
         return (
           <span>
-            <strong>Suspended</strong>
+            <strong className="text-orange-600 dark:text-orange-400">Suspended</strong>
             {activity.details.suspendedAt && (
               <span className="block text-xs">
                 on{" "}
@@ -1166,7 +1221,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_CREATED":
         return (
           <span>
-            Role: <strong>{activity.details.role || "user"}</strong>
+            Role: <strong className="text-green-600 dark:text-green-400">{activity.details.role || "user"}</strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               Created on{" "}
               {new Date(

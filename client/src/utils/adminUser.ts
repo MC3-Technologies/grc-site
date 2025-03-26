@@ -49,9 +49,8 @@ export const emitAdminEvent = (eventType: string): boolean => {
       cancelable: false
     });
     
-    // Dispatch the event on both document and window
+    // Only dispatch the event on document (remove window dispatch)
     document.dispatchEvent(event);
-    window.dispatchEvent(event);
     
     // Add to adminUser global if available
     if (typeof window !== 'undefined' && window.adminUser) {

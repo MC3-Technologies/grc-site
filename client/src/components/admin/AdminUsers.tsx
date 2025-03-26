@@ -38,7 +38,7 @@ interface NewUserForm {
 const AdminUsers = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [allUsers, setAllUsers] = useState<UserData[]>([]); // New state to track all users for counts
-  const [activeTab, setActiveTab] = useState<UserStatusType>("active");
+  const [activeTab, setActiveTab] = useState<UserStatusType>("active"); // Default to active tab
   const [loading, setLoading] = useState<boolean>(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,11 +75,117 @@ const AdminUsers = () => {
     // Get the tab parameter from the URL
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get("tab");
+    
+    // Check if we have a forced tab from localStorage (set by dashboard)
+    const forcedTab = window.localStorage.getItem("forceTabLoad");
+    if (forcedTab) {
+      console.log(`Found forced tab in localStorage: ${forcedTab}`);
+      // Remove the flag once we've used it
+      window.localStorage.removeItem("forceTabLoad");
+      
+      // Set the active tab from localStorage
+      setActiveTab(forcedTab as UserStatusType);
+      
+      // Force an immediate data fetch for this specific tab
+      const fetchTabData = async () => {
+        try {
+          setLoading(true);
+          console.log(`Force load from localStorage: Beginning data fetch for ${forcedTab} tab`);
+          
+          // Fetch all users
+          const allFetchedUsers = await fetchUsers(true);
+          const transformedAllUsers = transformUserData(allFetchedUsers);
+          setAllUsers(transformedAllUsers);
+          
+          // Filter for this specific tab
+          console.log(`Force load from localStorage: Filtering for tab: ${forcedTab}`);
+          const filteredUsers = transformedAllUsers.filter(user => user.status === forcedTab);
+          console.log(`Force load from localStorage: Found ${filteredUsers.length} users for ${forcedTab} tab`);
+          
+          // Set the filtered users
+          setUsers(filteredUsers);
+          
+          setLastRefreshTime(new Date());
+        } catch (error) {
+          console.error("Error loading forced tab data:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchTabData();
+      return; // Skip the rest of this effect
+    }
+    
     if (tabParam) {
+      // Set the active tab from URL parameter
+      console.log(`URL parameter tab detected: ${tabParam}, setting activeTab state`);
       setActiveTab(tabParam as UserStatusType);
+      
+      // Force an immediate data fetch for this specific tab
+      const fetchTabData = async () => {
+        try {
+          setLoading(true);
+          console.log(`Initial URL-based load: Beginning data fetch for ${tabParam} tab`);
+          
+          // Fetch all users
+          const allFetchedUsers = await fetchUsers(true);
+          const transformedAllUsers = transformUserData(allFetchedUsers);
+          setAllUsers(transformedAllUsers);
+          
+          // Filter for this specific tab
+          console.log(`Initial URL-based load: Filtering for specific tab: ${tabParam}`);
+          const filteredUsers = transformedAllUsers.filter(user => user.status === tabParam);
+          console.log(`Initial URL-based load: Found ${filteredUsers.length} users for ${tabParam} tab`);
+          
+          // Set the filtered users
+          setUsers(filteredUsers);
+          console.log(`Initial URL-based load: Users state updated with ${filteredUsers.length} ${tabParam} users`);
+          
+          setLastRefreshTime(new Date());
+        } catch (error) {
+          console.error("Error loading tab data:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchTabData();
+    } else {
+      console.log("No tab parameter in URL, default to 'active' tab");
+      
+      // Force an immediate data fetch for the default active tab
+      const fetchDefaultTabData = async () => {
+        try {
+          setLoading(true);
+          console.log("Initial default load: Beginning data fetch for 'active' tab");
+          
+          // Fetch all users
+          const allFetchedUsers = await fetchUsers(true);
+          const transformedAllUsers = transformUserData(allFetchedUsers);
+          setAllUsers(transformedAllUsers);
+          
+          // Filter for active tab by default
+          console.log("Initial default load: Filtering for default 'active' tab");
+          const filteredUsers = transformedAllUsers.filter(user => user.status === "active");
+          console.log(`Initial default load: Found ${filteredUsers.length} users for active tab`);
+          
+          // Set the filtered users
+          setUsers(filteredUsers);
+          console.log(`Initial default load: Users state updated with ${filteredUsers.length} active users`);
+          
+          setLastRefreshTime(new Date());
+        } catch (error) {
+          console.error("Error loading default tab data:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchDefaultTabData();
     }
 
-    fetchUsers();
+    // The previous fetchUsers call is not needed anymore as we'll handle it in the useEffect for tab changes
   }, []);
 
   // Auto-dismiss messages after timeout
@@ -186,13 +292,13 @@ const AdminUsers = () => {
     return transformedUsers;
   };
 
-  // Fetch all users for counting badges and establish auto-refresh
+  // Modify the effect that depends on activeTab to handle tab changes
   useEffect(() => {
     // Function to fetch and update all user data
     const fetchAndUpdateAllData = async () => {
       try {
         setAutoRefreshing(true);
-        console.log("Auto-refresh started for tab:", activeTab);
+        console.log("Auto-refresh or tab change: Fetching data for tab:", activeTab);
 
         // Always fetch all users for badges and counters using listUsers()
         const allFetchedUsers = await fetchUsers(true);
@@ -200,7 +306,7 @@ const AdminUsers = () => {
         const transformedAllUsers = transformUserData(allFetchedUsers);
         setAllUsers(transformedAllUsers);
 
-        // Filter users based on the active tab (we no longer have an "all" tab)
+        // Filter users based on the active tab
         console.log(`Filtering users for tab: ${activeTab}`);
         const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
         console.log(`Found ${filteredUsers.length} users for ${activeTab} tab`);
@@ -216,13 +322,13 @@ const AdminUsers = () => {
       }
     };
 
-    // Initial fetch
+    // When activeTab changes, fetch data for that tab
     fetchAndUpdateAllData();
 
     // Set up auto-refresh interval (every 30 seconds)
     const refreshInterval = setInterval(fetchAndUpdateAllData, 30 * 1000);
 
-    // Clean up interval on component unmount
+    // Clean up interval on component unmount or when activeTab changes
     return () => clearInterval(refreshInterval);
   }, [activeTab]); // Re-establish interval when active tab changes
 
@@ -795,7 +901,11 @@ const AdminUsers = () => {
           <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
             <li className="mr-2">
               <button
-                onClick={() => setActiveTab("active")}
+                onClick={() => {
+                  setActiveTab("active");
+                  // Update URL when changing tabs
+                  window.history.pushState(null, "", "/admin/?section=users&tab=active");
+                }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "active"
                     ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
@@ -812,7 +922,11 @@ const AdminUsers = () => {
             </li>
             <li className="mr-2">
               <button
-                onClick={() => setActiveTab("pending")}
+                onClick={() => {
+                  setActiveTab("pending");
+                  // Update URL when changing tabs
+                  window.history.pushState(null, "", "/admin/?section=users&tab=pending");
+                }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "pending"
                     ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
@@ -833,7 +947,11 @@ const AdminUsers = () => {
             </li>
             <li className="mr-2">
               <button
-                onClick={() => setActiveTab("rejected")}
+                onClick={() => {
+                  setActiveTab("rejected");
+                  // Update URL when changing tabs
+                  window.history.pushState(null, "", "/admin/?section=users&tab=rejected");
+                }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "rejected"
                     ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"
@@ -854,7 +972,11 @@ const AdminUsers = () => {
             </li>
             <li className="mr-2">
               <button
-                onClick={() => setActiveTab("suspended")}
+                onClick={() => {
+                  setActiveTab("suspended");
+                  // Update URL when changing tabs
+                  window.history.pushState(null, "", "/admin/?section=users&tab=suspended");
+                }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "suspended"
                     ? "border-primary-600 text-white bg-primary-600 dark:bg-primary-700 dark:text-white dark:border-primary-500"

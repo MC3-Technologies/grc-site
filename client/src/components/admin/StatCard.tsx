@@ -4,7 +4,7 @@ interface StatCardProps {
   title: string;
   value: number | string;
   icon: React.ReactNode;
-  color: "blue" | "green" | "yellow" | "red" | "orange";
+  color: string;
   onClick?: () => void;
   clickable?: boolean;
 }
@@ -17,42 +17,45 @@ const StatCard: React.FC<StatCardProps> = ({
   onClick,
   clickable = false,
 }) => {
-  const colorClasses = {
-    blue: "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300",
-    green: "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300",
-    yellow: "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300",
-    red: "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300",
-    orange: "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300",
-  };
-
-  const textColorClasses = {
-    blue: "text-blue-600 dark:text-blue-300",
-    green: "text-green-600 dark:text-green-300",
-    yellow: "text-yellow-600 dark:text-yellow-300",
-    red: "text-red-600 dark:text-red-300",
-    orange: "text-orange-600 dark:text-orange-300",
+  const getColorClass = (color: string) => {
+    switch (color) {
+      case "blue":
+        return "bg-blue-50 text-blue-600 dark:bg-blue-900 dark:text-blue-300";
+      case "green":
+        return "bg-green-50 text-green-600 dark:bg-green-900 dark:text-green-300";
+      case "red":
+        return "bg-red-50 text-red-600 dark:bg-red-900 dark:text-red-300";
+      case "yellow":
+        return "bg-yellow-50 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300";
+      case "orange":
+        return "bg-orange-50 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
+      case "purple":
+        return "bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-300";
+      default:
+        return "bg-gray-50 text-gray-600 dark:bg-gray-900 dark:text-gray-300";
+    }
   };
 
   return (
     <div
-      className={`
-        p-4 bg-white border border-gray-200 rounded-lg shadow-sm 
-        dark:border-gray-700 dark:bg-gray-800
-        ${clickable ? "cursor-pointer hover:shadow-md transition-shadow" : ""}
-      `}
+      className={`p-4 bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 ${
+        clickable
+          ? "cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200"
+          : ""
+      }`}
       onClick={clickable ? onClick : undefined}
     >
       <div className="flex items-center">
-        <div className={`p-3 mr-4 rounded-full ${colorClasses[color]}`}>
+        <div
+          className={`p-2 mr-4 rounded-full ${getColorClass(color)}`}
+        >
           {icon}
         </div>
         <div>
-          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            {title}
-          </p>
-          <p className={`text-2xl font-semibold ${textColorClasses[color]}`}>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
             {value}
-          </p>
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{title}</p>
         </div>
       </div>
     </div>
