@@ -66,10 +66,6 @@ const AdminUsers = () => {
   const [userToSuspend, setUserToSuspend] = useState<string | null>(null);
   const [suspensionReason, setSuspensionReason] = useState<string>("");
 
-  // Add the new UI refresh controls
-  const [dataChangeDetected, setDataChangeDetected] = useState<boolean>(false);
-  const [lastEventTime, setLastEventTime] = useState<Date | null>(null);
-
   // Add state for filtering
   const [emailFilter, setEmailFilter] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
@@ -502,11 +498,7 @@ const AdminUsers = () => {
       const customEvent = event as CustomEvent;
       console.log("User management detected admin event:", customEvent.detail.type);
       
-      // Set the notification flag
-      setDataChangeDetected(true);
-      setLastEventTime(new Date());
-      
-      // Add a short delay to let backend complete processing
+      // Silently refresh data without notifications
       setTimeout(async () => {
         setLoading(true);
         try {
@@ -523,7 +515,6 @@ const AdminUsers = () => {
           setUsers(filteredUsers);
           
           setLastRefreshTime(new Date());
-          setDataChangeDetected(false); // Clear notification after refresh
         } catch (error) {
           console.error("Error in auto-refresh:", error);
         } finally {
@@ -969,67 +960,6 @@ const AdminUsers = () => {
           </ul>
 
           <div className="flex gap-2">
-            {/* Show notification when data has changed */}
-            {dataChangeDetected && (
-              <div className="relative group">
-                <button
-                  onClick={async () => {
-                    setLoading(true);
-                    setDataChangeDetected(false);
-                    try {
-                      // Force refresh from API
-                      await refreshUserData();
-
-                      // Get all users from listUsers
-                      const allFetchedUsers = await fetchUsers(true);
-                      const transformedAllUsers = transformUserData(allFetchedUsers);
-                      
-                      // Update all users counter
-                      setAllUsers(transformedAllUsers);
-                      
-                      // Filter based on active tab
-                      const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-                      setUsers(filteredUsers);
-                      
-                      // Update last refresh time
-                      setLastRefreshTime(new Date());
-
-                      // Notify the user
-                      setSuccess("Data refreshed successfully");
-                    } catch (error) {
-                      console.error("Error refreshing data:", error);
-                      setError("Failed to refresh data");
-                    } finally {
-                      setLoading(false);
-                    }
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center animate-pulse"
-                >
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
-                  New Data Available
-                </button>
-                {lastEventTime && (
-                  <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
-                    Changes detected at {lastEventTime.toLocaleTimeString()}
-                    <div className="absolute w-3 h-3 bg-gray-900 dark:bg-gray-700 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-6px]"></div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Filters Toggle Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -1079,7 +1009,6 @@ const AdminUsers = () => {
               <button
                 onClick={async () => {
                   setLoading(true);
-                  setDataChangeDetected(false);
                   try {
                     // Force refresh from API
                     await refreshUserData();

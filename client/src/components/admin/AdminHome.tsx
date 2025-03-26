@@ -89,9 +89,6 @@ export default function AdminHome() {
   // Add user filter
   const [userFilter, setUserFilter] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
-  // Add state to handle refresh notifications
-  const [dataChangeDetected, setDataChangeDetected] = useState<boolean>(false);
-  const [lastEventTime, setLastEventTime] = useState<Date | null>(null);
 
   // Function to fetch stats with improved error handling and debugging
   const fetchStats = useCallback(async (forceRefresh = true) => {
@@ -234,11 +231,10 @@ export default function AdminHome() {
         clearTimeout(timeout);
       }
       
-      // Set the last event time for notifications
-      setLastEventTime(new Date());
-      
-      // Always just notify user that data has changed
-      setDataChangeDetected(true);
+      // Schedule a silent refresh instead of showing notification
+      setTimeout(() => {
+        fetchStats(true);
+      }, 1500);
     };
 
     // Handle admin actions with the debounced handler
@@ -270,7 +266,8 @@ export default function AdminHome() {
         const timeSinceLastRefresh = new Date().getTime() - lastRefreshTimeRef.current.getTime();
         if (timeSinceLastRefresh > 30000) { // 30 seconds since last refresh
           logDebug("Tab became visible after 30+ seconds, checking for updates...");
-          setDataChangeDetected(true); // Show notification instead of auto-refreshing
+          // Remove the data change detected code - instead just refresh silently
+          fetchStats(true);
         }
       }
     };
@@ -313,8 +310,7 @@ export default function AdminHome() {
   const handleManualRefresh = useCallback(() => {
     logDebug("Manual refresh requested");
     
-    // Reset notification state
-    setDataChangeDetected(false);
+    // Remove notification reset code
     
     // Set loading state
     setIsLoading(true);
@@ -705,36 +701,7 @@ export default function AdminHome() {
                 Recent Admin Activities
               </h2>
               <div className="flex items-center space-x-2">
-                {dataChangeDetected && (
-                  <div className="relative group">
-                    <button
-                      onClick={handleManualRefresh}
-                      className="flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 animate-pulse"
-                    >
-                      <svg
-                        className="w-4 h-4 mr-2"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        ></path>
-                      </svg>
-                      New Data Available
-                    </button>
-                    {lastEventTime && (
-                      <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
-                        Changes detected at {lastEventTime.toLocaleTimeString()}
-                        <div className="absolute w-3 h-3 bg-gray-900 dark:bg-gray-700 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-6px]"></div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Remove the New Data Available button */}
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
