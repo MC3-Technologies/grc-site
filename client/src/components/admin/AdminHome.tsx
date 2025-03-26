@@ -1,3 +1,4 @@
+// File: client/src/components/admin/AdminHome.tsx
 import { useEffect, useState, useRef, useCallback } from "react";
 import {
   fetchAdminStats,
@@ -16,6 +17,7 @@ import { DocumentIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { ShieldCheckIcon } from "@heroicons/react/24/outline";
 import StatCard from "./StatCard";
+import AdminDebugPanel from "./AdminDebugPanel"; // Import the debug panel
 
 // Dashboard statistics interface
 interface AdminStatistics {
@@ -64,6 +66,96 @@ export default function AdminHome() {
   const lastRefreshTimeRef = useRef<Date>(new Date());
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [forceRefreshCounter, setForceRefreshCounter] = useState<number>(0);
+
+  // Function to fetch stats with improved error handling and debugging
+  const fetchStats = useCallback(async (forceRefresh = true) => {
+    try {
+      // Clear any pending refresh
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
+
+      setIsLoading(true);
+      
+      // Clear cache before fetching when forcing refresh
+      if (forceRefresh) {
+        logDebug("Force refreshing admin stats and clearing cache");
+        await clearAdminStatsCache();
+      }
+      
+      logDebug("Fetching admin statistics");
+      const stats = await fetchAdminStats(forceRefresh);
+      logDebug("Admin stats received from API");
+      
+      if (stats) {
+        logDebug(`Raw recent activity count: ${stats.recentActivity?.length || 0}`);
+        
+        // Ensure activity array is properly sorted by timestamp in descending order
+        if (Array.isArray(stats.recentActivity)) {
+          // Create a new array instead of trying to modify the original
+          stats.recentActivity = [...stats.recentActivity]
+            .filter(activity => activity && activity.action !== "USER_STATUS_UPDATED")
+            .sort((a, b) => {
+              // Sort by timestamp descending (newest first)
+              const timeA = new Date(a.timestamp).getTime();
+              const timeB = new Date(b.timestamp).getTime();
+              return timeB - timeA;
+            });
+          
+          logDebug(`After filtering and sorting: ${stats.recentActivity.length} activities`);
+          
+          // Log the first 3 activities for debugging
+          if (stats.recentActivity.length > 0) {
+            stats.recentActivity.slice(0, 3).forEach((activity, index) => {
+              logDebug(`Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`);
+            });
+          }
+        }
+        
+        setAdminStats(stats as unknown as AdminStatistics);
+        lastRefreshTimeRef.current = new Date();
+        logDebug("Stats updated in component state");
+      }
+    } catch (error) {
+      console.error("Error fetching admin stats:", error);
+      logDebug(`Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Add event debugging effect
+  useEffect(() => {
+    const debugListener = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log("Admin event captured in AdminHome:", {
+        type: customEvent.detail.type,
+        timestamp: new Date().toISOString(),
+        source: event.target
+      });
+      
+      // Force a refresh after a short delay
+      setTimeout(() => {
+        console.log("Forcing refresh due to admin event");
+        fetchStats(true);
+      }, 1000);
+    };
+    
+    // Listen on both document and window
+    document.addEventListener('adminAction', debugListener);
+    window.addEventListener('adminAction', debugListener);
+    
+    return () => {
+      document.removeEventListener('adminAction', debugListener);
+      window.removeEventListener('adminAction', debugListener);
+    };
+  }, [fetchStats]);
+
+  // Function to add debug info
+  const logDebug = (message: string) => {
+    console.log(`DEBUG: ${message}`);
+  };
 
   // Function to navigate to different sections
   const navigateTo = (section: string, params?: string) => {
@@ -83,51 +175,9 @@ export default function AdminHome() {
     window.location.href = `/admin/?section=assessments&tab=completed`;
   };
 
-  // Function to fetch stats with debounce
-  const fetchStats = useCallback(async (forceRefresh = true) => {
-    try {
-      // Clear any pending refresh
-      if (refreshTimeoutRef.current) {
-        clearTimeout(refreshTimeoutRef.current);
-      }
-
-      setIsLoading(true);
-      
-      // Clear cache before fetching when forcing refresh
-      if (forceRefresh) {
-        console.log("Force refreshing admin stats and clearing cache");
-        clearAdminStatsCache();
-      }
-      
-      console.log("Fetching admin stats...");
-      const stats = await fetchAdminStats(forceRefresh);
-      console.log("Admin stats received:", stats);
-      
-      if (stats) {
-        console.log("Raw recent activity before filtering:", stats.recentActivity);
-        
-        // Filter out USER_STATUS_UPDATED entries before setting state
-        if (Array.isArray(stats.recentActivity)) {
-          stats.recentActivity = stats.recentActivity.filter(activity => 
-            activity.action !== "USER_STATUS_UPDATED"
-          );
-          console.log("Filtered recent activity:", stats.recentActivity);
-        }
-        
-        setAdminStats(stats as unknown as AdminStatistics);
-        lastRefreshTimeRef.current = new Date();
-        console.log("Stats updated in component state");
-      }
-    } catch (error) {
-      console.error("Error fetching admin stats:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Function for manual refresh
+  // Function for manual refresh with improved sequence
   const handleManualRefresh = useCallback(() => {
-    console.log("Manual refresh requested");
+    logDebug("Manual refresh requested");
     
     // Set loading state
     setIsLoading(true);
@@ -135,46 +185,89 @@ export default function AdminHome() {
     // Clear cache first
     clearAdminStatsCache();
     
+    // Force a counter increment to trigger the useEffect
+    setForceRefreshCounter(prev => prev + 1);
+    
     // Add a more significant delay to ensure backend operations complete
     setTimeout(async () => {
       try {
-        console.log("First refresh attempt after manual refresh request");
+        logDebug("First refresh attempt after manual refresh request");
         // Force a fresh reload of data
         const freshStats = await fetchAdminStats(true);
-        setAdminStats(freshStats as unknown as AdminStatistics);
-        lastRefreshTimeRef.current = new Date();
+        
+        if (freshStats) {
+          // Ensure proper sorting by timestamp
+          if (Array.isArray(freshStats.recentActivity)) {
+            freshStats.recentActivity = [...freshStats.recentActivity]
+              .filter(activity => activity.action !== "USER_STATUS_UPDATED")
+              .sort((a, b) => {
+                const timeA = new Date(a.timestamp).getTime();
+                const timeB = new Date(b.timestamp).getTime();
+                return timeB - timeA;
+              });
+          }
+          
+          setAdminStats(freshStats as unknown as AdminStatistics);
+          lastRefreshTimeRef.current = new Date();
+          logDebug("Stats updated in component state (first attempt)");
+        }
         
         // Set success message
         setSuccess("Dashboard refreshed successfully");
         
         // Make a second refresh after a short delay to catch any late-arriving changes
         setTimeout(async () => {
-          console.log("Second refresh attempt to catch any remaining updates");
+          logDebug("Second refresh attempt to catch any remaining updates");
           const finalStats = await fetchAdminStats(true);
-          setAdminStats(finalStats as unknown as AdminStatistics);
-          lastRefreshTimeRef.current = new Date();
+          
+          if (finalStats) {
+            // Ensure proper sorting by timestamp again
+            if (Array.isArray(finalStats.recentActivity)) {
+              const sortedActivities = [...finalStats.recentActivity]
+                .filter(activity => activity.action !== "USER_STATUS_UPDATED")
+                .sort((a, b) => {
+                  const timeA = new Date(a.timestamp).getTime();
+                  const timeB = new Date(b.timestamp).getTime();
+                  return timeB - timeA;
+                });
+              
+              finalStats.recentActivity = sortedActivities;
+              
+              // Log the first 3 activities for debugging
+              if (sortedActivities.length > 0) {
+                sortedActivities.slice(0, 3).forEach((activity, index) => {
+                  logDebug(`Final activity ${index}: ${activity.action} - ${activity.timestamp}`);
+                });
+              }
+            }
+            
+            setAdminStats(finalStats as unknown as AdminStatistics);
+            lastRefreshTimeRef.current = new Date();
+            logDebug("Stats updated in component state (final attempt)");
+          }
           
           // Auto-dismiss success message after 3 seconds
           setTimeout(() => setSuccess(null), 3000);
         }, 2000);
       } catch (error) {
         console.error("Error refreshing dashboard:", error);
+        logDebug(`Error in refresh sequence: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         setIsLoading(false);
       }
-    }, 2000); // Increased from 1200ms to 2000ms
+    }, 2000);
   }, []);
 
   useEffect(() => {
     // Initial fetch
     fetchStats(true);
 
-    // Set up event listener for admin actions
+    // Set up event listener for admin actions with improved handling
     const handleAdminAction = (event: Event) => {
       const customEvent = event as CustomEvent;
       const eventType = customEvent.detail.type;
       
-      console.log("Admin action detected:", eventType);
+      logDebug(`Admin action detected: ${eventType}`);
       if (eventType === AdminEvents.USER_DELETED ||
           eventType === AdminEvents.USER_UPDATED ||
           eventType === AdminEvents.USER_APPROVED ||
@@ -182,7 +275,7 @@ export default function AdminHome() {
           eventType === AdminEvents.USER_SUSPENDED ||
           eventType === AdminEvents.USER_REACTIVATED ||
           eventType === AdminEvents.USER_CREATED) {
-        console.log("Action requires refresh, initiating refresh sequence");
+        logDebug("Action requires refresh, initiating refresh sequence");
         
         // Set loading state to indicate refresh is happening
         setIsLoading(true);
@@ -190,15 +283,18 @@ export default function AdminHome() {
         // Clear cache immediately
         clearAdminStatsCache();
         
+        // Increment force refresh counter to trigger refresh 
+        setForceRefreshCounter(prev => prev + 1);
+        
         // Wait longer to ensure backend has time to update database and audit logs
         setTimeout(async () => {
-          console.log("First refresh after admin action");
+          logDebug("First refresh after admin action");
           // Force an initial refresh
           await fetchStats(true);
           
           // After a short delay, do a final refresh to catch any late updates
           setTimeout(async () => {
-            console.log("Final refresh to ensure all changes are captured");
+            logDebug("Final refresh to ensure all changes are captured");
             await fetchStats(true);
             setIsLoading(false);
           }, 2500);
@@ -206,21 +302,23 @@ export default function AdminHome() {
       }
     };
 
+    // Add event listeners to both document and window
     document.addEventListener('adminAction', handleAdminAction);
+    window.addEventListener('adminAction', handleAdminAction);
 
-    // Set up auto-refresh every 5 minutes
+    // Set up auto-refresh every 30 seconds (reduced from 1 minute)
     const refreshInterval = setInterval(() => {
-      console.log("Running scheduled refresh (5 minute interval)");
-      fetchStats(false); // Use cache for scheduled refreshes to reduce load
-    }, 5 * 60 * 1000);
+      logDebug("Running scheduled refresh (30 second interval)");
+      fetchStats(true); // Always force refresh
+    }, 30 * 1000);
 
-    // Add visibility change listener
+    // Add visibility change listener with improved handling
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const timeSinceLastRefresh = new Date().getTime() - lastRefreshTimeRef.current.getTime();
-        if (timeSinceLastRefresh > 30000) { // 30 seconds
-          console.log("Tab became visible, refreshing stats...");
-          fetchStats(true); // Force refresh when tab becomes visible after 30+ seconds
+        if (timeSinceLastRefresh > 5000) { // 5 seconds (reduced from 10)
+          logDebug("Tab became visible, refreshing stats...");
+          fetchStats(true); // Force refresh when tab becomes visible
         }
       }
     };
@@ -236,9 +334,10 @@ export default function AdminHome() {
       }
       clearInterval(refreshInterval);
       document.removeEventListener('adminAction', handleAdminAction);
+      window.removeEventListener('adminAction', handleAdminAction);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchStats]);
+  }, [fetchStats, forceRefreshCounter]); // Added forceRefreshCounter as dependency
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -556,6 +655,9 @@ export default function AdminHome() {
           </div>
         </>
       )}
+
+      {/* Conditionally render debug panel */}
+      <AdminDebugPanel />
     </div>
   );
 }

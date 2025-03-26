@@ -9,7 +9,7 @@ export { getClientSchema };
 const USE_MOCK_DATA = false;
 
 // Cache configuration
-const CACHE_DURATION_MS = 2 * 60 * 1000; // 5 minutes
+const CACHE_DURATION_MS = 30 * 1000; // 30 seconds (reduced from 2 minutes)
 const USER_CACHE_KEY = "admin_users_cache";
 const USER_CACHE_TIMESTAMP_KEY = "admin_users_cache_timestamp";
 const USER_CACHE_BY_STATUS_PREFIX = "admin_users_cache_status_";
@@ -17,7 +17,7 @@ const USER_CACHE_BY_STATUS_PREFIX = "admin_users_cache_status_";
 // Cache configuration for admin stats
 const ADMIN_STATS_CACHE_KEY = "admin_stats_cache";
 const ADMIN_STATS_CACHE_TIMESTAMP_KEY = "admin_stats_cache_timestamp";
-const ADMIN_STATS_CACHE_DURATION_MS = 60 * 1000; // 1 minute cache for admin stats
+const ADMIN_STATS_CACHE_DURATION_MS = 15 * 1000; // 15 seconds (reduced from 60 seconds)
 
 // User interface
 export interface User {
@@ -653,6 +653,13 @@ export async function createTestUser(
     });
 
     if (response && response.data) {
+      // Clear caches to ensure fresh data
+      clearUserCache();
+      clearAdminStatsCache();
+      
+      // Emit the event for listeners
+      emitAdminEvent(AdminEvents.USER_CREATED);
+      
       return {
         success: true,
         message: `Test user ${params.email} created successfully with auto-generated password. User will need password reset.`,
@@ -683,7 +690,7 @@ export interface ActivityItem {
 }
 
 // Define the AdminStats type
-interface AdminStats {
+export interface AdminStats {
   users: {
     total: number;
     active: number;
@@ -699,7 +706,7 @@ interface AdminStats {
     nonCompliant: number;
   };
   complianceRate: number;
-  recentActivity: ActivityItem[];
+  recentActivity: AuditLog[];
 }
 
 // Function to clear admin stats cache
@@ -798,6 +805,16 @@ export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<Adm
           "recentActivity" in parsedData
         ) {
           const adminStats = parsedData as AdminStats;
+          
+          // If recent activity exists, ensure it's properly sorted
+          if (Array.isArray(adminStats.recentActivity)) {
+            // Clone the array to avoid mutating the original response
+            adminStats.recentActivity = [...adminStats.recentActivity]
+              .sort((a, b) => {
+                // Sort by timestamp (newest first)
+                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+              });
+          }
           
           // Cache the stats data
           try {
@@ -979,7 +996,13 @@ export const fetchAuditLogs = async (
       console.log("Parsed audit logs data:", parsedData);
 
       if (Array.isArray(parsedData)) {
-        return parsedData as AuditLog[];
+        // Ensure logs are sorted by timestamp (newest first)
+        return parsedData
+          .sort((a, b) => {
+            const timeA = new Date(a.timestamp).getTime();
+            const timeB = new Date(b.timestamp).getTime();
+            return timeB - timeA;
+          }) as AuditLog[];
       }
     }
 
@@ -1219,7 +1242,7 @@ export const clearUserCache = (): void => {
     localStorage.removeItem(USER_CACHE_TIMESTAMP_KEY);
 
     // Clear status-specific caches
-    ["pending", "active", "suspended", "rejected"].forEach((status) => {
+    ["pending", "active", "suspended", "rejected", "deleted"].forEach((status) => {
       const cacheKey = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
       localStorage.removeItem(cacheKey);
       localStorage.removeItem(`${cacheKey}_timestamp`);
@@ -1245,8 +1268,34 @@ export const AdminEvents = {
   USER_CREATED: 'USER_CREATED'
 };
 
-// Custom event emitter for admin actions
+// Custom event emitter for admin actions with more robust implementation
 export const emitAdminEvent = (eventType: string) => {
-  const event = new CustomEvent('adminAction', { detail: { type: eventType } });
-  document.dispatchEvent(event);
+  console.log(`Emitting admin event: ${eventType} at ${new Date().toISOString()}`);
+  
+  try {
+    const event = new CustomEvent('adminAction', { 
+      detail: { 
+        type: eventType,
+        timestamp: new Date().toISOString() 
+      },
+      bubbles: true,
+      cancelable: false
+    });
+    
+    // Dispatch on document and also on window to ensure capture
+    document.dispatchEvent(event);
+    window.dispatchEvent(event);
+    
+    console.log(`Admin event dispatched successfully: ${eventType}`);
+    
+    // Force cache clear on any admin event
+    clearUserCache();
+    clearAdminStatsCache();
+    
+    // Return true to indicate success
+    return true;
+  } catch (error) {
+    console.error(`Error emitting admin event (${eventType}):`, error);
+    return false;
+  }
 };
