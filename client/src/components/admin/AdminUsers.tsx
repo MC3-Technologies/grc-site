@@ -51,7 +51,6 @@ const AdminUsers = () => {
     null,
   );
   const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
-  const [autoRefreshing, setAutoRefreshing] = useState(false);
   const [timeCounter, setTimeCounter] = useState(0); // Add a counter state to force re-renders
 
   // Add state for new user modal
@@ -62,6 +61,10 @@ const AdminUsers = () => {
     role: "user",
   });
 
+  // Add the new UI refresh controls
+  const [dataChangeDetected, setDataChangeDetected] = useState<boolean>(false);
+  const [lastEventTime, setLastEventTime] = useState<Date | null>(null);
+
   // Set up a timer that updates every second to refresh the "time since last update" display
   useEffect(() => {
     const timerInterval = setInterval(() => {
@@ -71,6 +74,7 @@ const AdminUsers = () => {
     return () => clearInterval(timerInterval);
   }, []);
 
+  // This effect only runs once on component mount
   useEffect(() => {
     // Get the tab parameter from the URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -78,114 +82,52 @@ const AdminUsers = () => {
     
     // Check if we have a forced tab from localStorage (set by dashboard)
     const forcedTab = window.localStorage.getItem("forceTabLoad");
+    
+    // Determine which tab to load
+    let tabToLoad: UserStatusType = "active"; // Default
+
     if (forcedTab) {
       console.log(`Found forced tab in localStorage: ${forcedTab}`);
       // Remove the flag once we've used it
       window.localStorage.removeItem("forceTabLoad");
-      
-      // Set the active tab from localStorage
-      setActiveTab(forcedTab as UserStatusType);
-      
-      // Force an immediate data fetch for this specific tab
-      const fetchTabData = async () => {
-        try {
-          setLoading(true);
-          console.log(`Force load from localStorage: Beginning data fetch for ${forcedTab} tab`);
-          
-          // Fetch all users
-          const allFetchedUsers = await fetchUsers(true);
-          const transformedAllUsers = transformUserData(allFetchedUsers);
-          setAllUsers(transformedAllUsers);
-          
-          // Filter for this specific tab
-          console.log(`Force load from localStorage: Filtering for tab: ${forcedTab}`);
-          const filteredUsers = transformedAllUsers.filter(user => user.status === forcedTab);
-          console.log(`Force load from localStorage: Found ${filteredUsers.length} users for ${forcedTab} tab`);
-          
-          // Set the filtered users
-          setUsers(filteredUsers);
-          
-          setLastRefreshTime(new Date());
-        } catch (error) {
-          console.error("Error loading forced tab data:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchTabData();
-      return; // Skip the rest of this effect
+      tabToLoad = forcedTab as UserStatusType;
+    } else if (tabParam) {
+      console.log(`URL parameter tab detected: ${tabParam}`);
+      tabToLoad = tabParam as UserStatusType;
     }
     
-    if (tabParam) {
-      // Set the active tab from URL parameter
-      console.log(`URL parameter tab detected: ${tabParam}, setting activeTab state`);
-      setActiveTab(tabParam as UserStatusType);
-      
-      // Force an immediate data fetch for this specific tab
-      const fetchTabData = async () => {
-        try {
-          setLoading(true);
-          console.log(`Initial URL-based load: Beginning data fetch for ${tabParam} tab`);
-          
-          // Fetch all users
-          const allFetchedUsers = await fetchUsers(true);
-          const transformedAllUsers = transformUserData(allFetchedUsers);
-          setAllUsers(transformedAllUsers);
-          
-          // Filter for this specific tab
-          console.log(`Initial URL-based load: Filtering for specific tab: ${tabParam}`);
-          const filteredUsers = transformedAllUsers.filter(user => user.status === tabParam);
-          console.log(`Initial URL-based load: Found ${filteredUsers.length} users for ${tabParam} tab`);
-          
-          // Set the filtered users
-          setUsers(filteredUsers);
-          console.log(`Initial URL-based load: Users state updated with ${filteredUsers.length} ${tabParam} users`);
-          
-          setLastRefreshTime(new Date());
-        } catch (error) {
-          console.error("Error loading tab data:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchTabData();
-    } else {
-      console.log("No tab parameter in URL, default to 'active' tab");
-      
-      // Force an immediate data fetch for the default active tab
-      const fetchDefaultTabData = async () => {
-        try {
-          setLoading(true);
-          console.log("Initial default load: Beginning data fetch for 'active' tab");
-          
-          // Fetch all users
-          const allFetchedUsers = await fetchUsers(true);
-          const transformedAllUsers = transformUserData(allFetchedUsers);
-          setAllUsers(transformedAllUsers);
-          
-          // Filter for active tab by default
-          console.log("Initial default load: Filtering for default 'active' tab");
-          const filteredUsers = transformedAllUsers.filter(user => user.status === "active");
-          console.log(`Initial default load: Found ${filteredUsers.length} users for active tab`);
-          
-          // Set the filtered users
-          setUsers(filteredUsers);
-          console.log(`Initial default load: Users state updated with ${filteredUsers.length} active users`);
-          
-          setLastRefreshTime(new Date());
-        } catch (error) {
-          console.error("Error loading default tab data:", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchDefaultTabData();
-    }
-
-    // The previous fetchUsers call is not needed anymore as we'll handle it in the useEffect for tab changes
+    // Set the active tab state
+    setActiveTab(tabToLoad);
+    
+    // Force an immediate data fetch for this specific tab
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        console.log(`Initial load: Beginning data fetch for ${tabToLoad} tab`);
+        
+        // Fetch all users with force refresh
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        setAllUsers(transformedAllUsers);
+        
+        // Filter for this specific tab
+        console.log(`Initial load: Filtering for tab: ${tabToLoad}`);
+        const filteredUsers = transformedAllUsers.filter(user => user.status === tabToLoad);
+        console.log(`Initial load: Found ${filteredUsers.length} users for ${tabToLoad} tab`);
+        
+        // Set the filtered users
+        setUsers(filteredUsers);
+        console.log(`Initial load: Users state updated with ${filteredUsers.length} ${tabToLoad} users`);
+        
+        setLastRefreshTime(new Date());
+      } catch (error) {
+        console.error("Error loading initial tab data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialData();
   }, []);
 
   // Auto-dismiss messages after timeout
@@ -292,304 +234,41 @@ const AdminUsers = () => {
     return transformedUsers;
   };
 
-  // Modify the effect that depends on activeTab to handle tab changes
-  useEffect(() => {
-    // Function to fetch and update all user data
-    const fetchAndUpdateAllData = async () => {
-      try {
-        setAutoRefreshing(true);
-        console.log("Auto-refresh or tab change: Fetching data for tab:", activeTab);
-
-        // Always fetch all users for badges and counters using listUsers()
-        const allFetchedUsers = await fetchUsers(true);
-        console.log("All users fetched for counters:", allFetchedUsers.length);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
-        setAllUsers(transformedAllUsers);
-
-        // Filter users based on the active tab
-        console.log(`Filtering users for tab: ${activeTab}`);
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-        console.log(`Found ${filteredUsers.length} users for ${activeTab} tab`);
-        setUsers(filteredUsers);
-
-        // Update last refresh timestamp
-        setLastRefreshTime(new Date());
-      } catch (err) {
-        console.error("Error during auto-refresh:", err);
-        // Don't show error message on auto-refresh to avoid disrupting the user
-      } finally {
-        setAutoRefreshing(false);
-      }
-    };
-
-    // When activeTab changes, fetch data for that tab
-    fetchAndUpdateAllData();
-
-    // Set up auto-refresh interval (every 30 seconds)
-    const refreshInterval = setInterval(fetchAndUpdateAllData, 30 * 1000);
-
-    // Clean up interval on component unmount or when activeTab changes
-    return () => clearInterval(refreshInterval);
-  }, [activeTab]); // Re-establish interval when active tab changes
-
-  // Load users for the current tab view - only initial loading
-  useEffect(() => {
-    const initialLoadUsers = async () => {
+  // Add a function to handle tab changes
+  const handleTabChange = async (tabName: UserStatusType) => {
+    console.log(`Tab change requested: ${tabName}`);
+    
+    // Always update URL to match the selected tab
+    window.history.pushState(null, "", `/admin/?section=users&tab=${tabName}`);
+    
+    // Update active tab state
+    setActiveTab(tabName);
+    
+    // Always fetch fresh data when changing tabs
+    try {
       setLoading(true);
-      setError(null);
-
-      try {
-        console.log("Initial loading of users");
-        // Initial loading will be handled by the auto-refresh effect
-        setLoading(false);
-      } catch (err) {
-        console.error("Error in initial loading:", err);
-        if (err instanceof Error) {
-          setError(`An error occurred: ${err.message}`);
-        } else {
-          setError(`An error occurred: ${String(err)}`);
-        }
-        setUsers([]); // Ensure users is empty on error
-        setLoading(false);
-      }
-    };
-
-    initialLoadUsers();
-    // Only run on initial mount, not when activeTab changes
-  }, []);
-
-  // Handle user approval
-  const handleApproveUser = async (email: string) => {
-    setActionInProgress(email);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await approveUser(email, currentAdminEmail || undefined);
-      console.log(`Approve user response for ${email}:`, response);
-
-      if (response) {
-        setSuccess(`User ${email} has been approved.`);
-
-        // Refresh data to ensure UI is up to date (this will clear cache)
-        await refreshUserData();
-
-        // Get all users consistently from listUsers
-        const allFetchedUsers = await fetchUsers(true);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
-        
-        // Update all users counter
-        setAllUsers(transformedAllUsers);
-        
-        // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-        setUsers(filteredUsers);
-        
-        setLastRefreshTime(new Date());
-      } else {
-        setError(`Failed to approve user ${email}.`);
-      }
+      
+      // Force refresh from API to ensure we have latest data
+      const allFetchedUsers = await fetchUsers(true);
+      const transformedAllUsers = transformUserData(allFetchedUsers);
+      
+      // Update all users counter
+      setAllUsers(transformedAllUsers);
+      
+      // Filter users for the selected tab
+      const filteredUsers = transformedAllUsers.filter(user => user.status === tabName);
+      console.log(`Tab change: Found ${filteredUsers.length} users for ${tabName} tab`);
+      
+      // Update the displayed users
+      setUsers(filteredUsers);
+      
+      // Update last refresh time
+      setLastRefreshTime(new Date());
     } catch (error) {
-      console.error("Error approving user:", error);
-      if (error instanceof Error) {
-        setError(`An error occurred: ${error.message}`);
-      } else {
-        setError(`An error occurred: ${String(error)}`);
-      }
+      console.error("Error during tab change:", error);
+      setError("Failed to load data for selected tab");
     } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  // Handle user rejection
-  const handleRejectUser = async (email: string) => {
-    // In a real implementation, we'd show a confirmation dialog
-    // and possibly collect a reason for rejection
-    const reason =
-      "Your account request has been rejected by an administrator.";
-
-    setActionInProgress(email);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await rejectUser(
-        email,
-        reason,
-        currentAdminEmail || undefined,
-      );
-
-      if (response) {
-        setSuccess(`User ${email} has been rejected.`);
-
-        // Refresh data to ensure UI is up to date (this will clear cache)
-        await refreshUserData();
-
-        // Get all users consistently from listUsers
-        const allFetchedUsers = await fetchUsers(true);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
-        
-        // Update all users counter
-        setAllUsers(transformedAllUsers);
-        
-        // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-        setUsers(filteredUsers);
-        
-        setLastRefreshTime(new Date());
-      } else {
-        setError(`Failed to reject user ${email}.`);
-      }
-    } catch (error) {
-      console.error("Error rejecting user:", error);
-      if (error instanceof Error) {
-        setError(`An error occurred: ${error.message}`);
-      } else {
-        setError(`An error occurred: ${String(error)}`);
-      }
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  // Handle user suspension
-  const handleSuspendUser = async (email: string) => {
-    // In a real implementation, we'd show a confirmation dialog
-    // and possibly collect a reason for suspension
-    const reason = "Your account has been suspended by an administrator.";
-
-    setActionInProgress(email);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await suspendUser(
-        email,
-        reason,
-        currentAdminEmail || undefined,
-      );
-
-      if (response) {
-        setSuccess(`User ${email} has been suspended.`);
-
-        // Refresh data to ensure UI is up to date (this will clear cache)
-        await refreshUserData();
-
-        // Get all users consistently from listUsers
-        const allFetchedUsers = await fetchUsers(true);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
-        
-        // Update all users counter
-        setAllUsers(transformedAllUsers);
-        
-        // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-        setUsers(filteredUsers);
-        
-        setLastRefreshTime(new Date());
-      } else {
-        setError(`Failed to suspend user ${email}.`);
-      }
-    } catch (error) {
-      console.error("Error suspending user:", error);
-      if (error instanceof Error) {
-        setError(`An error occurred: ${error.message}`);
-      } else {
-        setError(`An error occurred: ${String(error)}`);
-      }
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  // Handle user reactivation
-  const handleReactivateUser = async (email: string) => {
-    setActionInProgress(email);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await reactivateUser(
-        email,
-        currentAdminEmail || undefined,
-      );
-      console.log(`Reactivate user response for ${email}:`, response);
-
-      if (response) {
-        setSuccess(`User ${email} has been reactivated.`);
-
-        // Refresh data to ensure UI is up to date (this will clear cache)
-        await refreshUserData();
-
-        // Get all users consistently from listUsers
-        const allFetchedUsers = await fetchUsers(true);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
-        
-        // Update all users counter
-        setAllUsers(transformedAllUsers);
-        
-        // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-        setUsers(filteredUsers);
-        
-        setLastRefreshTime(new Date());
-      } else {
-        setError(`Failed to reactivate user ${email}.`);
-      }
-    } catch (error) {
-      console.error("Error reactivating user:", error);
-      if (error instanceof Error) {
-        setError(`An error occurred: ${error.message}`);
-      } else {
-        setError(`An error occurred: ${String(error)}`);
-      }
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  // Handle user deletion
-  const handleDeleteUser = async (email: string) => {
-    setUserToDelete(null);
-    setIsDeleteModalOpen(false);
-    setActionInProgress(email);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await deleteUser(email, currentAdminEmail || undefined);
-      console.log(`Delete user response for ${email}:`, response);
-
-      if (response.success) {
-        setSuccess(response.message || `User ${email} has been deleted.`);
-
-        // Refresh data to ensure UI is up to date (this will clear cache)
-        await refreshUserData();
-
-        // Get all users consistently from listUsers
-        const allFetchedUsers = await fetchUsers(true);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
-        
-        // Update all users counter
-        setAllUsers(transformedAllUsers);
-        
-        // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
-        setUsers(filteredUsers);
-        
-        setLastRefreshTime(new Date());
-      } else {
-        setError(response.message || `Failed to delete user ${email}.`);
-      }
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      if (error instanceof Error) {
-        setError(`An error occurred: ${error.message}`);
-      } else {
-        setError(`An error occurred: ${String(error)}`);
-      }
-    } finally {
-      setActionInProgress(null);
+      setLoading(false);
     }
   };
 
@@ -680,19 +359,17 @@ const AdminUsers = () => {
         // Refresh data to ensure UI is up to date
         await refreshUserData();
 
-        // Update both users and allUsers states
-        setUsers((prev) =>
-          prev.map((user) =>
-            user.email === updatedUser.email ? updatedUser : user,
-          ),
-        );
-
-        setAllUsers((prev) =>
-          prev.map((user) =>
-            user.email === updatedUser.email ? updatedUser : user,
-          ),
-        );
-
+        // Get all users from listUsers
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter based on active tab 
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to update role for ${updatedUser.email}`);
@@ -779,7 +456,7 @@ const AdminUsers = () => {
           role: "user",
         });
 
-        // Refresh data
+        // Refresh data with consistent approach
         await refreshUserData();
         const refreshedUsers = await fetchUsers(true);
         const transformedUsers = transformUserData(refreshedUsers);
@@ -797,6 +474,284 @@ const AdminUsers = () => {
       }
     } catch (error) {
       console.error("Error creating test user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Listen for admin actions - always refresh automatically
+  useEffect(() => {
+    const handleAdminAction = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      console.log("User management detected admin event:", customEvent.detail.type);
+      
+      // Set the notification flag
+      setDataChangeDetected(true);
+      setLastEventTime(new Date());
+      
+      // Add a short delay to let backend complete processing
+      setTimeout(async () => {
+        setLoading(true);
+        try {
+          // Refresh user data
+          await refreshUserData();
+          
+          // Get all users
+          const allFetchedUsers = await fetchUsers(true);
+          const transformedAllUsers = transformUserData(allFetchedUsers);
+          setAllUsers(transformedAllUsers);
+          
+          // Filter based on active tab
+          const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+          setUsers(filteredUsers);
+          
+          setLastRefreshTime(new Date());
+          setDataChangeDetected(false); // Clear notification after refresh
+        } catch (error) {
+          console.error("Error in auto-refresh:", error);
+        } finally {
+          setLoading(false);
+        }
+      }, 1500);
+    };
+    
+    document.addEventListener("adminAction", handleAdminAction);
+    
+    return () => {
+      document.removeEventListener("adminAction", handleAdminAction);
+    };
+  }, [activeTab]);
+
+  // Handle user approval
+  const handleApproveUser = async (email: string) => {
+    setActionInProgress(email);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await approveUser(email, currentAdminEmail || undefined);
+      console.log(`Approve user response for ${email}:`, response);
+
+      if (response) {
+        setSuccess(`User ${email} has been approved.`);
+
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+
+        // Get all users consistently from listUsers with force=true
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
+        setLastRefreshTime(new Date());
+      } else {
+        setError(`Failed to approve user ${email}.`);
+      }
+    } catch (error) {
+      console.error("Error approving user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle user rejection
+  const handleRejectUser = async (email: string) => {
+    // In a real implementation, we'd show a confirmation dialog
+    // and possibly collect a reason for rejection
+    const reason =
+      "Your account request has been rejected by an administrator.";
+
+    setActionInProgress(email);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await rejectUser(
+        email,
+        reason,
+        currentAdminEmail || undefined,
+      );
+
+      if (response) {
+        setSuccess(`User ${email} has been rejected.`);
+
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+
+        // Get all users consistently from listUsers with force=true
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
+        setLastRefreshTime(new Date());
+      } else {
+        setError(`Failed to reject user ${email}.`);
+      }
+    } catch (error) {
+      console.error("Error rejecting user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle user suspension
+  const handleSuspendUser = async (email: string) => {
+    // In a real implementation, we'd show a confirmation dialog
+    // and possibly collect a reason for suspension
+    const reason = "Your account has been suspended by an administrator.";
+
+    setActionInProgress(email);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await suspendUser(
+        email,
+        reason,
+        currentAdminEmail || undefined,
+      );
+
+      if (response) {
+        setSuccess(`User ${email} has been suspended.`);
+
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+
+        // Get all users consistently from listUsers with force=true
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
+        setLastRefreshTime(new Date());
+      } else {
+        setError(`Failed to suspend user ${email}.`);
+      }
+    } catch (error) {
+      console.error("Error suspending user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle user reactivation
+  const handleReactivateUser = async (email: string) => {
+    setActionInProgress(email);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await reactivateUser(
+        email,
+        currentAdminEmail || undefined,
+      );
+      console.log(`Reactivate user response for ${email}:`, response);
+
+      if (response) {
+        setSuccess(`User ${email} has been reactivated.`);
+
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+
+        // Get all users consistently from listUsers with force=true
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
+        setLastRefreshTime(new Date());
+      } else {
+        setError(`Failed to reactivate user ${email}.`);
+      }
+    } catch (error) {
+      console.error("Error reactivating user:", error);
+      if (error instanceof Error) {
+        setError(`An error occurred: ${error.message}`);
+      } else {
+        setError(`An error occurred: ${String(error)}`);
+      }
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
+  // Handle user deletion
+  const handleDeleteUser = async (email: string) => {
+    setUserToDelete(null);
+    setIsDeleteModalOpen(false);
+    setActionInProgress(email);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await deleteUser(email, currentAdminEmail || undefined);
+      console.log(`Delete user response for ${email}:`, response);
+
+      if (response.success) {
+        setSuccess(response.message || `User ${email} has been deleted.`);
+
+        // Refresh data to ensure UI is up to date (this will clear cache)
+        await refreshUserData();
+
+        // Get all users consistently from listUsers with force=true
+        const allFetchedUsers = await fetchUsers(true);
+        const transformedAllUsers = transformUserData(allFetchedUsers);
+        
+        // Update all users counter
+        setAllUsers(transformedAllUsers);
+        
+        // Filter current view based on active tab
+        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        setUsers(filteredUsers);
+        
+        setLastRefreshTime(new Date());
+      } else {
+        setError(response.message || `Failed to delete user ${email}.`);
+      }
+    } catch (error) {
+      console.error("Error deleting user:", error);
       if (error instanceof Error) {
         setError(`An error occurred: ${error.message}`);
       } else {
@@ -902,9 +857,7 @@ const AdminUsers = () => {
             <li className="mr-2">
               <button
                 onClick={() => {
-                  setActiveTab("active");
-                  // Update URL when changing tabs
-                  window.history.pushState(null, "", "/admin/?section=users&tab=active");
+                  handleTabChange("active");
                 }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "active"
@@ -923,9 +876,7 @@ const AdminUsers = () => {
             <li className="mr-2">
               <button
                 onClick={() => {
-                  setActiveTab("pending");
-                  // Update URL when changing tabs
-                  window.history.pushState(null, "", "/admin/?section=users&tab=pending");
+                  handleTabChange("pending");
                 }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "pending"
@@ -948,9 +899,7 @@ const AdminUsers = () => {
             <li className="mr-2">
               <button
                 onClick={() => {
-                  setActiveTab("rejected");
-                  // Update URL when changing tabs
-                  window.history.pushState(null, "", "/admin/?section=users&tab=rejected");
+                  handleTabChange("rejected");
                 }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "rejected"
@@ -973,9 +922,7 @@ const AdminUsers = () => {
             <li className="mr-2">
               <button
                 onClick={() => {
-                  setActiveTab("suspended");
-                  // Update URL when changing tabs
-                  window.history.pushState(null, "", "/admin/?section=users&tab=suspended");
+                  handleTabChange("suspended");
                 }}
                 className={`inline-block p-4 border-b-2 rounded-t-lg ${
                   activeTab === "suspended"
@@ -998,6 +945,67 @@ const AdminUsers = () => {
           </ul>
 
           <div className="flex gap-2">
+            {/* Show notification when data has changed */}
+            {dataChangeDetected && (
+              <div className="relative group">
+                <button
+                  onClick={async () => {
+                    setLoading(true);
+                    setDataChangeDetected(false);
+                    try {
+                      // Force refresh from API
+                      await refreshUserData();
+
+                      // Get all users from listUsers
+                      const allFetchedUsers = await fetchUsers(true);
+                      const transformedAllUsers = transformUserData(allFetchedUsers);
+                      
+                      // Update all users counter
+                      setAllUsers(transformedAllUsers);
+                      
+                      // Filter based on active tab
+                      const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+                      setUsers(filteredUsers);
+                      
+                      // Update last refresh time
+                      setLastRefreshTime(new Date());
+
+                      // Notify the user
+                      setSuccess("Data refreshed successfully");
+                    } catch (error) {
+                      console.error("Error refreshing data:", error);
+                      setError("Failed to refresh data");
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center animate-pulse"
+                >
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    ></path>
+                  </svg>
+                  New Data Available
+                </button>
+                {lastEventTime && (
+                  <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
+                    Changes detected at {lastEventTime.toLocaleTimeString()}
+                    <div className="absolute w-3 h-3 bg-gray-900 dark:bg-gray-700 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-6px]"></div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Add Test User button */}
             <button
               onClick={() => setIsAddUserModalOpen(true)}
@@ -1025,6 +1033,7 @@ const AdminUsers = () => {
               <button
                 onClick={async () => {
                   setLoading(true);
+                  setDataChangeDetected(false);
                   try {
                     // Force refresh from API
                     await refreshUserData();
@@ -1072,8 +1081,7 @@ const AdminUsers = () => {
                 {loading ? "Refreshing..." : "Refresh Now"}
               </button>
               <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
-                Data auto-refreshes every 30 seconds. Use this button only if
-                you need immediate updates.
+                Use this button when you need immediate updates.
                 <div className="absolute w-3 h-3 bg-gray-900 dark:bg-gray-700 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-6px]"></div>
               </div>
             </div>
@@ -1084,7 +1092,7 @@ const AdminUsers = () => {
       {/* Add last updated info after the tab navigation */}
       <div className="flex justify-end mb-4 text-xs text-gray-500 dark:text-gray-400 italic">
         <div className="flex items-center">
-          {autoRefreshing ? (
+          {loading ? (
             <svg
               className="w-3 h-3 mr-1 animate-spin"
               fill="none"
@@ -1116,7 +1124,7 @@ const AdminUsers = () => {
             </svg>
           )}
           Last updated: {formattedLastRefreshTime}
-          {autoRefreshing && (
+          {loading && (
             <span className="ml-1 text-blue-500">Refreshing...</span>
           )}
         </div>

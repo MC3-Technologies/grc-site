@@ -89,6 +89,9 @@ export default function AdminHome() {
   // Add user filter
   const [userFilter, setUserFilter] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
+  // Add state to handle refresh notifications
+  const [dataChangeDetected, setDataChangeDetected] = useState<boolean>(false);
+  const [lastEventTime, setLastEventTime] = useState<Date | null>(null);
 
   // Function to fetch stats with improved error handling and debugging
   const fetchStats = useCallback(async (forceRefresh = true) => {
@@ -223,7 +226,7 @@ export default function AdminHome() {
   // Improved event handling with a single debounced handler
   useEffect(() => {
     // Create a debounced handler function
-    let timeout: NodeJS.Timeout | null = null;
+    const timeout: NodeJS.Timeout | null = null;
     const debouncedRefresh = (eventType: string) => {
       console.log(`Debounced refresh triggered by: ${eventType}`);
       
@@ -231,18 +234,11 @@ export default function AdminHome() {
         clearTimeout(timeout);
       }
       
-      // Set loading state to indicate refresh is happening
-      setIsLoading(true);
+      // Set the last event time for notifications
+      setLastEventTime(new Date());
       
-      // Clear cache immediately
-      clearAdminStatsCache();
-      
-      // Add a timeout before refreshing
-      timeout = setTimeout(() => {
-        console.log(`Executing refresh for event: ${eventType}`);
-        fetchStats(true);
-        timeout = null;
-      }, 1500);
+      // Always just notify user that data has changed
+      setDataChangeDetected(true);
     };
 
     // Handle admin actions with the debounced handler
@@ -268,19 +264,13 @@ export default function AdminHome() {
     // Only add event listener to document, not window
     document.addEventListener('adminAction', handleAdminAction);
 
-    // Set up auto-refresh every 30 seconds (reduced from 1 minute)
-    const refreshInterval = setInterval(() => {
-      logDebug("Running scheduled refresh (30 second interval)");
-      fetchStats(true); // Always force refresh
-    }, 30 * 1000);
-
-    // Add visibility change listener with improved handling
+    // Add visibility change listener to check for updates when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         const timeSinceLastRefresh = new Date().getTime() - lastRefreshTimeRef.current.getTime();
-        if (timeSinceLastRefresh > 5000) { // 5 seconds (reduced from 10)
-          logDebug("Tab became visible, refreshing stats...");
-          fetchStats(true); // Force refresh when tab becomes visible
+        if (timeSinceLastRefresh > 30000) { // 30 seconds since last refresh
+          logDebug("Tab became visible after 30+ seconds, checking for updates...");
+          setDataChangeDetected(true); // Show notification instead of auto-refreshing
         }
       }
     };
@@ -291,7 +281,6 @@ export default function AdminHome() {
       if (timeout) {
         clearTimeout(timeout);
       }
-      clearInterval(refreshInterval);
       document.removeEventListener('adminAction', handleAdminAction);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
@@ -324,6 +313,9 @@ export default function AdminHome() {
   const handleManualRefresh = useCallback(() => {
     logDebug("Manual refresh requested");
     
+    // Reset notification state
+    setDataChangeDetected(false);
+    
     // Set loading state
     setIsLoading(true);
     
@@ -333,75 +325,17 @@ export default function AdminHome() {
     // Force a counter increment to trigger the useEffect
     setForceRefreshCounter(prev => prev + 1);
     
-    // Add a more significant delay to ensure backend operations complete
-    setTimeout(async () => {
-      try {
-        logDebug("First refresh attempt after manual refresh request");
-        // Force a fresh reload of data
-        const freshStats = await fetchAdminStats(true);
-        
-        if (freshStats) {
-          // Ensure proper sorting by timestamp - no filtering needed
-          if (Array.isArray(freshStats.recentActivity)) {
-            freshStats.recentActivity = [...freshStats.recentActivity]
-              // No filtering needed for USER_STATUS_UPDATED since it no longer exists
-              .sort((a, b) => {
-                const timeA = new Date(a.timestamp).getTime();
-                const timeB = new Date(b.timestamp).getTime();
-                return timeB - timeA;
-              });
-          }
-          
-          setAdminStats(freshStats as unknown as AdminStats);
-          lastRefreshTimeRef.current = new Date();
-          logDebug("Stats updated in component state (first attempt)");
-        }
-        
-        // Set success message
-        setSuccess("Dashboard refreshed successfully");
-        
-        // Make a second refresh after a short delay to catch any late-arriving changes
-        setTimeout(async () => {
-          logDebug("Second refresh attempt to catch any remaining updates");
-          const finalStats = await fetchAdminStats(true);
-          
-          if (finalStats) {
-            // Ensure proper sorting by timestamp - no filtering needed
-            if (Array.isArray(finalStats.recentActivity)) {
-              const sortedActivities = [...finalStats.recentActivity]
-                // No filtering needed for USER_STATUS_UPDATED since it no longer exists
-                .sort((a, b) => {
-                  const timeA = new Date(a.timestamp).getTime();
-                  const timeB = new Date(b.timestamp).getTime();
-                  return timeB - timeA;
-                });
-              
-              finalStats.recentActivity = sortedActivities;
-              
-              // Log the first 3 activities for debugging
-              if (sortedActivities.length > 0) {
-                sortedActivities.slice(0, 3).forEach((activity, index) => {
-                  logDebug(`Final activity ${index}: ${activity.action} - ${activity.timestamp}`);
-                });
-              }
-            }
-            
-            setAdminStats(finalStats as unknown as AdminStats);
-            lastRefreshTimeRef.current = new Date();
-            logDebug("Stats updated in component state (final attempt)");
-          }
-          
-          // Auto-dismiss success message after 3 seconds
-          setTimeout(() => setSuccess(null), 3000);
-        }, 2000);
-      } catch (error) {
-        console.error("Error refreshing dashboard:", error);
-        logDebug(`Error in refresh sequence: ${error instanceof Error ? error.message : String(error)}`);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 2000);
-  }, []);
+    // Refresh the data
+    fetchStats(true).then(() => {
+      setSuccess("Dashboard refreshed successfully");
+      // Auto-dismiss success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
+    }).catch(error => {
+      console.error("Error refreshing dashboard:", error);
+    }).finally(() => {
+      setIsLoading(false);
+    });
+  }, [fetchStats]);
 
   useEffect(() => {
     // Initial fetch
@@ -771,6 +705,36 @@ export default function AdminHome() {
                 Recent Admin Activities
               </h2>
               <div className="flex items-center space-x-2">
+                {dataChangeDetected && (
+                  <div className="relative group">
+                    <button
+                      onClick={handleManualRefresh}
+                      className="flex items-center px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 animate-pulse"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                      </svg>
+                      New Data Available
+                    </button>
+                    {lastEventTime && (
+                      <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 bottom-full left-1/2 transform -translate-x-1/2 mb-2">
+                        Changes detected at {lastEventTime.toLocaleTimeString()}
+                        <div className="absolute w-3 h-3 bg-gray-900 dark:bg-gray-700 transform rotate-45 left-1/2 -translate-x-1/2 bottom-[-6px]"></div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <button
                   onClick={() => setShowFilters(!showFilters)}
                   className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
@@ -1117,11 +1081,15 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
     }
   };
 
+  // Get admin info string
+  const getAdminInfo = (admin?: string): string => {
+    return admin ? `by ${admin}` : "";
+  };
+
   try {
     // Extract the most relevant details based on action type
     switch (activity.action) {
       case "USER_ROLE_UPDATED":
-        // Enhanced role update display with direction indicators
         return (
           <span>
             {activity.details.changeDirection === "promotion" ? (
@@ -1131,28 +1099,28 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             ) : (
               <span>Changed role to <strong className="text-purple-600 dark:text-purple-400">{activity.details.newRole || "unknown role"}</strong></span>
             )}
-            
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
             {activity.details.previousRole && (
               <span className="block text-xs text-gray-500 dark:text-gray-400">
                 from <strong>{activity.details.previousRole}</strong>
               </span>
             )}
-            {activity.details.updatedAt && (
-              <span className="block text-xs text-gray-500 dark:text-gray-400">
-                on {safeTimeDisplay(activity.details.updatedAt as string)}
-              </span>
-            )}
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              on {safeTimeDisplay(activity.details.updatedAt as string || activity.timestamp)}
+            </span>
           </span>
         );
       case "USER_DELETED":
         return (
           <span>
-            <strong className="text-red-600 dark:text-red-400">Deleted</strong> by {activity.performedBy}
+            <strong className="text-red-600 dark:text-red-400">Deleted</strong>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on{" "}
-              {activity.details.deletedAt
-                ? new Date(activity.details.deletedAt as string).toLocaleString()
-                : new Date(activity.timestamp).toLocaleString()}
+              on {safeTimeDisplay(activity.details.deletedAt as string || activity.timestamp)}
             </span>
           </span>
         );
@@ -1160,38 +1128,41 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
         return (
           <span>
             <strong className="text-green-600 dark:text-green-400">Reactivated</strong> user account
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
             {activity.details.previousStatus && (
               <span className="block text-xs text-gray-500 dark:text-gray-400">
                 from status: <strong>{activity.details.previousStatus}</strong>
               </span>
             )}
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on{" "}
-              {activity.details.reactivatedAt
-                ? new Date(activity.details.reactivatedAt as string).toLocaleString()
-                : new Date(activity.timestamp).toLocaleString()}
+              on {safeTimeDisplay(activity.details.reactivatedAt as string || activity.timestamp)}
             </span>
           </span>
         );
       case "USER_APPROVED":
         return (
           <span>
-            <strong className="text-green-600 dark:text-green-400">Approved</strong> on{" "}
-            {activity.details.approvedAt
-              ? new Date(activity.details.approvedAt as string).toLocaleString()
-              : new Date(activity.timestamp).toLocaleString()}
+            <strong className="text-green-600 dark:text-green-400">Approved</strong>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              on {safeTimeDisplay(activity.details.approvedAt as string || activity.timestamp)}
+            </span>
           </span>
         );
       case "USER_REJECTED":
         return (
           <span>
             <strong className="text-red-600 dark:text-red-400">Rejected</strong>
-            {activity.details.rejectedAt && (
-              <span className="block text-xs">
-                on{" "}
-                {new Date(activity.details.rejectedAt as string).toLocaleString()}
-              </span>
-            )}
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              on {safeTimeDisplay(activity.details.rejectedAt as string || activity.timestamp)}
+            </span>
             {activity.details.reason && (
               <span className="block text-xs italic mt-1">
                 Reason: "{activity.details.reason}"
@@ -1203,14 +1174,12 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
         return (
           <span>
             <strong className="text-orange-600 dark:text-orange-400">Suspended</strong>
-            {activity.details.suspendedAt && (
-              <span className="block text-xs">
-                on{" "}
-                {new Date(
-                  activity.details.suspendedAt as string,
-                ).toLocaleString()}
-              </span>
-            )}
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              on {safeTimeDisplay(activity.details.suspendedAt as string || activity.timestamp)}
+            </span>
             {activity.details.reason && (
               <span className="block text-xs italic mt-1">
                 Reason: "{activity.details.reason}"
@@ -1222,11 +1191,11 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
         return (
           <span>
             Role: <strong className="text-green-600 dark:text-green-400">{activity.details.role || "user"}</strong>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              Created on{" "}
-              {new Date(
-                (activity.details.createdAt as string) || activity.timestamp,
-              ).toLocaleString()}
+              Created on {safeTimeDisplay(activity.details.createdAt as string || activity.timestamp)}
             </span>
           </span>
         );
@@ -1249,7 +1218,10 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
                 ),
               )}
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {safeTimeDisplay(timeValue as string)}
+              {getAdminInfo(activity.performedBy)}
+            </span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              on {safeTimeDisplay(timeValue as string)}
             </span>
           </span>
         );
