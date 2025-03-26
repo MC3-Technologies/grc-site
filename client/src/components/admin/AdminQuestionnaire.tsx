@@ -566,36 +566,43 @@ const AdminQuestionnaire = () => {
                           <div className="flex items-center space-x-2">
                             <span className="text-sm text-gray-700 dark:text-gray-300">Show this question only if</span>
                             <select
-                              value={(element.visibleIf || "").split(" ")[0] || ""}
+                              value={element.visibleIf ? (element.visibleIf.match(/{([^}]+)}/) || ['', ''])[1] : ""}
                               onChange={(e) => {
-                                const selectedElement = editForm.elements.find(el => el.name === e.target.value);
-                                if (selectedElement && selectedElement.id !== element.id) {
+                                const selectedValue = e.target.value;
+                                if (selectedValue === "") {
+                                  // Clear the condition when "None" is selected
+                                  handleElementChange(element.id, 'visibleIf', "");
+                                } else {
+                                  // Set the condition using the selected question name
                                   handleElementChange(
                                     element.id, 
                                     'visibleIf', 
-                                    `{${e.target.value}} = 'yes'`
+                                    `{${selectedValue}} = 'yes'`
                                   );
-                                } else {
-                                  handleElementChange(element.id, 'visibleIf', "");
                                 }
                               }}
                               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             >
-                              <option value="">Select a question</option>
+                              <option value="">None (no condition)</option>
                               {editForm.elements
                                 .filter(el => el.id !== element.id && el.name)
                                 .map(el => (
                                   <option key={el.id} value={el.name || ""}>
-                                    {el.title?.substring(0, 30)}...
+                                    {el.title || el.name || "Unnamed question"}
                                   </option>
                                 ))
                               }
                             </select>
                           </div>
                           {element.visibleIf && (
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                              Current condition: {element.visibleIf}
-                            </p>
+                            <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded dark:bg-gray-800 dark:border-gray-700">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <span className="font-medium">Active condition:</span> {element.visibleIf}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                This question will only be shown when the selected question is answered with "yes"
+                              </p>
+                            </div>
                           )}
                         </div>
                       )}
