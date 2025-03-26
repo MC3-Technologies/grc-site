@@ -70,6 +70,10 @@ const AdminUsers = () => {
   const [dataChangeDetected, setDataChangeDetected] = useState<boolean>(false);
   const [lastEventTime, setLastEventTime] = useState<Date | null>(null);
 
+  // Add state for filtering
+  const [emailFilter, setEmailFilter] = useState<string>("");
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+
   // Set up a timer that updates every second to refresh the "time since last update" display
   useEffect(() => {
     const timerInterval = setInterval(() => {
@@ -269,6 +273,9 @@ const AdminUsers = () => {
       
       // Update last refresh time
       setLastRefreshTime(new Date());
+      
+      // Clear email filter when changing tabs
+      setEmailFilter("");
     } catch (error) {
       console.error("Error during tab change:", error);
       setError("Failed to load data for selected tab");
@@ -1023,6 +1030,28 @@ const AdminUsers = () => {
               </div>
             )}
 
+            {/* Filters Toggle Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700 flex items-center"
+            >
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                ></path>
+              </svg>
+              Filters
+            </button>
+
             {/* Add Test User button */}
             <button
               onClick={() => setIsAddUserModalOpen(true)}
@@ -1147,6 +1176,39 @@ const AdminUsers = () => {
         </div>
       </div>
 
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
+            <div className="flex-1">
+              <label htmlFor="emailFilter" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filter by Email
+              </label>
+              <input
+                type="text"
+                id="emailFilter"
+                value={emailFilter}
+                onChange={(e) => {
+                  setEmailFilter(e.target.value);
+                }}
+                placeholder="Enter user email"
+                className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              />
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => {
+                  setEmailFilter("");
+                }}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-10">
           <Spinner />
@@ -1178,7 +1240,9 @@ const AdminUsers = () => {
                 </tr>
               </thead>
               <tbody>
-                {users.map((user) => (
+                {users
+                  .filter(user => emailFilter ? user.email.toLowerCase().includes(emailFilter.toLowerCase()) : true)
+                  .map((user) => (
                   <tr
                     key={user.email}
                     className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -1289,9 +1353,13 @@ const AdminUsers = () => {
             </table>
           </div>
 
-          {users.length === 0 && (
+          {users
+            .filter(user => emailFilter ? user.email.toLowerCase().includes(emailFilter.toLowerCase()) : true)
+            .length === 0 && (
             <div className="p-4 mt-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-900 dark:text-blue-300">
-              No users found matching the selected filter.
+              {emailFilter ? 
+                `No users found matching email filter "${emailFilter}" in the ${activeTab} tab.` : 
+                `No users found in the ${activeTab} tab.`}
             </div>
           )}
         </>
