@@ -2,9 +2,9 @@ import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
-import { 
-  baseTemplate, 
-  adminNotificationTemplate 
+import {
+  baseTemplate,
+  adminNotificationTemplate,
 } from "../../user-management/src/templates/emailTemplates";
 
 // Try to import env variables, fallback to process.env if not available
@@ -25,9 +25,15 @@ const sesClient = new SESClient();
 
 // Admin email - Could be stored in environment variables
 const ADMIN_EMAIL =
-  amplifyEnv.ADMIN_EMAIL || process.env.ADMIN_EMAIL || "cmmc.support@mc3technologies.com";
-const FROM_EMAIL = 
-  amplifyEnv.EMAIL_SENDER || process.env.EMAIL_SENDER || amplifyEnv.FROM_EMAIL || process.env.FROM_EMAIL || "cmmc.support@mc3technologies.com";
+  amplifyEnv.ADMIN_EMAIL ||
+  process.env.ADMIN_EMAIL ||
+  "cmmc.support@mc3technologies.com";
+const FROM_EMAIL =
+  amplifyEnv.EMAIL_SENDER ||
+  process.env.EMAIL_SENDER ||
+  amplifyEnv.FROM_EMAIL ||
+  process.env.FROM_EMAIL ||
+  "cmmc.support@mc3technologies.com";
 
 // Log email configuration for debugging
 console.log("Email configuration:", {
@@ -38,7 +44,7 @@ console.log("Email configuration:", {
   amplifyEnvEmailSender: amplifyEnv.EMAIL_SENDER,
   processEnvEmailSender: process.env.EMAIL_SENDER,
   amplifyEnvFromEmail: amplifyEnv.FROM_EMAIL,
-  processEnvFromEmail: process.env.FROM_EMAIL
+  processEnvFromEmail: process.env.FROM_EMAIL,
 });
 
 // User status operations
@@ -90,13 +96,13 @@ export const userStatusOperations = {
       // Use the admin notification template
       const emailContent = adminNotificationTemplate({
         userEmail,
-        adminUrl: amplifyEnv.ADMIN_URL || process.env.ADMIN_URL || "#"
+        adminUrl: amplifyEnv.ADMIN_URL || process.env.ADMIN_URL || "#",
       });
 
       console.log("Attempting to send admin notification email:", {
         to: ADMIN_EMAIL,
         from: FROM_EMAIL,
-        subject: "New User Registration - Action Required"
+        subject: "New User Registration - Action Required",
       });
 
       // Use direct SES sending instead of centralized function for better error visibility
@@ -122,22 +128,28 @@ export const userStatusOperations = {
       try {
         const result = await sesClient.send(command);
         console.log("SES send result:", JSON.stringify(result, null, 2));
-        console.log(`Admin notification email sent successfully for new user: ${userEmail}`);
+        console.log(
+          `Admin notification email sent successfully for new user: ${userEmail}`,
+        );
         return true;
       } catch (sesError) {
         console.error("SES Error details:", {
-          message: sesError instanceof Error ? sesError.message : String(sesError),
+          message:
+            sesError instanceof Error ? sesError.message : String(sesError),
           code: (sesError as any)?.Code,
           name: sesError instanceof Error ? sesError.name : undefined,
-          stack: sesError instanceof Error ? sesError.stack : undefined
+          stack: sesError instanceof Error ? sesError.stack : undefined,
         });
-        
+
         // Email sending failed
         console.warn("Email sending failed");
         return false;
       }
     } catch (error) {
-      console.error(`Error notifying admin about new user ${userEmail}:`, error);
+      console.error(
+        `Error notifying admin about new user ${userEmail}:`,
+        error,
+      );
       return false;
     }
   },

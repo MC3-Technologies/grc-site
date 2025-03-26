@@ -614,14 +614,18 @@ const AdminAssessments = () => {
                 <td className="px-6 py-4 hidden lg:table-cell">
                   {assessment.status === "completed" ? (
                     <div className="flex items-center">
-                      <span className={`font-medium ${assessment.isCompliant ? 'text-green-600' : 'text-red-600'}`}>
+                      <span
+                        className={`font-medium ${assessment.isCompliant ? "text-green-600" : "text-red-600"}`}
+                      >
                         {assessment.score}%
                       </span>
-                      <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                        assessment.isCompliant
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                      }`}>
+                      <span
+                        className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                          assessment.isCompliant
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                        }`}
+                      >
                         {assessment.isCompliant ? "Compliant" : "Non-Compliant"}
                       </span>
                     </div>

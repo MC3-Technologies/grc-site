@@ -25,7 +25,7 @@ const logNestedInfo = (obj: any, indent: number = 0): void => {
 export const chatRequest = async (
   messages: ChatHistoryMessage[],
 ): Promise<ChatHistoryMessage[]> => {
-  console.log('Available environment:', { env });
+  console.log("Available environment:", { env });
   if (!env.OPENAI_API_KEY) {
     console.log("OPENAI_API_KEY:", env.OPENAI_API_KEY);
     console.error("Missing OpenAI API Key!");

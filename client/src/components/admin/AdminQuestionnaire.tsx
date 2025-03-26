@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { surveyJson } from "../../assessmentQuestions";
-import { 
-  SurveyElement, 
-  ChoiceItem, 
-  QuestionPage, 
-  SurveyPage, 
+import {
+  SurveyElement,
+  ChoiceItem,
+  QuestionPage,
+  SurveyPage,
   loadSavedQuestionnaire,
-  QUESTIONNAIRE_STORAGE_KEY
+  QUESTIONNAIRE_STORAGE_KEY,
 } from "../../utils/questionnaireUtils";
 
 // New interface for edit form element state
@@ -22,7 +22,7 @@ const AdminQuestionnaire = () => {
       console.log("Loaded saved questionnaire data from localStorage");
       return savedData;
     }
-    
+
     console.log("Using default questionnaire data");
     return surveyJson.pages.map((page: SurveyPage, index: number) => ({
       ...page,
@@ -32,17 +32,17 @@ const AdminQuestionnaire = () => {
 
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
-  
+
   // New state for editing form
   const [editForm, setEditForm] = useState<{
     title: string;
     elements: EditFormElement[];
   } | null>(null);
-  
+
   // State for drag and drop functionality
   const [draggedItem, setDraggedItem] = useState<string | null>(null);
   const [dragOverItem, setDragOverItem] = useState<string | null>(null);
-  
+
   // Success notification
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -50,7 +50,7 @@ const AdminQuestionnaire = () => {
   const notifyQuestionnaireUpdate = () => {
     // Create a custom event to notify other components that the questionnaire has been updated
     const event = new CustomEvent("questionnaireUpdated", {
-      detail: { timestamp: new Date().toISOString() }
+      detail: { timestamp: new Date().toISOString() },
     });
     document.dispatchEvent(event);
   };
@@ -82,7 +82,7 @@ const AdminQuestionnaire = () => {
     setEditMode(false);
     setEditForm(null);
   };
-  
+
   // Handle form changes
   const handleFormChange = (field: string, value: string) => {
     if (editForm) {
@@ -92,23 +92,25 @@ const AdminQuestionnaire = () => {
       });
     }
   };
-  
+
   // Handle element changes
-  const handleElementChange = (elementId: string, field: string, value: unknown) => {
+  const handleElementChange = (
+    elementId: string,
+    field: string,
+    value: unknown,
+  ) => {
     if (editForm) {
-      const updatedElements = editForm.elements.map(element => 
-        element.id === elementId 
-          ? { ...element, [field]: value } 
-          : element
+      const updatedElements = editForm.elements.map((element) =>
+        element.id === elementId ? { ...element, [field]: value } : element,
       );
-      
+
       setEditForm({
         ...editForm,
         elements: updatedElements,
       });
     }
   };
-  
+
   // Add new question
   const handleAddQuestion = () => {
     if (editForm) {
@@ -120,28 +122,28 @@ const AdminQuestionnaire = () => {
         title: "New Question",
         isRequired: false,
       };
-      
+
       setEditForm({
         ...editForm,
         elements: [...editForm.elements, newElement],
       });
     }
   };
-  
+
   // Delete question
   const handleDeleteQuestion = (elementId: string) => {
     if (editForm) {
       const updatedElements = editForm.elements.filter(
-        element => element.id !== elementId
+        (element) => element.id !== elementId,
       );
-      
+
       setEditForm({
         ...editForm,
         elements: updatedElements,
       });
     }
   };
-  
+
   // Handle drag start
   const handleDragStart = (e: React.DragEvent, elementId: string) => {
     setDraggedItem(elementId);
@@ -150,7 +152,7 @@ const AdminQuestionnaire = () => {
       e.dataTransfer.effectAllowed = "move";
     }
   };
-  
+
   // Handle drag over
   const handleDragOver = (e: React.DragEvent, elementId: string) => {
     e.preventDefault();
@@ -158,26 +160,35 @@ const AdminQuestionnaire = () => {
       setDragOverItem(elementId);
     }
   };
-  
+
   // Handle drop
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    
-    if (editForm && draggedItem && dragOverItem && draggedItem !== dragOverItem) {
+
+    if (
+      editForm &&
+      draggedItem &&
+      dragOverItem &&
+      draggedItem !== dragOverItem
+    ) {
       // Reorder the elements
-      const draggedItemIndex = editForm.elements.findIndex(item => item.id === draggedItem);
-      const dragOverItemIndex = editForm.elements.findIndex(item => item.id === dragOverItem);
-      
+      const draggedItemIndex = editForm.elements.findIndex(
+        (item) => item.id === draggedItem,
+      );
+      const dragOverItemIndex = editForm.elements.findIndex(
+        (item) => item.id === dragOverItem,
+      );
+
       if (draggedItemIndex !== -1 && dragOverItemIndex !== -1) {
         const newElements = [...editForm.elements];
         const draggedItemContent = newElements[draggedItemIndex];
-        
+
         // Remove the dragged item
         newElements.splice(draggedItemIndex, 1);
-        
+
         // Add it at the new position
         newElements.splice(dragOverItemIndex, 0, draggedItemContent);
-        
+
         // Update the state
         setEditForm({
           ...editForm,
@@ -185,12 +196,12 @@ const AdminQuestionnaire = () => {
         });
       }
     }
-    
+
     // Reset drag state
     setDraggedItem(null);
     setDragOverItem(null);
   };
-  
+
   // Handle drag end
   const handleDragEnd = () => {
     setDraggedItem(null);
@@ -206,36 +217,39 @@ const AdminQuestionnaire = () => {
         const { id, ...rest } = element;
         return rest;
       });
-      
+
       // Create the updated page
       const updatedPage = {
         title: editForm.title,
         elements: updatedElements,
       };
-      
+
       // Update the pages state
-      const updatedPages = pages.map(page => 
-        page.id === selectedPage 
-          ? { ...updatedPage, id: page.id } 
-          : page
+      const updatedPages = pages.map((page) =>
+        page.id === selectedPage ? { ...updatedPage, id: page.id } : page,
       );
-      
+
       // Update the state
       setPages(updatedPages);
-      
+
       // Save to localStorage for persistence
-      localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
-      
+      localStorage.setItem(
+        QUESTIONNAIRE_STORAGE_KEY,
+        JSON.stringify(updatedPages),
+      );
+
       // Notify other components that the questionnaire has been updated
       notifyQuestionnaireUpdate();
-      
+
       // In a real implementation, this would also save the changes to the backend
       console.log("Saving changes:", updatedPage);
-      
+
       // Show success message
-      setSuccessMessage("Section updated successfully! Changes have been saved and will persist.");
+      setSuccessMessage(
+        "Section updated successfully! Changes have been saved and will persist.",
+      );
       setTimeout(() => setSuccessMessage(null), 3000);
-      
+
       // Exit edit mode
       setEditMode(false);
       setEditForm(null);
@@ -260,7 +274,7 @@ const AdminQuestionnaire = () => {
         return type;
     }
   };
-  
+
   // Get type description for tooltips
   const getTypeDescription = (type: string) => {
     switch (type) {
@@ -283,14 +297,22 @@ const AdminQuestionnaire = () => {
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded shadow-md animate-fade-in-out">
           <div className="flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              ></path>
             </svg>
             <span>{successMessage}</span>
           </div>
         </div>
       )}
-      
+
       {/* Pages list */}
       <div className="w-full md:w-1/4">
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4">
@@ -336,7 +358,7 @@ const AdminQuestionnaire = () => {
                     >
                       Cancel
                     </button>
-                    <button 
+                    <button
                       onClick={handleSaveChanges}
                       className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
                     >
@@ -357,30 +379,37 @@ const AdminQuestionnaire = () => {
             {editMode && editForm ? (
               <div className="space-y-6">
                 <div className="mb-4">
-                  <label htmlFor="section-title" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  <label
+                    htmlFor="section-title"
+                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                  >
                     Section Title
                   </label>
                   <input
                     type="text"
                     id="section-title"
                     value={editForm.title}
-                    onChange={(e) => handleFormChange('title', e.target.value)}
+                    onChange={(e) => handleFormChange("title", e.target.value)}
                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                   />
                 </div>
-                
+
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <h4 className="text-md font-medium text-gray-900 dark:text-white">Questions</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">Drag questions to reorder</p>
+                    <h4 className="text-md font-medium text-gray-900 dark:text-white">
+                      Questions
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                      Drag questions to reorder
+                    </p>
                   </div>
-                  
+
                   {editForm.elements.map((element) => (
-                    <div 
-                      key={element.id} 
+                    <div
+                      key={element.id}
                       className={`mb-6 p-4 border border-gray-200 rounded-lg dark:border-gray-700 cursor-move ${
-                        draggedItem === element.id ? 'opacity-50' : ''
-                      } ${dragOverItem === element.id ? 'border-blue-500 border-2' : ''}`}
+                        draggedItem === element.id ? "opacity-50" : ""
+                      } ${dragOverItem === element.id ? "border-blue-500 border-2" : ""}`}
                       draggable="true"
                       onDragStart={(e) => handleDragStart(e, element.id)}
                       onDragOver={(e) => handleDragOver(e, element.id)}
@@ -389,10 +418,23 @@ const AdminQuestionnaire = () => {
                     >
                       <div className="flex justify-between items-center mb-3">
                         <div className="flex items-center">
-                          <svg className="w-6 h-6 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h16M4 16h16"></path>
+                          <svg
+                            className="w-6 h-6 mr-2 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M4 8h16M4 16h16"
+                            ></path>
                           </svg>
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Question {editForm.elements.indexOf(element) + 1}</span>
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Question {editForm.elements.indexOf(element) + 1}
+                          </span>
                         </div>
                         <button
                           type="button"
@@ -400,24 +442,41 @@ const AdminQuestionnaire = () => {
                           className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                           aria-label="Delete question"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            ></path>
                           </svg>
                         </button>
                       </div>
-                      
+
                       <div className="mb-3">
                         <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                           Question Text
                         </label>
                         <input
                           type="text"
-                          value={element.title || ''}
-                          onChange={(e) => handleElementChange(element.id, 'title', e.target.value)}
+                          value={element.title || ""}
+                          onChange={(e) =>
+                            handleElementChange(
+                              element.id,
+                              "title",
+                              e.target.value,
+                            )
+                          }
                           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         />
                       </div>
-                      
+
                       <div className="mb-3 grid grid-cols-2 gap-4">
                         <div className="relative">
                           <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
@@ -426,12 +485,20 @@ const AdminQuestionnaire = () => {
                           <div className="group">
                             <select
                               value={element.type}
-                              onChange={(e) => handleElementChange(element.id, 'type', e.target.value)}
+                              onChange={(e) =>
+                                handleElementChange(
+                                  element.id,
+                                  "type",
+                                  e.target.value,
+                                )
+                              }
                               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                             >
                               <option value="text">Text Input</option>
                               <option value="comment">Text Area</option>
-                              <option value="radiogroup">Multiple Choice</option>
+                              <option value="radiogroup">
+                                Multiple Choice
+                              </option>
                               <option value="checkbox">Checkboxes</option>
                             </select>
                             <div className="hidden group-hover:block absolute z-10 w-64 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700 top-full mt-1 left-0">
@@ -439,14 +506,20 @@ const AdminQuestionnaire = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         <div>
                           <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Required
                           </label>
                           <select
                             value={element.isRequired ? "true" : "false"}
-                            onChange={(e) => handleElementChange(element.id, 'isRequired', e.target.value === "true")}
+                            onChange={(e) =>
+                              handleElementChange(
+                                element.id,
+                                "isRequired",
+                                e.target.value === "true",
+                              )
+                            }
                             className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                           >
                             <option value="true">Yes</option>
@@ -454,110 +527,173 @@ const AdminQuestionnaire = () => {
                           </select>
                         </div>
                       </div>
-                      
-                      {(element.type === 'radiogroup' || element.type === 'checkbox') && (
+
+                      {(element.type === "radiogroup" ||
+                        element.type === "checkbox") && (
                         <div className="mb-3">
                           <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                             Options
                           </label>
-                          
+
                           <div className="border border-gray-300 rounded-lg p-3 bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
                             {/* Existing options as individual inputs with delete buttons */}
                             {element.choices ? (
                               <div className="space-y-2 mb-2">
                                 {element.choices.map((choice, idx) => (
-                                  <div key={idx} className="flex items-center space-x-2">
+                                  <div
+                                    key={idx}
+                                    className="flex items-center space-x-2"
+                                  >
                                     <div className="flex-grow flex space-x-2">
                                       <input
                                         type="text"
                                         placeholder="Value"
-                                        value={typeof choice === 'object' ? choice.value : choice}
+                                        value={
+                                          typeof choice === "object"
+                                            ? choice.value
+                                            : choice
+                                        }
                                         onChange={(e) => {
-                                          const newChoices = [...(element.choices || [])];
-                                          if (typeof choice === 'object') {
-                                            newChoices[idx] = { 
-                                              ...choice, 
-                                              value: e.target.value 
+                                          const newChoices = [
+                                            ...(element.choices || []),
+                                          ];
+                                          if (typeof choice === "object") {
+                                            newChoices[idx] = {
+                                              ...choice,
+                                              value: e.target.value,
                                             };
                                           } else {
                                             newChoices[idx] = e.target.value;
                                           }
-                                          handleElementChange(element.id, 'choices', newChoices);
+                                          handleElementChange(
+                                            element.id,
+                                            "choices",
+                                            newChoices,
+                                          );
                                         }}
                                         className="flex-1 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                                       />
-                                      
-                                      {typeof choice === 'object' && (
+
+                                      {typeof choice === "object" && (
                                         <input
                                           type="text"
                                           placeholder="Display Text"
                                           value={choice.text}
                                           onChange={(e) => {
-                                            const newChoices = [...(element.choices || [])];
-                                            newChoices[idx] = { 
-                                              ...(newChoices[idx] as ChoiceItem), 
-                                              text: e.target.value 
+                                            const newChoices = [
+                                              ...(element.choices || []),
+                                            ];
+                                            newChoices[idx] = {
+                                              ...(newChoices[
+                                                idx
+                                              ] as ChoiceItem),
+                                              text: e.target.value,
                                             };
-                                            handleElementChange(element.id, 'choices', newChoices);
+                                            handleElementChange(
+                                              element.id,
+                                              "choices",
+                                              newChoices,
+                                            );
                                           }}
                                           className="flex-1 bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 p-2 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                                         />
                                       )}
                                     </div>
-                                    
+
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        const newChoices = [...(element.choices || [])];
+                                        const newChoices = [
+                                          ...(element.choices || []),
+                                        ];
                                         newChoices.splice(idx, 1);
-                                        handleElementChange(element.id, 'choices', newChoices);
+                                        handleElementChange(
+                                          element.id,
+                                          "choices",
+                                          newChoices,
+                                        );
                                       }}
                                       className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                                     >
-                                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                                      <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth="2"
+                                          d="M6 18L18 6M6 6l12 12"
+                                        ></path>
                                       </svg>
                                     </button>
                                   </div>
                                 ))}
                               </div>
                             ) : null}
-                            
+
                             {/* Add option button */}
                             <button
                               type="button"
                               onClick={() => {
                                 const newChoices = [...(element.choices || [])];
-                                
+
                                 // Use object form by default for better UX
-                                newChoices.push({ value: `option${newChoices.length + 1}`, text: `Option ${newChoices.length + 1}` });
-                                
-                                handleElementChange(element.id, 'choices', newChoices);
+                                newChoices.push({
+                                  value: `option${newChoices.length + 1}`,
+                                  text: `Option ${newChoices.length + 1}`,
+                                });
+
+                                handleElementChange(
+                                  element.id,
+                                  "choices",
+                                  newChoices,
+                                );
                               }}
                               className="flex items-center justify-center w-full py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
                             >
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                              <svg
+                                className="w-4 h-4 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                ></path>
                               </svg>
                               Add Option
                             </button>
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="mb-3">
                         <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                           Description (optional)
                         </label>
                         <textarea
-                          value={element.description || ''}
-                          onChange={(e) => handleElementChange(element.id, 'description', e.target.value)}
+                          value={element.description || ""}
+                          onChange={(e) =>
+                            handleElementChange(
+                              element.id,
+                              "description",
+                              e.target.value,
+                            )
+                          }
                           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                           rows={2}
                           placeholder="Add description or instructions for this question"
                         />
                       </div>
-                      
+
                       {/* Conditional logic section */}
                       {editForm.elements.length > 1 && (
                         <div className="mb-3">
@@ -565,20 +701,33 @@ const AdminQuestionnaire = () => {
                             Conditional Display (optional)
                           </label>
                           <div className="flex items-center space-x-2">
-                            <span className="text-sm text-gray-700 dark:text-gray-300">Show this question only if</span>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">
+                              Show this question only if
+                            </span>
                             <select
-                              value={element.visibleIf ? (element.visibleIf.match(/{([^}]+)}/) || ['', ''])[1] : ""}
+                              value={
+                                element.visibleIf
+                                  ? (element.visibleIf.match(/{([^}]+)}/) || [
+                                      "",
+                                      "",
+                                    ])[1]
+                                  : ""
+                              }
                               onChange={(e) => {
                                 const selectedValue = e.target.value;
                                 if (selectedValue === "") {
                                   // Clear the condition when "None" is selected
-                                  handleElementChange(element.id, 'visibleIf', "");
+                                  handleElementChange(
+                                    element.id,
+                                    "visibleIf",
+                                    "",
+                                  );
                                 } else {
                                   // Set the condition using the selected question name
                                   handleElementChange(
-                                    element.id, 
-                                    'visibleIf', 
-                                    `{${selectedValue}} = 'yes'`
+                                    element.id,
+                                    "visibleIf",
+                                    `{${selectedValue}} = 'yes'`,
                                   );
                                 }
                               }}
@@ -586,22 +735,25 @@ const AdminQuestionnaire = () => {
                             >
                               <option value="">None (no condition)</option>
                               {editForm.elements
-                                .filter(el => el.id !== element.id && el.name)
-                                .map(el => (
+                                .filter((el) => el.id !== element.id && el.name)
+                                .map((el) => (
                                   <option key={el.id} value={el.name || ""}>
                                     {el.title || el.name || "Unnamed question"}
                                   </option>
-                                ))
-                              }
+                                ))}
                             </select>
                           </div>
                           {element.visibleIf && (
                             <div className="mt-2 p-2 bg-gray-50 border border-gray-200 rounded dark:bg-gray-800 dark:border-gray-700">
                               <p className="text-xs text-gray-500 dark:text-gray-400">
-                                <span className="font-medium">Active condition:</span> {element.visibleIf}
+                                <span className="font-medium">
+                                  Active condition:
+                                </span>{" "}
+                                {element.visibleIf}
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                This question will only be shown when the selected question is answered with "yes"
+                                This question will only be shown when the
+                                selected question is answered with "yes"
                               </p>
                             </div>
                           )}
@@ -609,15 +761,26 @@ const AdminQuestionnaire = () => {
                       )}
                     </div>
                   ))}
-                  
+
                   <div className="flex justify-center mt-4">
                     <button
                       type="button"
                       onClick={handleAddQuestion}
                       className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        ></path>
                       </svg>
                       Add New Question
                     </button>

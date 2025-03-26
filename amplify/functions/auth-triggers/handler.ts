@@ -59,7 +59,7 @@ const handlePostConfirmation = async (event: any) => {
   try {
     // Send application review email to the user
     await userStatusOperations.sendApplicationReviewEmail(email);
-    
+
     // Notify admins about the new user
     await userStatusOperations.notifyAdminsAboutNewUser(email);
 

@@ -48,7 +48,10 @@ export class SESClient {
     };
 
     mockSentEmails.push(email);
-    console.log("SES Mock: Email pushed to mockSentEmails. Length:", mockSentEmails.length);
+    console.log(
+      "SES Mock: Email pushed to mockSentEmails. Length:",
+      mockSentEmails.length,
+    );
 
     return {
       MessageId: `mock-message-id-${mockSentEmails.length}`,

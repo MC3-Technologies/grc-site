@@ -72,84 +72,118 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
         console.log("[DEBUG] getAdminStats operation START");
         const stats = await userOperations.getAdminStats();
         // Convert to string since we're returning JSON
-        console.log(`[DEBUG] getAdminStats operation COMPLETE - result=${JSON.stringify(stats)}`);
+        console.log(
+          `[DEBUG] getAdminStats operation COMPLETE - result=${JSON.stringify(stats)}`,
+        );
         return JSON.stringify(stats);
 
       case "getAuditLogs":
-        console.log(`[DEBUG] getAuditLogs operation START - dateRange=${JSON.stringify(event.arguments?.dateRange)}, filters=${JSON.stringify(event.arguments?.filters)}`);
+        console.log(
+          `[DEBUG] getAuditLogs operation START - dateRange=${JSON.stringify(event.arguments?.dateRange)}, filters=${JSON.stringify(event.arguments?.filters)}`,
+        );
         const auditLogs = await userOperations.getAuditLogs(
           event.arguments?.dateRange,
           event.arguments?.filters,
         );
-        console.log(`[DEBUG] getAuditLogs operation COMPLETE - result=${JSON.stringify(auditLogs)}`);
+        console.log(
+          `[DEBUG] getAuditLogs operation COMPLETE - result=${JSON.stringify(auditLogs)}`,
+        );
         return auditLogs;
 
       case "approveUser":
-        console.log(`[DEBUG] approveUser operation START - email=${event.arguments?.email}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] approveUser operation START - email=${event.arguments?.email}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const approveResult = await userOperations.approveUser(
           event.arguments?.email,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] approveUser operation COMPLETE - result=${JSON.stringify(approveResult)}`);
+        console.log(
+          `[DEBUG] approveUser operation COMPLETE - result=${JSON.stringify(approveResult)}`,
+        );
         return approveResult;
 
       case "rejectUser":
-        console.log(`[DEBUG] rejectUser operation START - email=${event.arguments?.email}, reason=${event.arguments?.reason}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] rejectUser operation START - email=${event.arguments?.email}, reason=${event.arguments?.reason}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const rejectResult = await userOperations.rejectUser(
           event.arguments?.email,
           event.arguments?.reason,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] rejectUser operation COMPLETE - result=${JSON.stringify(rejectResult)}`);
+        console.log(
+          `[DEBUG] rejectUser operation COMPLETE - result=${JSON.stringify(rejectResult)}`,
+        );
         return rejectResult;
 
       case "suspendUser":
-        console.log(`[DEBUG] suspendUser operation START - email=${event.arguments?.email}, reason=${event.arguments?.reason}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] suspendUser operation START - email=${event.arguments?.email}, reason=${event.arguments?.reason}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const suspendResult = await userOperations.suspendUser(
           event.arguments?.email,
           event.arguments?.reason,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] suspendUser operation COMPLETE - result=${JSON.stringify(suspendResult)}`);
+        console.log(
+          `[DEBUG] suspendUser operation COMPLETE - result=${JSON.stringify(suspendResult)}`,
+        );
         return suspendResult;
 
       case "reactivateUser":
-        console.log(`[DEBUG] reactivateUser operation START - email=${event.arguments?.email}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] reactivateUser operation START - email=${event.arguments?.email}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const reactivateResult = await userOperations.reactivateUser(
           event.arguments?.email,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] reactivateUser operation COMPLETE - result=${JSON.stringify(reactivateResult)}`);
+        console.log(
+          `[DEBUG] reactivateUser operation COMPLETE - result=${JSON.stringify(reactivateResult)}`,
+        );
         return reactivateResult;
 
       case "createUser":
-        console.log(`[DEBUG] createUser operation START - email=${event.arguments?.email}, role=${event.arguments?.role}, sendEmail=${event.arguments?.sendEmail}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] createUser operation START - email=${event.arguments?.email}, role=${event.arguments?.role}, sendEmail=${event.arguments?.sendEmail}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const createResult = await userOperations.createUser(
           event.arguments?.email,
           event.arguments?.role,
           event.arguments?.sendEmail,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] createUser operation COMPLETE - result=${JSON.stringify(createResult)}`);
+        console.log(
+          `[DEBUG] createUser operation COMPLETE - result=${JSON.stringify(createResult)}`,
+        );
         return createResult;
 
       case "updateUserRole":
-        console.log(`[DEBUG] updateUserRole operation START - email=${event.arguments?.email}, role=${event.arguments?.role}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] updateUserRole operation START - email=${event.arguments?.email}, role=${event.arguments?.role}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const updateRoleResult = await userOperations.updateUserRole(
           event.arguments?.email,
           event.arguments?.role,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] updateUserRole operation COMPLETE - result=${JSON.stringify(updateRoleResult)}`);
+        console.log(
+          `[DEBUG] updateUserRole operation COMPLETE - result=${JSON.stringify(updateRoleResult)}`,
+        );
         return updateRoleResult;
 
       case "deleteUser":
-        console.log(`[DEBUG] deleteUser operation START - email=${event.arguments?.email}, adminEmail=${event.arguments?.adminEmail}`);
+        console.log(
+          `[DEBUG] deleteUser operation START - email=${event.arguments?.email}, adminEmail=${event.arguments?.adminEmail}`,
+        );
         const deleteResult = await userOperations.deleteUser(
           event.arguments?.email,
           event.arguments?.adminEmail,
         );
-        console.log(`[DEBUG] deleteUser operation COMPLETE - result=${JSON.stringify(deleteResult)}`);
+        console.log(
+          `[DEBUG] deleteUser operation COMPLETE - result=${JSON.stringify(deleteResult)}`,
+        );
         return deleteResult;
 
       case "getAllSystemSettings":
@@ -164,7 +198,6 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
 
       case "migrateUsersToDynamoDB":
         return await userOperations.migrateUsersToDynamoDB();
-        
 
       default:
         // If operation is not recognized, log warning and default to listUsers

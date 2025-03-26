@@ -115,14 +115,18 @@ export const reactivationTemplate = (data: TemplateData = {}): string => {
   return baseTemplate(content);
 };
 
-export const sendApplicationReviewEmail = (userEmail: string, status: string): SendEmailCommandInput => {
+export const sendApplicationReviewEmail = (
+  userEmail: string,
+  status: string,
+): SendEmailCommandInput => {
   const content = `
     <h1>Application Status Update</h1>
     <p>Your application has been reviewed.</p>
     <p>Status: <strong>${status}</strong></p>
-    ${status === 'APPROVED' 
-      ? '<p>You can now log in to your account.</p>'
-      : '<p>Unfortunately, your application has been rejected. If you believe this is a mistake, please contact support.</p>'
+    ${
+      status === "APPROVED"
+        ? "<p>You can now log in to your account.</p>"
+        : "<p>Unfortunately, your application has been rejected. If you believe this is a mistake, please contact support.</p>"
     }
   `;
 
@@ -139,9 +143,9 @@ export const sendApplicationReviewEmail = (userEmail: string, status: string): S
         Text: {
           Charset: "UTF-8",
           Data: `Your application has been reviewed. Status: ${status}. ${
-            status === 'APPROVED'
-              ? 'You can now log in to your account.'
-              : 'Unfortunately, your application has been rejected. If you believe this is a mistake, please contact support.'
+            status === "APPROVED"
+              ? "You can now log in to your account."
+              : "Unfortunately, your application has been rejected. If you believe this is a mistake, please contact support."
           }`,
         },
       },
@@ -155,7 +159,10 @@ export const sendApplicationReviewEmail = (userEmail: string, status: string): S
 };
 
 // Template for admin notification emails
-export const adminNotificationTemplate = (data: { userEmail: string, adminUrl: string }): string => {
+export const adminNotificationTemplate = (data: {
+  userEmail: string;
+  adminUrl: string;
+}): string => {
   const content = `
     <h1>New User Registration</h1>
     <p>A new user has registered with the email: <strong>${data.userEmail}</strong></p>

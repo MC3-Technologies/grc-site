@@ -554,55 +554,59 @@ describe("User Management Operations", () => {
       const userEmail = "newuser@example.com";
       const userRole = "StandardUser";
       const adminEmail = "admin@example.com";
-      
+
       // Reset the mock SES client state
       mockSES.__resetMockSES();
-      
+
       // Mock the implementation for creating a user
       const originalCreateUser = userOperations.createUser;
-      userOperations.createUser = jest.fn().mockImplementation(async (email, role, shouldSendEmail, adminEmail) => {
-        // Create the mock user
-        mockCognito.__setMockUser(email, {
-          attributes: {
-            email: email,
-            "custom:status": "APPROVED"
-          },
-          enabled: true
-        });
-        
-        // Set up mock user groups
-        mockCognito.__setMockUserGroups(email, [role]);
-        
-        // Manually create and send a mock email
-        if (shouldSendEmail) {
-          // Using the actual SESClient to send the email
-          const sesClient = new mockSES.SESClient();
-          const emailCommand = new mockSES.SendEmailCommand({
-            Destination: {
-              ToAddresses: [email]
-            },
-            Message: {
-              Subject: {
-                Data: "User Account Created",
-                Charset: "UTF-8"
+      userOperations.createUser = jest
+        .fn()
+        .mockImplementation(
+          async (email, role, shouldSendEmail, adminEmail) => {
+            // Create the mock user
+            mockCognito.__setMockUser(email, {
+              attributes: {
+                email: email,
+                "custom:status": "APPROVED",
               },
-              Body: {
-                Html: {
-                  Data: `Your account has been created with role: ${role}`,
-                  Charset: "UTF-8"
-                }
-              }
-            },
-            Source: "test@example.com"
-          });
-          
-          // Actually send the email through the mock
-          await sesClient.send(emailCommand);
-        }
-        
-        return { success: true };
-      });
-      
+              enabled: true,
+            });
+
+            // Set up mock user groups
+            mockCognito.__setMockUserGroups(email, [role]);
+
+            // Manually create and send a mock email
+            if (shouldSendEmail) {
+              // Using the actual SESClient to send the email
+              const sesClient = new mockSES.SESClient();
+              const emailCommand = new mockSES.SendEmailCommand({
+                Destination: {
+                  ToAddresses: [email],
+                },
+                Message: {
+                  Subject: {
+                    Data: "User Account Created",
+                    Charset: "UTF-8",
+                  },
+                  Body: {
+                    Html: {
+                      Data: `Your account has been created with role: ${role}`,
+                      Charset: "UTF-8",
+                    },
+                  },
+                },
+                Source: "test@example.com",
+              });
+
+              // Actually send the email through the mock
+              await sesClient.send(emailCommand);
+            }
+
+            return { success: true };
+          },
+        );
+
       // Call the function
       const result = await userOperations.createUser(
         userEmail,
@@ -610,27 +614,27 @@ describe("User Management Operations", () => {
         true, // shouldSendEmail = true
         adminEmail,
       );
-      
+
       // Check if result is a success object or a boolean
       const isSuccess =
         typeof result === "object"
           ? (result as OperationResult).success
           : result;
       expect(isSuccess).toBeTruthy();
-      
+
       // Verify user was created
       const user = mockCognito.__getMockUser(userEmail);
       expect(user).toBeTruthy();
-      
+
       // Verify user was added to the correct group
       const userGroups = mockCognito.__getMockUserGroups(userEmail);
       expect(userGroups?.has(userRole)).toBe(true);
-      
+
       // Verify email was sent (if shouldSendEmail=true)
       const sentEmails = mockSES.__getMockSentEmails();
       expect(sentEmails.length).toBeGreaterThan(0);
       expect(sentEmails[0].destination.ToAddresses).toContain(userEmail);
-      
+
       // Restore original functions
       userOperations.createUser = originalCreateUser;
     });

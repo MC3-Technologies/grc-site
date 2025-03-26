@@ -43,18 +43,18 @@ interface AdminStats {
 const formatDateToHST = (dateString: string): string => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      timeZone: 'Pacific/Honolulu',
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      hour12: true
+    return date.toLocaleString("en-US", {
+      timeZone: "Pacific/Honolulu",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: true,
     });
   } catch (error) {
-    console.error('Error formatting date:', error);
+    console.error("Error formatting date:", error);
     return dateString; // Return original string if conversion fails
   }
 };
@@ -99,58 +99,81 @@ export default function AdminHome() {
       }
 
       setIsLoading(true);
-      
+
       // Clear cache before fetching when forcing refresh
       if (forceRefresh) {
         logDebug("Force refreshing admin stats and clearing cache");
         await clearAdminStatsCache();
       }
-      
+
       logDebug("Fetching admin statistics");
       const stats = await fetchAdminStats(forceRefresh);
       logDebug("Admin stats received from API");
-      
+
       if (stats) {
-        logDebug(`Raw recent activity count: ${stats.recentActivity?.length || 0}`);
-        
+        logDebug(
+          `Raw recent activity count: ${stats.recentActivity?.length || 0}`,
+        );
+
         // Log ALL activities without filtering to debug what's actually coming from the API
-        if (Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0) {
+        if (
+          Array.isArray(stats.recentActivity) &&
+          stats.recentActivity.length > 0
+        ) {
           logDebug("ALL activities from API response:");
           stats.recentActivity.forEach((activity, idx) => {
-            logDebug(`[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || 'no-id'} - ID: ${activity.id?.substring(0, 8) || 'no-id'}`);
+            logDebug(
+              `[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || "no-id"} - ID: ${activity.id?.substring(0, 8) || "no-id"}`,
+            );
           });
         } else {
-          logDebug("⚠️ No activities received from API - this could indicate a backend issue");
+          logDebug(
+            "⚠️ No activities received from API - this could indicate a backend issue",
+          );
         }
-        
+
         // Ensure activity array is properly sorted by timestamp in descending order
         if (Array.isArray(stats.recentActivity)) {
           // Create a new array instead of trying to modify the original
           stats.recentActivity = [...stats.recentActivity]
             // Only filter out invalid activities (null/undefined)
-            .filter(activity => {
+            .filter((activity) => {
               if (!activity) return false;
-              
+
               // Always log what we're processing
-              logDebug(`Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || 'unknown'}`);
-              
+              logDebug(
+                `Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || "unknown"}`,
+              );
+
               // Include all valid activities - USER_STATUS_UPDATED no longer exists
               return true;
             })
-            .map(activity => {
+            .map((activity) => {
               // Ensure resourceId is set to email when available for consistency
-              if (activity.affectedResource === "user" && !activity.resourceId && activity.details?.email) {
+              if (
+                activity.affectedResource === "user" &&
+                !activity.resourceId &&
+                activity.details?.email
+              ) {
                 activity.resourceId = activity.details.email as string;
                 logDebug(`Fixed missing resourceId for ${activity.action}`);
               }
-              
+
               // Special handling for USER_DELETED events which may have different formats
-              if (activity.action === "USER_DELETED" && !activity.resourceId && activity.details?.userId) {
+              if (
+                activity.action === "USER_DELETED" &&
+                !activity.resourceId &&
+                activity.details?.userId
+              ) {
                 // Try to use email from details if available
-                activity.resourceId = (activity.details.email as string) || (activity.details.userId as string);
-                logDebug(`Fixed USER_DELETED resourceId to: ${activity.resourceId}`);
+                activity.resourceId =
+                  (activity.details.email as string) ||
+                  (activity.details.userId as string);
+                logDebug(
+                  `Fixed USER_DELETED resourceId to: ${activity.resourceId}`,
+                );
               }
-              
+
               return activity;
             })
             .sort((a, b) => {
@@ -159,62 +182,82 @@ export default function AdminHome() {
               const timeB = new Date(b.timestamp).getTime();
               return timeB - timeA;
             });
-          
-          logDebug(`After filtering and sorting: ${stats.recentActivity.length} activities`);
-          
+
+          logDebug(
+            `After filtering and sorting: ${stats.recentActivity.length} activities`,
+          );
+
           // Log the first 3 activities for debugging
           if (stats.recentActivity.length > 0) {
             stats.recentActivity.slice(0, 3).forEach((activity, index) => {
-              logDebug(`Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`);
+              logDebug(
+                `Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
+              );
             });
           }
         }
-        
+
         // After filtering and sorting, log the final set of activities
         if (stats.recentActivity && stats.recentActivity.length > 0) {
-          logDebug(`After filtering and sorting: ${stats.recentActivity.length} activities`);
+          logDebug(
+            `After filtering and sorting: ${stats.recentActivity.length} activities`,
+          );
           stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
-            logDebug(`Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`);
+            logDebug(
+              `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
+            );
           });
         } else {
           logDebug("⚠️ No activities found after filtering and sorting");
-          
+
           // If we have no activities, schedule a retry with delay
           if (forceRefresh) {
-            logDebug("Scheduling retry in 5 seconds due to missing activities...");
+            logDebug(
+              "Scheduling retry in 5 seconds due to missing activities...",
+            );
             setTimeout(() => {
               logDebug("Retrying stat fetch due to missing activities");
               clearAdminStatsCache();
-              fetchAdminStats(true).then(retryStats => {
-                if (retryStats && Array.isArray(retryStats.recentActivity) && retryStats.recentActivity.length > 0) {
-                  logDebug(`Retry successful, got ${retryStats.recentActivity.length} activities`);
-                  setAdminStats(retryStats as unknown as AdminStats);
-                } else {
-                  logDebug("⚠️ Retry failed to get activities");
-                }
-                setIsLoading(false);
-              }).catch(err => {
-                logDebug(`Error in retry fetch: ${err}`);
-                setIsLoading(false);
-              });
+              fetchAdminStats(true)
+                .then((retryStats) => {
+                  if (
+                    retryStats &&
+                    Array.isArray(retryStats.recentActivity) &&
+                    retryStats.recentActivity.length > 0
+                  ) {
+                    logDebug(
+                      `Retry successful, got ${retryStats.recentActivity.length} activities`,
+                    );
+                    setAdminStats(retryStats as unknown as AdminStats);
+                  } else {
+                    logDebug("⚠️ Retry failed to get activities");
+                  }
+                  setIsLoading(false);
+                })
+                .catch((err) => {
+                  logDebug(`Error in retry fetch: ${err}`);
+                  setIsLoading(false);
+                });
             }, 5000);
             return; // Exit early, we'll update state in the retry
           }
         }
-        
+
         // Add debugging timestamp to help identify when data was last processed
         const statsWithDebug = {
           ...stats,
-          debugTimestamp: new Date().toISOString()
+          debugTimestamp: new Date().toISOString(),
         };
-        
+
         setAdminStats(statsWithDebug as unknown as AdminStats);
         lastRefreshTimeRef.current = new Date();
         logDebug("Stats updated in component state");
       }
     } catch (error) {
       console.error("Error fetching admin stats:", error);
-      logDebug(`Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`);
+      logDebug(
+        `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -226,11 +269,11 @@ export default function AdminHome() {
     const timeout: NodeJS.Timeout | null = null;
     const debouncedRefresh = (eventType: string) => {
       console.log(`Debounced refresh triggered by: ${eventType}`);
-      
+
       if (timeout) {
         clearTimeout(timeout);
       }
-      
+
       // Schedule a silent refresh instead of showing notification
       setTimeout(() => {
         fetchStats(true);
@@ -241,45 +284,50 @@ export default function AdminHome() {
     const handleAdminAction = (event: Event) => {
       const customEvent = event as CustomEvent;
       const eventType = customEvent.detail.type;
-      
+
       logDebug(`Admin action detected: ${eventType}`);
-      if (eventType === AdminEvents.USER_DELETED ||
-          eventType === AdminEvents.USER_UPDATED ||
-          eventType === AdminEvents.USER_APPROVED ||
-          eventType === AdminEvents.USER_REJECTED ||
-          eventType === AdminEvents.USER_SUSPENDED ||
-          eventType === AdminEvents.USER_REACTIVATED ||
-          eventType === AdminEvents.USER_ROLE_UPDATED ||
-          eventType === AdminEvents.USER_CREATED) {
-        
+      if (
+        eventType === AdminEvents.USER_DELETED ||
+        eventType === AdminEvents.USER_UPDATED ||
+        eventType === AdminEvents.USER_APPROVED ||
+        eventType === AdminEvents.USER_REJECTED ||
+        eventType === AdminEvents.USER_SUSPENDED ||
+        eventType === AdminEvents.USER_REACTIVATED ||
+        eventType === AdminEvents.USER_ROLE_UPDATED ||
+        eventType === AdminEvents.USER_CREATED
+      ) {
         logDebug("Action requires refresh, initiating debounced refresh");
         debouncedRefresh(eventType);
       }
     };
 
     // Only add event listener to document, not window
-    document.addEventListener('adminAction', handleAdminAction);
+    document.addEventListener("adminAction", handleAdminAction);
 
     // Add visibility change listener to check for updates when tab becomes visible
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        const timeSinceLastRefresh = new Date().getTime() - lastRefreshTimeRef.current.getTime();
-        if (timeSinceLastRefresh > 30000) { // 30 seconds since last refresh
-          logDebug("Tab became visible after 30+ seconds, checking for updates...");
+      if (document.visibilityState === "visible") {
+        const timeSinceLastRefresh =
+          new Date().getTime() - lastRefreshTimeRef.current.getTime();
+        if (timeSinceLastRefresh > 30000) {
+          // 30 seconds since last refresh
+          logDebug(
+            "Tab became visible after 30+ seconds, checking for updates...",
+          );
           // Remove the data change detected code - instead just refresh silently
           fetchStats(true);
         }
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       if (timeout) {
         clearTimeout(timeout);
       }
-      document.removeEventListener('adminAction', handleAdminAction);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("adminAction", handleAdminAction);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchStats, forceRefreshCounter]);
 
@@ -309,28 +357,31 @@ export default function AdminHome() {
   // Function for manual refresh with improved sequence
   const handleManualRefresh = useCallback(() => {
     logDebug("Manual refresh requested");
-    
+
     // Remove notification reset code
-    
+
     // Set loading state
     setIsLoading(true);
-    
+
     // Clear cache first
     clearAdminStatsCache();
-    
+
     // Force a counter increment to trigger the useEffect
-    setForceRefreshCounter(prev => prev + 1);
-    
+    setForceRefreshCounter((prev) => prev + 1);
+
     // Refresh the data
-    fetchStats(true).then(() => {
-      setSuccess("Dashboard refreshed successfully");
-      // Auto-dismiss success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-    }).catch(error => {
-      console.error("Error refreshing dashboard:", error);
-    }).finally(() => {
-      setIsLoading(false);
-    });
+    fetchStats(true)
+      .then(() => {
+        setSuccess("Dashboard refreshed successfully");
+        // Auto-dismiss success message after 3 seconds
+        setTimeout(() => setSuccess(null), 3000);
+      })
+      .catch((error) => {
+        console.error("Error refreshing dashboard:", error);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, [fetchStats]);
 
   useEffect(() => {
@@ -341,33 +392,35 @@ export default function AdminHome() {
     const handleAdminAction = (event: Event) => {
       const customEvent = event as CustomEvent;
       const eventType = customEvent.detail.type;
-      
+
       logDebug(`Admin action detected: ${eventType}`);
-      if (eventType === AdminEvents.USER_DELETED ||
-          eventType === AdminEvents.USER_UPDATED ||
-          eventType === AdminEvents.USER_APPROVED ||
-          eventType === AdminEvents.USER_REJECTED ||
-          eventType === AdminEvents.USER_SUSPENDED ||
-          eventType === AdminEvents.USER_REACTIVATED ||
-          eventType === AdminEvents.USER_ROLE_UPDATED ||
-          eventType === AdminEvents.USER_CREATED) {
+      if (
+        eventType === AdminEvents.USER_DELETED ||
+        eventType === AdminEvents.USER_UPDATED ||
+        eventType === AdminEvents.USER_APPROVED ||
+        eventType === AdminEvents.USER_REJECTED ||
+        eventType === AdminEvents.USER_SUSPENDED ||
+        eventType === AdminEvents.USER_REACTIVATED ||
+        eventType === AdminEvents.USER_ROLE_UPDATED ||
+        eventType === AdminEvents.USER_CREATED
+      ) {
         logDebug("Action requires refresh, initiating refresh sequence");
-        
+
         // Set loading state to indicate refresh is happening
         setIsLoading(true);
-        
+
         // Clear cache immediately
         clearAdminStatsCache();
-        
-        // Increment force refresh counter to trigger refresh 
-        setForceRefreshCounter(prev => prev + 1);
-        
+
+        // Increment force refresh counter to trigger refresh
+        setForceRefreshCounter((prev) => prev + 1);
+
         // Wait longer to ensure backend has time to update database and audit logs
         setTimeout(async () => {
           logDebug("First refresh after admin action");
           // Force an initial refresh
           await fetchStats(true);
-          
+
           // After a short delay, do a final refresh to catch any late updates
           setTimeout(async () => {
             logDebug("Final refresh to ensure all changes are captured");
@@ -379,8 +432,8 @@ export default function AdminHome() {
     };
 
     // Add event listeners to both document and window
-    document.addEventListener('adminAction', handleAdminAction);
-    window.addEventListener('adminAction', handleAdminAction);
+    document.addEventListener("adminAction", handleAdminAction);
+    window.addEventListener("adminAction", handleAdminAction);
 
     // Set up auto-refresh every 30 seconds (reduced from 1 minute)
     const refreshInterval = setInterval(() => {
@@ -390,16 +443,18 @@ export default function AdminHome() {
 
     // Add visibility change listener with improved handling
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        const timeSinceLastRefresh = new Date().getTime() - lastRefreshTimeRef.current.getTime();
-        if (timeSinceLastRefresh > 5000) { // 5 seconds (reduced from 10)
+      if (document.visibilityState === "visible") {
+        const timeSinceLastRefresh =
+          new Date().getTime() - lastRefreshTimeRef.current.getTime();
+        if (timeSinceLastRefresh > 5000) {
+          // 5 seconds (reduced from 10)
           logDebug("Tab became visible, refreshing stats...");
           fetchStats(true); // Force refresh when tab becomes visible
         }
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Store the current timeout ref value in a local variable for cleanup
     const currentTimeoutRef = refreshTimeoutRef.current;
@@ -409,9 +464,9 @@ export default function AdminHome() {
         clearTimeout(currentTimeoutRef);
       }
       clearInterval(refreshInterval);
-      document.removeEventListener('adminAction', handleAdminAction);
-      window.removeEventListener('adminAction', handleAdminAction);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("adminAction", handleAdminAction);
+      window.removeEventListener("adminAction", handleAdminAction);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [fetchStats, forceRefreshCounter]); // Added forceRefreshCounter as dependency
 
@@ -427,16 +482,16 @@ export default function AdminHome() {
   window.createDebouncedHandler = () => {
     let timeout: NodeJS.Timeout | null = null;
     let isRefreshing = false;
-    
+
     return (event: CustomEvent) => {
       console.log("✨ Debounced handler received event:", event.detail.type);
-      
+
       // Clear any pending refreshes
       if (timeout) {
         console.log("🛑 Cancelling previous pending refresh");
         clearTimeout(timeout);
       }
-      
+
       // If already refreshing, just schedule a final refresh
       if (isRefreshing) {
         console.log("⏳ Already refreshing, scheduling final refresh only");
@@ -449,21 +504,21 @@ export default function AdminHome() {
         }, 2000);
         return;
       }
-      
+
       // Start a new refresh sequence
       isRefreshing = true;
       console.log("🔄 Starting debounced refresh sequence");
-      
+
       // Clear cache immediately
       window.adminUser.clearAdminStatsCache();
-      
+
       // Set a delayed refresh
       timeout = setTimeout(() => {
         console.log("🔄 Executing debounced refresh");
         // This would ideally call your fetchStats function directly
         // but we can use a workaround
-        document.dispatchEvent(new CustomEvent('manualRefresh'));
-        
+        document.dispatchEvent(new CustomEvent("manualRefresh"));
+
         // Reset state
         timeout = null;
         isRefreshing = false;
@@ -490,10 +545,22 @@ export default function AdminHome() {
 
       {/* Success message */}
       {success && (
-        <div className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300 animate-fadeIn" role="alert">
+        <div
+          className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300 animate-fadeIn"
+          role="alert"
+        >
           <div className="flex items-center">
-            <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
+            <svg
+              className="w-5 h-5 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                clipRule="evenodd"
+              ></path>
             </svg>
             <span>{success}</span>
           </div>
@@ -745,13 +812,16 @@ export default function AdminHome() {
                 </button>
               </div>
             </div>
-            
+
             {/* Filter controls */}
             {showFilters && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
                 <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
                   <div className="flex-1">
-                    <label htmlFor="userFilter" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                      htmlFor="userFilter"
+                      className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >
                       Filter by User Email
                     </label>
                     <input
@@ -780,123 +850,142 @@ export default function AdminHome() {
                 </div>
               </div>
             )}
-            
+
             <div className="overflow-x-auto relative">
               {isLoading ? (
                 <div className="flex justify-center items-center py-10">
                   <Spinner />
                 </div>
               ) : (
-              <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                  <tr>
-                    <th scope="col" className="py-3 px-6">
-                      Time
-                    </th>
-                    <th scope="col" className="py-3 px-6">
-                      Action
-                    </th>
-                    <th scope="col" className="py-3 px-6">
-                      Admin
-                    </th>
-                    <th scope="col" className="py-3 px-6">
-                      Resource
-                    </th>
-                    <th scope="col" className="py-3 px-6">
-                      Details
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {adminStats?.recentActivity && 
+                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                  <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                      <th scope="col" className="py-3 px-6">
+                        Time
+                      </th>
+                      <th scope="col" className="py-3 px-6">
+                        Action
+                      </th>
+                      <th scope="col" className="py-3 px-6">
+                        Admin
+                      </th>
+                      <th scope="col" className="py-3 px-6">
+                        Resource
+                      </th>
+                      <th scope="col" className="py-3 px-6">
+                        Details
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminStats?.recentActivity &&
                     adminStats.recentActivity.length > 0 ? (
-                    // Filter activities by user email if filter is set
-                    adminStats.recentActivity
-                      .filter(activity => {
-                        if (!userFilter) return true;
-                        
-                        // Check different places where the email might be stored
-                        const email = activity.resourceId || 
-                          (activity.details && activity.details.email as string) || 
-                          '';
-                        
-                        return email.toLowerCase().includes(userFilter.toLowerCase());
-                      })
-                      // Apply pagination to display only a subset of activities
-                      .slice(
-                        (currentPage - 1) * activitiesPerPage,
-                        currentPage * activitiesPerPage
-                      )
-                      .map((activity, index) => {
-                      // Skip invalid activities to prevent rendering errors
-                      if (!activity || !activity.action) {
-                        console.warn("Skipping invalid activity:", activity);
-                        return null;
-                      }
-                      
-                      try {
-                        return (
-                          <tr
-                            key={activity.id || `activity-${index}`}
-                            className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                          >
-                            <td className="py-4 px-6">
-                              {formatDateToHST(activity.timestamp)}
-                            </td>
-                            <td className="py-4 px-6">
-                              <span
-                                className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
+                      // Filter activities by user email if filter is set
+                      adminStats.recentActivity
+                        .filter((activity) => {
+                          if (!userFilter) return true;
+
+                          // Check different places where the email might be stored
+                          const email =
+                            activity.resourceId ||
+                            (activity.details &&
+                              (activity.details.email as string)) ||
+                            "";
+
+                          return email
+                            .toLowerCase()
+                            .includes(userFilter.toLowerCase());
+                        })
+                        // Apply pagination to display only a subset of activities
+                        .slice(
+                          (currentPage - 1) * activitiesPerPage,
+                          currentPage * activitiesPerPage,
+                        )
+                        .map((activity, index) => {
+                          // Skip invalid activities to prevent rendering errors
+                          if (!activity || !activity.action) {
+                            console.warn(
+                              "Skipping invalid activity:",
+                              activity,
+                            );
+                            return null;
+                          }
+
+                          try {
+                            return (
+                              <tr
+                                key={activity.id || `activity-${index}`}
+                                className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
                               >
-                                {formatActionName(activity.action)}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6">
-                              {activity.performedBy || "System"}
-                            </td>
-                            <td className="py-4 px-6">
-                              {activity.affectedResource || "Unknown"}
-                              {(activity.resourceId || activity.details?.email) && (
-                                <span className="block text-xs text-gray-500 dark:text-gray-400">
-                                  {(activity.details?.email as string) || activity.resourceId}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-4 px-6">
-                              {formatActivityDetails(activity)}
-                            </td>
-                          </tr>
-                        );
-                      } catch (error) {
-                        console.error("Error rendering activity:", error, activity);
-                        return null;
-                      }
-                    })
-                  ) : (
-                  <tr>
-                    <td colSpan={5} className="py-4 px-6 text-center">
-                      No recent activities found
-                    </td>
-                  </tr>
-                )}
-                </tbody>
-              </table>
+                                <td className="py-4 px-6">
+                                  {formatDateToHST(activity.timestamp)}
+                                </td>
+                                <td className="py-4 px-6">
+                                  <span
+                                    className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
+                                  >
+                                    {formatActionName(activity.action)}
+                                  </span>
+                                </td>
+                                <td className="py-4 px-6">
+                                  {activity.performedBy || "System"}
+                                </td>
+                                <td className="py-4 px-6">
+                                  {activity.affectedResource || "Unknown"}
+                                  {(activity.resourceId ||
+                                    activity.details?.email) && (
+                                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                                      {(activity.details?.email as string) ||
+                                        activity.resourceId}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="py-4 px-6">
+                                  {formatActivityDetails(activity)}
+                                </td>
+                              </tr>
+                            );
+                          } catch (error) {
+                            console.error(
+                              "Error rendering activity:",
+                              error,
+                              activity,
+                            );
+                            return null;
+                          }
+                        })
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="py-4 px-6 text-center">
+                          No recent activities found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               )}
-              
+
               {/* Add pagination controls */}
-              {adminStats?.recentActivity && (
-                () => {
+              {adminStats?.recentActivity &&
+                (() => {
                   // Get filtered activities
-                  const filteredActivities = adminStats.recentActivity.filter(activity => {
-                    if (!userFilter) return true;
-                    
-                    // Check different places where the email might be stored
-                    const email = activity.resourceId || 
-                      (activity.details && activity.details.email as string) || 
-                      '';
-                    
-                    return email.toLowerCase().includes(userFilter.toLowerCase());
-                  });
-                  
+                  const filteredActivities = adminStats.recentActivity.filter(
+                    (activity) => {
+                      if (!userFilter) return true;
+
+                      // Check different places where the email might be stored
+                      const email =
+                        activity.resourceId ||
+                        (activity.details &&
+                          (activity.details.email as string)) ||
+                        "";
+
+                      return email
+                        .toLowerCase()
+                        .includes(userFilter.toLowerCase());
+                    },
+                  );
+
                   // Only show pagination if we have more than one page
                   if (filteredActivities.length > activitiesPerPage) {
                     return (
@@ -905,7 +994,9 @@ export default function AdminHome() {
                           <ul className="inline-flex -space-x-px">
                             <li>
                               <button
-                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                onClick={() =>
+                                  setCurrentPage(Math.max(1, currentPage - 1))
+                                }
                                 disabled={currentPage === 1}
                                 className={`px-3 py-2 ml-0 leading-tight ${
                                   currentPage === 1
@@ -916,38 +1007,75 @@ export default function AdminHome() {
                                 Previous
                               </button>
                             </li>
-                            
+
                             {/* Generate page numbers */}
-                            {Array.from({ length: Math.min(5, Math.ceil(filteredActivities.length / activitiesPerPage)) }, (_, i) => {
-                              // Show at most 5 page numbers
-                              const pageStart = Math.max(1, currentPage - 2);
-                              const pageNum = pageStart + i;
-                              
-                              if (pageNum <= Math.ceil(filteredActivities.length / activitiesPerPage)) {
-                                return (
-                                  <li key={pageNum}>
-                                    <button
-                                      onClick={() => setCurrentPage(pageNum)}
-                                      className={`px-3 py-2 leading-tight ${
-                                        currentPage === pageNum
-                                          ? "text-blue-600 bg-blue-50 border-blue-300 hover:bg-blue-100 hover:text-blue-700"
-                                          : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
-                                      } border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`}
-                                    >
-                                      {pageNum}
-                                    </button>
-                                  </li>
-                                );
-                              }
-                              return null;
-                            })}
-                            
+                            {Array.from(
+                              {
+                                length: Math.min(
+                                  5,
+                                  Math.ceil(
+                                    filteredActivities.length /
+                                      activitiesPerPage,
+                                  ),
+                                ),
+                              },
+                              (_, i) => {
+                                // Show at most 5 page numbers
+                                const pageStart = Math.max(1, currentPage - 2);
+                                const pageNum = pageStart + i;
+
+                                if (
+                                  pageNum <=
+                                  Math.ceil(
+                                    filteredActivities.length /
+                                      activitiesPerPage,
+                                  )
+                                ) {
+                                  return (
+                                    <li key={pageNum}>
+                                      <button
+                                        onClick={() => setCurrentPage(pageNum)}
+                                        className={`px-3 py-2 leading-tight ${
+                                          currentPage === pageNum
+                                            ? "text-blue-600 bg-blue-50 border-blue-300 hover:bg-blue-100 hover:text-blue-700"
+                                            : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
+                                        } border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`}
+                                      >
+                                        {pageNum}
+                                      </button>
+                                    </li>
+                                  );
+                                }
+                                return null;
+                              },
+                            )}
+
                             <li>
                               <button
-                                onClick={() => setCurrentPage(Math.min(Math.ceil(filteredActivities.length / activitiesPerPage), currentPage + 1))}
-                                disabled={currentPage >= Math.ceil(filteredActivities.length / activitiesPerPage)}
+                                onClick={() =>
+                                  setCurrentPage(
+                                    Math.min(
+                                      Math.ceil(
+                                        filteredActivities.length /
+                                          activitiesPerPage,
+                                      ),
+                                      currentPage + 1,
+                                    ),
+                                  )
+                                }
+                                disabled={
+                                  currentPage >=
+                                  Math.ceil(
+                                    filteredActivities.length /
+                                      activitiesPerPage,
+                                  )
+                                }
                                 className={`px-3 py-2 leading-tight ${
-                                  currentPage >= Math.ceil(filteredActivities.length / activitiesPerPage)
+                                  currentPage >=
+                                  Math.ceil(
+                                    filteredActivities.length /
+                                      activitiesPerPage,
+                                  )
                                     ? "text-gray-400 bg-gray-100 cursor-not-allowed"
                                     : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
                                 } rounded-r-lg border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`}
@@ -960,10 +1088,9 @@ export default function AdminHome() {
                       </div>
                     );
                   }
-                  
+
                   return null;
-                })()
-              }
+                })()}
             </div>
           </div>
         </>
@@ -979,7 +1106,7 @@ const formatActionName = (action: string): string => {
   const actionMap: { [key: string]: string } = {
     USER_APPROVED: "User Approved",
     USER_REJECTED: "User Rejected",
-    USER_SUSPENDED: "User Suspended", 
+    USER_SUSPENDED: "User Suspended",
     USER_REACTIVATED: "User Reactivated",
     USER_CREATED: "User Created",
     USER_ROLE_UPDATED: "Role Updated",
@@ -988,7 +1115,7 @@ const formatActionName = (action: string): string => {
     ASSESSMENT_COMPLETED: "Assessment Completed",
     ASSESSMENT_DELETED: "Assessment Deleted",
     // Keep this for backward compatibility with existing data
-    USER_STATUS_UPDATED: "Status Updated"
+    USER_STATUS_UPDATED: "Status Updated",
   };
 
   // Return the mapped value or format the raw action string
@@ -998,21 +1125,25 @@ const formatActionName = (action: string): string => {
 // Function to determine the badge style based on action
 const getActionBadgeStyle = (action: string): string => {
   // Positive actions - green
-  if (action.includes("APPROVED") || action.includes("REACTIVATED") || action.includes("CREATED")) {
+  if (
+    action.includes("APPROVED") ||
+    action.includes("REACTIVATED") ||
+    action.includes("CREATED")
+  ) {
     return "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300";
-  } 
+  }
   // Negative actions - red
   else if (action.includes("REJECTED") || action.includes("DELETED")) {
     return "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300";
-  } 
+  }
   // Warning actions - orange
   else if (action.includes("SUSPENDED")) {
     return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
-  } 
+  }
   // Update actions - purple
   else if (action === "USER_ROLE_UPDATED") {
     return "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300";
-  } 
+  }
   // Default style - gray
   else {
     return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
@@ -1025,7 +1156,17 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
   if (!activity || !activity.details) return <span>No details available</span>;
 
   // Time-related properties to exclude from the details display
-  const timeKeys = ["timestamp", "createdAt", "updatedAt", "completedAt", "deletedAt", "approvedAt", "rejectedAt", "suspendedAt", "reactivatedAt"];
+  const timeKeys = [
+    "timestamp",
+    "createdAt",
+    "updatedAt",
+    "completedAt",
+    "deletedAt",
+    "approvedAt",
+    "rejectedAt",
+    "suspendedAt",
+    "reactivatedAt",
+  ];
 
   // Find the first available time value to display
   const getTimeValue = (
@@ -1060,11 +1201,20 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
         return (
           <span>
             {activity.details.changeDirection === "promotion" ? (
-              <span className="font-medium text-purple-600 dark:text-purple-400">Promoted to admin</span>
+              <span className="font-medium text-purple-600 dark:text-purple-400">
+                Promoted to admin
+              </span>
             ) : activity.details.changeDirection === "demotion" ? (
-              <span className="font-medium text-purple-600 dark:text-purple-400">Changed to regular user</span>
+              <span className="font-medium text-purple-600 dark:text-purple-400">
+                Changed to regular user
+              </span>
             ) : (
-              <span>Changed role to <strong className="text-purple-600 dark:text-purple-400">{activity.details.newRole || "unknown role"}</strong></span>
+              <span>
+                Changed role to{" "}
+                <strong className="text-purple-600 dark:text-purple-400">
+                  {activity.details.newRole || "unknown role"}
+                </strong>
+              </span>
             )}
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
@@ -1075,7 +1225,10 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
               </span>
             )}
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on {safeTimeDisplay(activity.details.updatedAt as string || activity.timestamp)}
+              on{" "}
+              {safeTimeDisplay(
+                (activity.details.updatedAt as string) || activity.timestamp,
+              )}
             </span>
           </span>
         );
@@ -1087,14 +1240,20 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
               {getAdminInfo(activity.performedBy)}
             </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on {safeTimeDisplay(activity.details.deletedAt as string || activity.timestamp)}
+              on{" "}
+              {safeTimeDisplay(
+                (activity.details.deletedAt as string) || activity.timestamp,
+              )}
             </span>
           </span>
         );
       case "USER_REACTIVATED":
         return (
           <span>
-            <strong className="text-green-600 dark:text-green-400">Reactivated</strong> user account
+            <strong className="text-green-600 dark:text-green-400">
+              Reactivated
+            </strong>{" "}
+            user account
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
@@ -1104,19 +1263,28 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
               </span>
             )}
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on {safeTimeDisplay(activity.details.reactivatedAt as string || activity.timestamp)}
+              on{" "}
+              {safeTimeDisplay(
+                (activity.details.reactivatedAt as string) ||
+                  activity.timestamp,
+              )}
             </span>
           </span>
         );
       case "USER_APPROVED":
         return (
           <span>
-            <strong className="text-green-600 dark:text-green-400">Approved</strong>
+            <strong className="text-green-600 dark:text-green-400">
+              Approved
+            </strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on {safeTimeDisplay(activity.details.approvedAt as string || activity.timestamp)}
+              on{" "}
+              {safeTimeDisplay(
+                (activity.details.approvedAt as string) || activity.timestamp,
+              )}
             </span>
           </span>
         );
@@ -1128,7 +1296,10 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
               {getAdminInfo(activity.performedBy)}
             </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on {safeTimeDisplay(activity.details.rejectedAt as string || activity.timestamp)}
+              on{" "}
+              {safeTimeDisplay(
+                (activity.details.rejectedAt as string) || activity.timestamp,
+              )}
             </span>
             {activity.details.reason && (
               <span className="block text-xs italic mt-1">
@@ -1146,21 +1317,27 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
         };
 
         // Get the reason from details
-        const reason = activity.details.reason as string || "Your account has been suspended by an administrator.";
+        const reason =
+          (activity.details.reason as string) ||
+          "Your account has been suspended by an administrator.";
         const isTruncated = reason.length > 50;
-        
+
         return (
           <span>
-            <strong className="text-orange-600 dark:text-orange-400">Suspended</strong>
+            <strong className="text-orange-600 dark:text-orange-400">
+              Suspended
+            </strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on {safeTimeDisplay(activity.details.suspendedAt as string || activity.timestamp)}
+              on{" "}
+              {safeTimeDisplay(
+                (activity.details.suspendedAt as string) || activity.timestamp,
+              )}
             </span>
             <span className="block text-xs italic mt-1 relative group">
               Reason: "{isTruncated ? truncateReason(reason) : reason}"
-              
               {/* Hover tooltip for truncated reason */}
               {isTruncated && (
                 <span className="hidden group-hover:block absolute z-10 w-64 p-2 mt-1 text-xs text-white bg-gray-900 rounded-lg shadow-sm dark:bg-gray-700">
@@ -1174,12 +1351,18 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_CREATED":
         return (
           <span>
-            Role: <strong className="text-green-600 dark:text-green-400">{activity.details.role || "user"}</strong>
+            Role:{" "}
+            <strong className="text-green-600 dark:text-green-400">
+              {activity.details.role || "user"}
+            </strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
             <span className="block text-xs text-gray-500 dark:text-gray-400">
-              Created on {safeTimeDisplay(activity.details.createdAt as string || activity.timestamp)}
+              Created on{" "}
+              {safeTimeDisplay(
+                (activity.details.createdAt as string) || activity.timestamp,
+              )}
             </span>
           </span>
         );

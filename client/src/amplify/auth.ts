@@ -70,12 +70,15 @@ const signOutCurrentUser = async (): Promise<void> => {
 
 const isUserAccountActive = async (): Promise<boolean> => {
   const userAttributes = await fetchUserAttributes();
-  return userAttributes.email_verified === "true" && userAttributes['custom:status'] !== 'SUSPENDED';
+  return (
+    userAttributes.email_verified === "true" &&
+    userAttributes["custom:status"] !== "SUSPENDED"
+  );
 };
 
 const getUserAccountStatus = async (): Promise<string> => {
   const userAttributes = await fetchUserAttributes();
-  return userAttributes['custom:status'] || 'PENDING';
+  return userAttributes["custom:status"] || "PENDING";
 };
 
 export {

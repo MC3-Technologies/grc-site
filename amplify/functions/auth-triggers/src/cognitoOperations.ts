@@ -1,4 +1,8 @@
-import { CognitoIdentityProviderClient, AdminDisableUserCommand, AdminEnableUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+import {
+  CognitoIdentityProviderClient,
+  AdminDisableUserCommand,
+  AdminEnableUserCommand,
+} from "@aws-sdk/client-cognito-identity-provider";
 
 // Initialize Cognito client
 const cognito = new CognitoIdentityProviderClient();
@@ -10,7 +14,10 @@ export const cognitoOperations = {
    * @param username The username (email) of the user to disable
    * @returns Promise<boolean> Success status
    */
-  disableUser: async (userPoolId: string, username: string): Promise<boolean> => {
+  disableUser: async (
+    userPoolId: string,
+    username: string,
+  ): Promise<boolean> => {
     try {
       const command = new AdminDisableUserCommand({
         UserPoolId: userPoolId,
@@ -32,7 +39,10 @@ export const cognitoOperations = {
    * @param username The username (email) of the user to enable
    * @returns Promise<boolean> Success status
    */
-  enableUser: async (userPoolId: string, username: string): Promise<boolean> => {
+  enableUser: async (
+    userPoolId: string,
+    username: string,
+  ): Promise<boolean> => {
     try {
       const command = new AdminEnableUserCommand({
         UserPoolId: userPoolId,
@@ -47,4 +57,4 @@ export const cognitoOperations = {
       return false;
     }
   },
-}; 
+};

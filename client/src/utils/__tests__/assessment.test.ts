@@ -54,7 +54,12 @@ jest.mock("../../utils/assessment", () => {
     }),
 
     updateAssessment: jest.fn(
-      async (id: string, currentPage: number, percentCompleted: number, _file?: File) => {
+      async (
+        id: string,
+        currentPage: number,
+        percentCompleted: number,
+        _file?: File,
+      ) => {
         /* Using _file just to avoid no-unused-vars eslint warning */
         if (_file) {
           console.debug(_file.name); // or any small usage
@@ -70,7 +75,7 @@ jest.mock("../../utils/assessment", () => {
           percentCompleted,
         });
         return true;
-      }
+      },
     ),
 
     deleteAssessment: jest.fn(async (id: string) => {
@@ -135,29 +140,31 @@ jest.mock("../../utils/assessment", () => {
       completedAssessments.delete(id);
     }),
 
-    completeInProgressAssessment: jest.fn(async (_file: File, assessmentId: string) => {
-      const inProgressAssessment = inProgressAssessments.get(assessmentId);
-      if (!inProgressAssessment) {
-        throw new Error("Error completing assessment - not found");
-      }
-      // Create completed assessment
-      const completedAssessment = {
-        id: assessmentId,
-        name: inProgressAssessment.name,
-        completedAt: new Date().toISOString(),
-        complianceScore: 85,
-        isCompliant: true,
-        storagePath: `assessments/test-user-id/completed/${assessmentId}.json`,
-        version: "1",
-        duration: 60,
-        owner: "test-user-id",
-        createdAt: inProgressAssessment.createdAt,
-        updatedAt: new Date().toISOString(),
-      };
-      // Add to completed, remove from in-progress
-      completedAssessments.set(assessmentId, completedAssessment);
-      inProgressAssessments.delete(assessmentId);
-    }),
+    completeInProgressAssessment: jest.fn(
+      async (_file: File, assessmentId: string) => {
+        const inProgressAssessment = inProgressAssessments.get(assessmentId);
+        if (!inProgressAssessment) {
+          throw new Error("Error completing assessment - not found");
+        }
+        // Create completed assessment
+        const completedAssessment = {
+          id: assessmentId,
+          name: inProgressAssessment.name,
+          completedAt: new Date().toISOString(),
+          complianceScore: 85,
+          isCompliant: true,
+          storagePath: `assessments/test-user-id/completed/${assessmentId}.json`,
+          version: "1",
+          duration: 60,
+          owner: "test-user-id",
+          createdAt: inProgressAssessment.createdAt,
+          updatedAt: new Date().toISOString(),
+        };
+        // Add to completed, remove from in-progress
+        completedAssessments.set(assessmentId, completedAssessment);
+        inProgressAssessments.delete(assessmentId);
+      },
+    ),
 
     // For testing purposes - not in original
     __resetMockData: () => {
@@ -199,7 +206,7 @@ interface MockAssessment {
 beforeEach(() => {
   resetAllMocks();
   __setMockIdentity("test-user-id");
-  
+
   // Properly cast to appropriate types with type assertion
   const inProgressAssessmentWithMock = InProgressAssessment as unknown as {
     __resetMockData: () => void;
@@ -207,7 +214,7 @@ beforeEach(() => {
   const completedAssessmentWithMock = CompletedAssessment as unknown as {
     __resetMockData: () => void;
   };
-  
+
   inProgressAssessmentWithMock.__resetMockData();
   completedAssessmentWithMock.__resetMockData();
 });
@@ -310,7 +317,7 @@ describe("InProgressAssessment", () => {
       const testName = "Test Assessment";
       const initialPage = 1;
       const initialPercent = 10;
-      
+
       // Setup the mock assessment data directly in the inProgressAssessment mock storage
       (InProgressAssessment as any).__setMockAssessment({
         id: testId,
@@ -325,13 +332,14 @@ describe("InProgressAssessment", () => {
         updatedAt: new Date().toISOString(),
         owner: "test-user-id",
       });
-      
+
       // Act - pass a mock file for the optional file parameter
       const mockFile = createTestAssessmentFile();
       await InProgressAssessment.updateAssessment(testId, 2, 25, mockFile);
-      
+
       // Assert - use fetchAssessmentData which is the correct method
-      const updatedAssessment = await InProgressAssessment.fetchAssessmentData(testId);
+      const updatedAssessment =
+        await InProgressAssessment.fetchAssessmentData(testId);
       expect(updatedAssessment).toBeDefined();
       expect(updatedAssessment.currentPage).toBe(2);
       expect(updatedAssessment.percentCompleted).toBe(25);

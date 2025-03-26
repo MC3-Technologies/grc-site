@@ -6,10 +6,10 @@
     "@aws-sdk/client-sns": "^3.772.0",
     "prettier": "^3.5.0"
   },
-    "scripts": {
-        "format": "npx prettier . --write",
-        "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.js --silent=true"
-    },
+  "scripts": {
+    "format": "npx prettier . --write",
+    "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.js --silent=true"
+  },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",

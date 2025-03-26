@@ -54,20 +54,20 @@ export const getLatestQuestionnaireData = () => {
     if (savedData) {
       // Remove the id property which is only used in the admin UI
       const pages: QuestionPage[] = JSON.parse(savedData);
-      
+
       // Create new array without the id property
-      const cleanedPages = pages.map(page => {
+      const cleanedPages = pages.map((page) => {
         // Create a new object with just title and elements
         return {
           title: page.title,
-          elements: page.elements
+          elements: page.elements,
         };
       });
-      
+
       // Return the complete survey configuration with updated pages
       return {
         ...surveyJson,
-        pages: cleanedPages
+        pages: cleanedPages,
       };
     }
     return surveyJson;
@@ -75,4 +75,4 @@ export const getLatestQuestionnaireData = () => {
     console.error("Error retrieving questionnaire data:", error);
     return surveyJson;
   }
-}; 
+};

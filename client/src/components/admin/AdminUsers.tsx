@@ -84,10 +84,10 @@ const AdminUsers = () => {
     // Get the tab parameter from the URL
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get("tab");
-    
+
     // Check if we have a forced tab from localStorage (set by dashboard)
     const forcedTab = window.localStorage.getItem("forceTabLoad");
-    
+
     // Determine which tab to load
     let tabToLoad: UserStatusType = "active"; // Default
 
@@ -100,30 +100,36 @@ const AdminUsers = () => {
       console.log(`URL parameter tab detected: ${tabParam}`);
       tabToLoad = tabParam as UserStatusType;
     }
-    
+
     // Set the active tab state
     setActiveTab(tabToLoad);
-    
+
     // Force an immediate data fetch for this specific tab
     const fetchInitialData = async () => {
       try {
         setLoading(true);
         console.log(`Initial load: Beginning data fetch for ${tabToLoad} tab`);
-        
+
         // Fetch all users with force refresh
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
         setAllUsers(transformedAllUsers);
-        
+
         // Filter for this specific tab
         console.log(`Initial load: Filtering for tab: ${tabToLoad}`);
-        const filteredUsers = transformedAllUsers.filter(user => user.status === tabToLoad);
-        console.log(`Initial load: Found ${filteredUsers.length} users for ${tabToLoad} tab`);
-        
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === tabToLoad,
+        );
+        console.log(
+          `Initial load: Found ${filteredUsers.length} users for ${tabToLoad} tab`,
+        );
+
         // Set the filtered users
         setUsers(filteredUsers);
-        console.log(`Initial load: Users state updated with ${filteredUsers.length} ${tabToLoad} users`);
-        
+        console.log(
+          `Initial load: Users state updated with ${filteredUsers.length} ${tabToLoad} users`,
+        );
+
         setLastRefreshTime(new Date());
       } catch (error) {
         console.error("Error loading initial tab data:", error);
@@ -131,7 +137,7 @@ const AdminUsers = () => {
         setLoading(false);
       }
     };
-    
+
     fetchInitialData();
   }, []);
 
@@ -211,7 +217,7 @@ const AdminUsers = () => {
           status: user.status,
           enabled: user.enabled,
           customStatus: user.customStatus,
-          attributes: user.attributes
+          attributes: user.attributes,
         });
 
         const transformedStatus = getUserStatus(
@@ -221,7 +227,10 @@ const AdminUsers = () => {
         );
 
         // Debug transformed status
-        console.log(`User ${user.email} transformed status:`, transformedStatus);
+        console.log(
+          `User ${user.email} transformed status:`,
+          transformedStatus,
+        );
 
         return {
           email: user.attributes?.email || user.email,
@@ -234,7 +243,7 @@ const AdminUsers = () => {
         };
       })
       .filter(Boolean) as UserData[]; // Remove any null entries
-    
+
     console.log("transformUserData result:", transformedUsers);
     return transformedUsers;
   };
@@ -242,34 +251,38 @@ const AdminUsers = () => {
   // Add a function to handle tab changes
   const handleTabChange = async (tabName: UserStatusType) => {
     console.log(`Tab change requested: ${tabName}`);
-    
+
     // Always update URL to match the selected tab
     window.history.pushState(null, "", `/admin/?section=users&tab=${tabName}`);
-    
+
     // Update active tab state
     setActiveTab(tabName);
-    
+
     // Always fetch fresh data when changing tabs
     try {
       setLoading(true);
-      
+
       // Force refresh from API to ensure we have latest data
       const allFetchedUsers = await fetchUsers(true);
       const transformedAllUsers = transformUserData(allFetchedUsers);
-      
+
       // Update all users counter
       setAllUsers(transformedAllUsers);
-      
+
       // Filter users for the selected tab
-      const filteredUsers = transformedAllUsers.filter(user => user.status === tabName);
-      console.log(`Tab change: Found ${filteredUsers.length} users for ${tabName} tab`);
-      
+      const filteredUsers = transformedAllUsers.filter(
+        (user) => user.status === tabName,
+      );
+      console.log(
+        `Tab change: Found ${filteredUsers.length} users for ${tabName} tab`,
+      );
+
       // Update the displayed users
       setUsers(filteredUsers);
-      
+
       // Update last refresh time
       setLastRefreshTime(new Date());
-      
+
       // Clear email filter when changing tabs
       setEmailFilter("");
     } catch (error) {
@@ -370,14 +383,16 @@ const AdminUsers = () => {
         // Get all users from listUsers
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedAllUsers);
-        
-        // Filter based on active tab 
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+
+        // Filter based on active tab
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to update role for ${updatedUser.email}`);
@@ -468,14 +483,16 @@ const AdminUsers = () => {
         await refreshUserData();
         const refreshedUsers = await fetchUsers(true);
         const transformedUsers = transformUserData(refreshedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedUsers);
-        
+
         // Filter based on active tab
-        const filteredUsers = transformedUsers.filter(user => user.status === activeTab);
+        const filteredUsers = transformedUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(response?.message || "Failed to create test user.");
@@ -496,24 +513,29 @@ const AdminUsers = () => {
   useEffect(() => {
     const handleAdminAction = (event: Event) => {
       const customEvent = event as CustomEvent;
-      console.log("User management detected admin event:", customEvent.detail.type);
-      
+      console.log(
+        "User management detected admin event:",
+        customEvent.detail.type,
+      );
+
       // Silently refresh data without notifications
       setTimeout(async () => {
         setLoading(true);
         try {
           // Refresh user data
           await refreshUserData();
-          
+
           // Get all users
           const allFetchedUsers = await fetchUsers(true);
           const transformedAllUsers = transformUserData(allFetchedUsers);
           setAllUsers(transformedAllUsers);
-          
+
           // Filter based on active tab
-          const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+          const filteredUsers = transformedAllUsers.filter(
+            (user) => user.status === activeTab,
+          );
           setUsers(filteredUsers);
-          
+
           setLastRefreshTime(new Date());
         } catch (error) {
           console.error("Error in auto-refresh:", error);
@@ -522,9 +544,9 @@ const AdminUsers = () => {
         }
       }, 1500);
     };
-    
+
     document.addEventListener("adminAction", handleAdminAction);
-    
+
     return () => {
       document.removeEventListener("adminAction", handleAdminAction);
     };
@@ -549,14 +571,16 @@ const AdminUsers = () => {
         // Get all users consistently from listUsers with force=true
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedAllUsers);
-        
+
         // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to approve user ${email}.`);
@@ -600,14 +624,16 @@ const AdminUsers = () => {
         // Get all users consistently from listUsers with force=true
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedAllUsers);
-        
+
         // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to reject user ${email}.`);
@@ -635,16 +661,18 @@ const AdminUsers = () => {
   // Function to execute the actual suspension after reason is provided
   const executeSuspension = async () => {
     if (!userToSuspend) return;
-    
+
     const email = userToSuspend;
     // Use the custom reason or fall back to default if empty
-    const reason = suspensionReason.trim() || "Your account has been suspended by an administrator.";
-    
+    const reason =
+      suspensionReason.trim() ||
+      "Your account has been suspended by an administrator.";
+
     setActionInProgress(email);
     setError(null);
     setSuccess(null);
     setIsSuspendModalOpen(false); // Close the modal
-    
+
     try {
       const response = await suspendUser(
         email,
@@ -661,14 +689,16 @@ const AdminUsers = () => {
         // Get all users consistently from listUsers with force=true
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedAllUsers);
-        
+
         // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to suspend user ${email}.`);
@@ -708,14 +738,16 @@ const AdminUsers = () => {
         // Get all users consistently from listUsers with force=true
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedAllUsers);
-        
+
         // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(`Failed to reactivate user ${email}.`);
@@ -753,14 +785,16 @@ const AdminUsers = () => {
         // Get all users consistently from listUsers with force=true
         const allFetchedUsers = await fetchUsers(true);
         const transformedAllUsers = transformUserData(allFetchedUsers);
-        
+
         // Update all users counter
         setAllUsers(transformedAllUsers);
-        
+
         // Filter current view based on active tab
-        const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+        const filteredUsers = transformedAllUsers.filter(
+          (user) => user.status === activeTab,
+        );
         setUsers(filteredUsers);
-        
+
         setLastRefreshTime(new Date());
       } else {
         setError(response.message || `Failed to delete user ${email}.`);
@@ -881,7 +915,8 @@ const AdminUsers = () => {
                 }`}
               >
                 Active
-                {allUsers.filter((user) => user.status === "active").length > 0 && (
+                {allUsers.filter((user) => user.status === "active").length >
+                  0 && (
                   <span className="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">
                     {allUsers.filter((user) => user.status === "active").length}
                   </span>
@@ -1015,15 +1050,18 @@ const AdminUsers = () => {
 
                     // Get all users from listUsers
                     const allFetchedUsers = await fetchUsers(true);
-                    const transformedAllUsers = transformUserData(allFetchedUsers);
-                    
+                    const transformedAllUsers =
+                      transformUserData(allFetchedUsers);
+
                     // Update all users counter
                     setAllUsers(transformedAllUsers);
-                    
+
                     // Filter based on active tab
-                    const filteredUsers = transformedAllUsers.filter(user => user.status === activeTab);
+                    const filteredUsers = transformedAllUsers.filter(
+                      (user) => user.status === activeTab,
+                    );
                     setUsers(filteredUsers);
-                    
+
                     // Update last refresh time
                     setLastRefreshTime(new Date());
 
@@ -1099,9 +1137,7 @@ const AdminUsers = () => {
             </svg>
           )}
           Last updated: {formattedLastRefreshTime}
-          {loading && (
-            <span className="ml-1 text-blue-500">Refreshing...</span>
-          )}
+          {loading && <span className="ml-1 text-blue-500">Refreshing...</span>}
         </div>
       </div>
 
@@ -1110,7 +1146,10 @@ const AdminUsers = () => {
         <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
           <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
             <div className="flex-1">
-              <label htmlFor="emailFilter" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="emailFilter"
+                className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Filter by Email
               </label>
               <input
@@ -1170,125 +1209,133 @@ const AdminUsers = () => {
               </thead>
               <tbody>
                 {users
-                  .filter(user => emailFilter ? user.email.toLowerCase().includes(emailFilter.toLowerCase()) : true)
+                  .filter((user) =>
+                    emailFilter
+                      ? user.email
+                          .toLowerCase()
+                          .includes(emailFilter.toLowerCase())
+                      : true,
+                  )
                   .map((user) => (
-                  <tr
-                    key={user.email}
-                    className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-                  >
-                    <th
-                      scope="row"
-                      className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                    <tr
+                      key={user.email}
+                      className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                     >
-                      {user.email}
-                    </th>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={user.status} />
-                    </td>
-                    <td className="px-6 py-4 capitalize">{user.role}</td>
-                    <td className="px-6 py-4">{formatDate(user.created)}</td>
-                    <td className="px-6 py-4">
-                      {formatDate(user.lastLogin || "")}
-                    </td>
-                    <td className="px-6 py-4 flex flex-col space-y-2">
-                      {user.status === "pending" && (
-                        <div className="flex flex-col space-y-2">
+                      <th
+                        scope="row"
+                        className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                      >
+                        {user.email}
+                      </th>
+                      <td className="px-6 py-4">
+                        <StatusBadge status={user.status} />
+                      </td>
+                      <td className="px-6 py-4 capitalize">{user.role}</td>
+                      <td className="px-6 py-4">{formatDate(user.created)}</td>
+                      <td className="px-6 py-4">
+                        {formatDate(user.lastLogin || "")}
+                      </td>
+                      <td className="px-6 py-4 flex flex-col space-y-2">
+                        {user.status === "pending" && (
+                          <div className="flex flex-col space-y-2">
+                            <button
+                              onClick={() => handleApproveUser(user.email)}
+                              disabled={actionInProgress === user.email}
+                              className={`px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-lg w-full ${
+                                actionInProgress === user.email
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : "hover:bg-green-700"
+                              }`}
+                            >
+                              {actionInProgress === user.email
+                                ? "Processing..."
+                                : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleRejectUser(user.email)}
+                              disabled={actionInProgress === user.email}
+                              className={`px-3 py-1 text-xs font-medium text-white bg-orange-600 rounded-lg w-full ${
+                                actionInProgress === user.email
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : "hover:bg-orange-700"
+                              }`}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+
+                        {user.status === "active" && (
                           <button
-                            onClick={() => handleApproveUser(user.email)}
+                            onClick={() => handleSuspendUser(user.email)}
                             disabled={actionInProgress === user.email}
-                            className={`px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-lg w-full ${
+                            className={`px-3 py-1 text-xs font-medium text-white bg-yellow-600 rounded-lg w-full ${
                               actionInProgress === user.email
                                 ? "opacity-50 cursor-not-allowed"
-                                : "hover:bg-green-700"
+                                : "hover:bg-yellow-700"
                             }`}
                           >
                             {actionInProgress === user.email
                               ? "Processing..."
-                              : "Approve"}
+                              : "Suspend"}
                           </button>
+                        )}
+
+                        {user.status === "suspended" && (
                           <button
-                            onClick={() => handleRejectUser(user.email)}
+                            onClick={() => handleReactivateUser(user.email)}
                             disabled={actionInProgress === user.email}
-                            className={`px-3 py-1 text-xs font-medium text-white bg-orange-600 rounded-lg w-full ${
+                            className={`px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-lg w-full ${
                               actionInProgress === user.email
                                 ? "opacity-50 cursor-not-allowed"
-                                : "hover:bg-orange-700"
+                                : "hover:bg-blue-700"
                             }`}
                           >
-                            Reject
+                            {actionInProgress === user.email
+                              ? "Processing..."
+                              : "Reactivate"}
                           </button>
-                        </div>
-                      )}
+                        )}
 
-                      {user.status === "active" && (
-                        <button
-                          onClick={() => handleSuspendUser(user.email)}
-                          disabled={actionInProgress === user.email}
-                          className={`px-3 py-1 text-xs font-medium text-white bg-yellow-600 rounded-lg w-full ${
-                            actionInProgress === user.email
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:bg-yellow-700"
-                          }`}
-                        >
-                          {actionInProgress === user.email
-                            ? "Processing..."
-                            : "Suspend"}
-                        </button>
-                      )}
+                        {/* Only show Edit button for active and pending users */}
+                        {(user.status === "active" ||
+                          user.status === "pending") && (
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg w-full hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+                          >
+                            Edit
+                          </button>
+                        )}
 
-                      {user.status === "suspended" && (
-                        <button
-                          onClick={() => handleReactivateUser(user.email)}
-                          disabled={actionInProgress === user.email}
-                          className={`px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-lg w-full ${
-                            actionInProgress === user.email
-                              ? "opacity-50 cursor-not-allowed"
-                              : "hover:bg-blue-700"
-                          }`}
-                        >
-                          {actionInProgress === user.email
-                            ? "Processing..."
-                            : "Reactivate"}
-                        </button>
-                      )}
-
-                      {/* Only show Edit button for active and pending users */}
-                      {(user.status === "active" ||
-                        user.status === "pending") && (
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          className="px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg w-full hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
-                        >
-                          Edit
-                        </button>
-                      )}
-
-                      {/* Delete button for all users except those being processed */}
-                      {actionInProgress !== user.email && (
-                        <button
-                          onClick={() => {
-                            setUserToDelete(user.email);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-lg w-full hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                        {/* Delete button for all users except those being processed */}
+                        {actionInProgress !== user.email && (
+                          <button
+                            onClick={() => {
+                              setUserToDelete(user.email);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-lg w-full hover:bg-red-700"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
 
-          {users
-            .filter(user => emailFilter ? user.email.toLowerCase().includes(emailFilter.toLowerCase()) : true)
-            .length === 0 && (
+          {users.filter((user) =>
+            emailFilter
+              ? user.email.toLowerCase().includes(emailFilter.toLowerCase())
+              : true,
+          ).length === 0 && (
             <div className="p-4 mt-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-900 dark:text-blue-300">
-              {emailFilter ? 
-                `No users found matching email filter "${emailFilter}" in the ${activeTab} tab.` : 
-                `No users found in the ${activeTab} tab.`}
+              {emailFilter
+                ? `No users found matching email filter "${emailFilter}" in the ${activeTab} tab.`
+                : `No users found in the ${activeTab} tab.`}
             </div>
           )}
         </>
@@ -1457,12 +1504,14 @@ const AdminUsers = () => {
               <div className="p-4 md:p-5">
                 <div className="mb-4">
                   <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                    You are about to suspend <span className="font-bold">{userToSuspend}</span>. 
-                    This will prevent the user from accessing the system until their account is reactivated.
+                    You are about to suspend{" "}
+                    <span className="font-bold">{userToSuspend}</span>. This
+                    will prevent the user from accessing the system until their
+                    account is reactivated.
                   </p>
-                  
-                  <label 
-                    htmlFor="suspensionReason" 
+
+                  <label
+                    htmlFor="suspensionReason"
                     className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
                   >
                     Reason for Suspension
@@ -1476,7 +1525,8 @@ const AdminUsers = () => {
                     onChange={(e) => setSuspensionReason(e.target.value)}
                   />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    This reason will be included in the notification email sent to the user and will be visible in the admin dashboard.
+                    This reason will be included in the notification email sent
+                    to the user and will be visible in the admin dashboard.
                   </p>
                 </div>
                 <div className="flex justify-end space-x-2">

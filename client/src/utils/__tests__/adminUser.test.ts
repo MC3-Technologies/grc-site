@@ -3,12 +3,12 @@
 // @ts-nocheck
 
 // Mock cognitoConfig before importing anything that might use it
-jest.mock('../cognitoConfig', () => ({
+jest.mock("../cognitoConfig", () => ({
   getCognitoConfig: jest.fn().mockReturnValue({
-    userPoolId: 'test-user-pool-id',
-    region: 'us-east-1',
-    clientId: 'test-client-id'
-  })
+    userPoolId: "test-user-pool-id",
+    region: "us-east-1",
+    clientId: "test-client-id",
+  }),
 }));
 
 // Mock localStorage since it's not available in Node.js environment
@@ -26,12 +26,12 @@ const localStorageMock = (() => {
       delete store[key];
     }),
     key: jest.fn((index) => Object.keys(store)[index] || null),
-    length: 0
+    length: 0,
   };
 })();
 
 // Set up global localStorage before any imports
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
 import { describe, it, expect, beforeEach, jest } from "@jest/globals";
 import {

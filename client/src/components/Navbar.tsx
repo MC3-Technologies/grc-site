@@ -48,7 +48,7 @@ const Navbar = () => {
     };
 
     checkUser();
-    
+
     // Initialize Flowbite after a small delay to ensure DOM is ready
     setTimeout(() => {
       initFlowbite();

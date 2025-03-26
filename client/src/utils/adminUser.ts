@@ -31,33 +31,33 @@ export const AdminEvents = {
   USER_ROLE_UPDATED: "USER_ROLE_UPDATED",
   ASSESSMENT_CREATED: "ASSESSMENT_CREATED",
   ASSESSMENT_COMPLETED: "ASSESSMENT_COMPLETED",
-  ASSESSMENT_DELETED: "ASSESSMENT_DELETED"
+  ASSESSMENT_DELETED: "ASSESSMENT_DELETED",
 };
 
 // Function to emit admin events
 export const emitAdminEvent = (eventType: string): boolean => {
   try {
     console.log(`Emitting admin event: ${eventType}`);
-    
+
     // Create the event with details
-    const event = new CustomEvent('adminAction', {
+    const event = new CustomEvent("adminAction", {
       detail: {
         type: eventType,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       },
       bubbles: true,
-      cancelable: false
+      cancelable: false,
     });
-    
+
     // Only dispatch the event on document (remove window dispatch)
     document.dispatchEvent(event);
-    
+
     // Add to adminUser global if available
-    if (typeof window !== 'undefined' && window.adminUser) {
+    if (typeof window !== "undefined" && window.adminUser) {
       window.adminUser.emitAdminEvent = emitAdminEvent;
       window.adminUser.AdminEvents = AdminEvents;
     }
-    
+
     return true;
   } catch (error) {
     console.error(`Error emitting admin event (${eventType}):`, error);
@@ -71,15 +71,21 @@ export const clearUserCache = (): void => {
     // Remove all user cache items
     localStorage.removeItem(USER_CACHE_KEY);
     localStorage.removeItem(USER_CACHE_TIMESTAMP_KEY);
-    
+
     // Clear status-specific caches
-    const statusTypes = ["active", "pending", "rejected", "suspended", "deleted"];
-    statusTypes.forEach(status => {
+    const statusTypes = [
+      "active",
+      "pending",
+      "rejected",
+      "suspended",
+      "deleted",
+    ];
+    statusTypes.forEach((status) => {
       const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
       localStorage.removeItem(key);
       localStorage.removeItem(`${key}_timestamp`);
     });
-    
+
     console.log("User cache cleared successfully");
   } catch (error) {
     console.error("Error clearing user cache:", error);
@@ -102,7 +108,12 @@ export interface User {
 }
 
 // Add type-safe enum for statuses
-export type UserStatusType = "pending" | "active" | "suspended" | "rejected" | "deleted";
+export type UserStatusType =
+  | "pending"
+  | "active"
+  | "suspended"
+  | "rejected"
+  | "deleted";
 
 // Generate mock users for development when API fails
 export const getMockUsers = (): User[] => {
@@ -198,8 +209,10 @@ export const getUserStatus = (
   enabled: boolean,
   customStatus?: string | null,
 ): UserStatusType => {
-  console.log(`getUserStatus called with: status=${status}, enabled=${enabled}, customStatus=${customStatus}`);
-  
+  console.log(
+    `getUserStatus called with: status=${status}, enabled=${enabled}, customStatus=${customStatus}`,
+  );
+
   // First check for exact match on customStatus or status (to handle DynamoDB format)
   if (customStatus === "REJECTED" || status === "rejected") {
     console.log(`getUserStatus: returning 'rejected' (explicit match)`);
@@ -230,7 +243,9 @@ export const getUserStatus = (
   } else if (
     ["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)
   ) {
-    console.log(`getUserStatus: returning 'pending' (password change/unconfirmed)`);
+    console.log(
+      `getUserStatus: returning 'pending' (password change/unconfirmed)`,
+    );
     return "pending";
   }
 
@@ -334,7 +349,7 @@ export const fetchUsersByStatus = async (
 ): Promise<User[]> => {
   // Ensure status is lowercase for consistency
   const normalizedStatus = status.toLowerCase() as UserStatusType;
-  
+
   try {
     console.log(`Fetching users with status: ${normalizedStatus}`);
 
@@ -357,7 +372,9 @@ export const fetchUsersByStatus = async (
     const client = getClientSchema();
 
     // Call the API with the normalized status parameter
-    const response = await client.queries.getUsersByStatus({ status: normalizedStatus });
+    const response = await client.queries.getUsersByStatus({
+      status: normalizedStatus,
+    });
     console.log("API response for getUsersByStatus:", response);
 
     // Process the data depending on its type
@@ -366,9 +383,12 @@ export const fetchUsersByStatus = async (
       console.log("Parsed status filtered data:", parsedData);
 
       if (Array.isArray(parsedData)) {
-        console.log(`Raw data from getUsersByStatus(${normalizedStatus}):`, parsedData);
-        
-        let filteredData = parsedData.map(item => {
+        console.log(
+          `Raw data from getUsersByStatus(${normalizedStatus}):`,
+          parsedData,
+        );
+
+        let filteredData = parsedData.map((item) => {
           const mappedItem = {
             email: item.email,
             status: item.status,
@@ -379,51 +399,55 @@ export const fetchUsersByStatus = async (
             lastModified: item.lastStatusChange, // Map to expected field name
             enabled: item.status !== "suspended" && item.status !== "rejected", // Derive this
           };
-          
+
           console.log(`Mapped item for ${item.email}:`, mappedItem);
           return mappedItem;
         });
-        
-        console.log(`After mapping, before filtering (${filteredData.length} items):`, filteredData);
-        
+
+        console.log(
+          `After mapping, before filtering (${filteredData.length} items):`,
+          filteredData,
+        );
+
         if (normalizedStatus === "pending") {
-          filteredData = filteredData.filter(
-            (user) => {
-              const shouldInclude = 
-                user.customStatus !== "REJECTED" && 
-                user.status !== "rejected" &&
-                user.customStatus !== "SUSPENDED" &&
-                user.status !== "suspended";
-              
-              console.log(`Filter pending: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`);
-              return shouldInclude;
-            }
-          );
+          filteredData = filteredData.filter((user) => {
+            const shouldInclude =
+              user.customStatus !== "REJECTED" &&
+              user.status !== "rejected" &&
+              user.customStatus !== "SUSPENDED" &&
+              user.status !== "suspended";
+
+            console.log(
+              `Filter pending: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
+            );
+            return shouldInclude;
+          });
         } else if (normalizedStatus === "rejected") {
-          filteredData = filteredData.filter(
-            (user) => {
-              const shouldInclude = 
-                user.customStatus === "REJECTED" || 
-                user.status === "rejected";
-              
-              console.log(`Filter rejected: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`);
-              return shouldInclude;
-            }
-          );
+          filteredData = filteredData.filter((user) => {
+            const shouldInclude =
+              user.customStatus === "REJECTED" || user.status === "rejected";
+
+            console.log(
+              `Filter rejected: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
+            );
+            return shouldInclude;
+          });
         } else if (normalizedStatus === "suspended") {
-          filteredData = filteredData.filter(
-            (user) => {
-              const shouldInclude = 
-                user.customStatus === "SUSPENDED" || 
-                user.status === "suspended";
-              
-              console.log(`Filter suspended: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`);
-              return shouldInclude;
-            }
-          );
+          filteredData = filteredData.filter((user) => {
+            const shouldInclude =
+              user.customStatus === "SUSPENDED" || user.status === "suspended";
+
+            console.log(
+              `Filter suspended: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
+            );
+            return shouldInclude;
+          });
         }
 
-        console.log(`Final filtered data for ${normalizedStatus} (${filteredData.length} items):`, filteredData);
+        console.log(
+          `Final filtered data for ${normalizedStatus} (${filteredData.length} items):`,
+          filteredData,
+        );
 
         // Cache the filtered results
         cacheUsersByStatus(normalizedStatus, filteredData);
@@ -438,7 +462,10 @@ export const fetchUsersByStatus = async (
     console.error(`Failed to get users with status ${normalizedStatus}`);
     return [];
   } catch (error) {
-    console.error(`Error fetching users with status ${normalizedStatus}:`, error);
+    console.error(
+      `Error fetching users with status ${normalizedStatus}:`,
+      error,
+    );
     return [];
   }
 };
@@ -527,7 +554,7 @@ export const rejectUser = async (
 
     const client = getClientSchema();
     console.log(`Rejecting user ${email} with reason: ${reason || "None"}`);
-    
+
     const response = await client.mutations.rejectUser({
       email,
       reason,
@@ -599,7 +626,9 @@ export const reactivateUser = async (
       return true;
     }
 
-    console.log(`Reactivating user ${email} by admin ${adminEmail || "unknown"}`);
+    console.log(
+      `Reactivating user ${email} by admin ${adminEmail || "unknown"}`,
+    );
 
     // Clear caches before the operation to ensure fresh data is fetched after
     clearUserCache();
@@ -614,18 +643,18 @@ export const reactivateUser = async (
     console.log(`Reactivation response for ${email}:`, response);
 
     // Regardless of the result, wait a bit to ensure backend has processed the change
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     const result = safelyParseApiResponse(response.data);
     if (result) {
       // Emit event after a brief delay to ensure client-side state is updated
       setTimeout(() => {
         emitAdminEvent(AdminEvents.USER_REACTIVATED);
       }, 100);
-      
+
       // Force a manual refresh of the cache after operation
       await refreshUserData();
-      
+
       return true;
     }
     return false;
@@ -723,10 +752,10 @@ export async function createTestUser(
       // Clear caches to ensure fresh data
       clearUserCache();
       clearAdminStatsCache();
-      
+
       // Emit the event for listeners
       emitAdminEvent(AdminEvents.USER_CREATED);
-      
+
       return {
         success: true,
         message: `Test user ${params.email} created successfully with auto-generated password. User will need password reset.`,
@@ -788,7 +817,9 @@ export const clearAdminStatsCache = (): void => {
 };
 
 // Fetch admin dashboard statistics
-export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<AdminStats> => {
+export const fetchAdminStats = async (
+  forceRefresh: boolean = true,
+): Promise<AdminStats> => {
   try {
     console.log("Fetching admin statistics, forceRefresh:", forceRefresh);
 
@@ -839,11 +870,11 @@ export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<Adm
 
     // Get the authenticated client
     const client = getClientSchema();
-    
+
     // Create a timestamp for cache busting
     const timestamp = Date.now();
     console.log(`Requesting fresh admin stats at ${timestamp}`);
-    
+
     // Call the API with an empty object as parameter
     const response = await client.queries.getAdminStats({});
     console.log("API response for getAdminStats:", response);
@@ -872,26 +903,36 @@ export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<Adm
           "recentActivity" in parsedData
         ) {
           const adminStats = parsedData as AdminStats;
-          
+
           // If recent activity exists, ensure it's properly sorted
           if (Array.isArray(adminStats.recentActivity)) {
             // Clone the array to avoid mutating the original response
-            adminStats.recentActivity = [...adminStats.recentActivity]
-              .sort((a, b) => {
+            adminStats.recentActivity = [...adminStats.recentActivity].sort(
+              (a, b) => {
                 // Sort by timestamp (newest first)
-                return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-              });
+                return (
+                  new Date(b.timestamp).getTime() -
+                  new Date(a.timestamp).getTime()
+                );
+              },
+            );
           }
-          
+
           // Cache the stats data
           try {
-            localStorage.setItem(ADMIN_STATS_CACHE_KEY, JSON.stringify(adminStats));
-            localStorage.setItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+            localStorage.setItem(
+              ADMIN_STATS_CACHE_KEY,
+              JSON.stringify(adminStats),
+            );
+            localStorage.setItem(
+              ADMIN_STATS_CACHE_TIMESTAMP_KEY,
+              Date.now().toString(),
+            );
             console.log("Admin stats cached");
           } catch (error) {
             console.error("Error caching admin stats:", error);
           }
-          
+
           // Define a type for the activity structure
           interface ActivityItem {
             action: string;
@@ -899,16 +940,20 @@ export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<Adm
           }
 
           // After parsing data, add the debugging log
-          if (parsedData && typeof parsedData === 'object') {
+          if (parsedData && typeof parsedData === "object") {
             // Type assertion to access recentActivity safely
             const statsData = parsedData as { recentActivity?: ActivityItem[] };
-            
-            console.log("Full unfiltered API response for audit logs:", 
-              statsData.recentActivity ? 
-              statsData.recentActivity.map(a => `${a.action} - ${a.timestamp}`) : 
-              "No recent activity");
+
+            console.log(
+              "Full unfiltered API response for audit logs:",
+              statsData.recentActivity
+                ? statsData.recentActivity.map(
+                    (a) => `${a.action} - ${a.timestamp}`,
+                  )
+                : "No recent activity",
+            );
           }
-          
+
           return adminStats;
         }
 
@@ -1081,12 +1126,11 @@ export const fetchAuditLogs = async (
 
       if (Array.isArray(parsedData)) {
         // Ensure logs are sorted by timestamp (newest first)
-        return parsedData
-          .sort((a, b) => {
-            const timeA = new Date(a.timestamp).getTime();
-            const timeB = new Date(b.timestamp).getTime();
-            return timeB - timeA;
-          }) as AuditLog[];
+        return parsedData.sort((a, b) => {
+          const timeA = new Date(a.timestamp).getTime();
+          const timeB = new Date(b.timestamp).getTime();
+          return timeB - timeA;
+        }) as AuditLog[];
       }
     }
 
@@ -1276,7 +1320,7 @@ const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
     // Check if cache is still valid
     const timestamp = parseInt(cacheTimestamp, 10);
     const now = Date.now();
-    
+
     if (now - timestamp > CACHE_DURATION_MS) {
       console.log(`Cache for status ${status} has expired`);
       return null;
@@ -1285,10 +1329,12 @@ const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
     // Parse and return the cached data
     const parsedData = JSON.parse(cachedData);
     if (Array.isArray(parsedData)) {
-      console.log(`Retrieved ${parsedData.length} users from cache with status ${status}`);
+      console.log(
+        `Retrieved ${parsedData.length} users from cache with status ${status}`,
+      );
       return parsedData;
     }
-    
+
     return null;
   } catch (error) {
     console.error(`Error reading cache for status ${status}:`, error);

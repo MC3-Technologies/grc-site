@@ -46,9 +46,7 @@ const StatCard: React.FC<StatCardProps> = ({
       onClick={clickable ? onClick : undefined}
     >
       <div className="flex items-center">
-        <div
-          className={`p-2 mr-4 rounded-full ${getColorClass(color)}`}
-        >
+        <div className={`p-2 mr-4 rounded-full ${getColorClass(color)}`}>
           {icon}
         </div>
         <div>

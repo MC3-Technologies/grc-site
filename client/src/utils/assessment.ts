@@ -197,7 +197,11 @@ class InProgressAssessment extends Assessment {
     const idHash = this._generateUrlSafeHash();
 
     // Create new assessment JSON to upload
-    const jsonString = JSON.stringify(new Model(getLatestQuestionnaireData()).data, null, 2);
+    const jsonString = JSON.stringify(
+      new Model(getLatestQuestionnaireData()).data,
+      null,
+      2,
+    );
     const blob = new Blob([jsonString], { type: "application/json" });
     const file = new File([blob], `${idHash}.json`, {
       type: "application/json",

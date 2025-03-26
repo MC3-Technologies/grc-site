@@ -21,7 +21,7 @@ const mockCompletedAssessments = new Map<string, AssessmentItem>();
 
 // Define a type that matches what our tests are expecting
 type ModelItem = Record<string, unknown> & {
-  id: string;  // Ensure id is always a string
+  id: string; // Ensure id is always a string
 };
 
 const createMockModel = (storage: Map<string, ModelItem>) => {

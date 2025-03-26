@@ -3,7 +3,6 @@ import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { chatGptFunction } from "../functions/chat-gpt/resource";
 import { userManagementFunction } from "../functions/user-management/resource";
 
-
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
 adding a new "isDone" field as a boolean. The authorization rule below
@@ -49,7 +48,7 @@ const schema = a.schema({
     .handler(a.handler.function(chatGptFunction))
     .authorization((allow) => [allow.authenticated("userPools")]),
 
-    UserStatus: a
+  UserStatus: a
     .model({
       id: a.id().required(),
       email: a.string().required(),
@@ -73,7 +72,6 @@ const schema = a.schema({
     .authorization((allow) => [
       allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
     ]),
-  
 
   // User management queries and mutations
   listUsers: a
@@ -182,27 +180,24 @@ const schema = a.schema({
     .handler(a.handler.function(userManagementFunction)),
 
   // Admin Dashboard endpoints
-// File: amplify/data/resource.ts
+  // File: amplify/data/resource.ts
 
-AuditLog: a
-  .model({
-    id: a.id().required(),
-    timestamp: a.string().required(),
-    action: a.string().required(),
-    performedBy: a.string().required(),
-    affectedResource: a.string().required(),
-    resourceId: a.string(),
-    details: a.json(),
-  })
-  .secondaryIndexes((index) => [
-    index("performedBy")
-      .sortKeys(["timestamp"])
-      .name("performedBy"),
-  ])
-  .authorization((allow: any) => [
-    allow.groups(["GRC-Admin"]).to(["read", "create"]),
-  ]),
-
+  AuditLog: a
+    .model({
+      id: a.id().required(),
+      timestamp: a.string().required(),
+      action: a.string().required(),
+      performedBy: a.string().required(),
+      affectedResource: a.string().required(),
+      resourceId: a.string(),
+      details: a.json(),
+    })
+    .secondaryIndexes((index) => [
+      index("performedBy").sortKeys(["timestamp"]).name("performedBy"),
+    ])
+    .authorization((allow: any) => [
+      allow.groups(["GRC-Admin"]).to(["read", "create"]),
+    ]),
 
   SystemSettings: a
     .model({
@@ -249,10 +244,7 @@ AuditLog: a
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-  
 });
-
-
 
 export type Schema = ClientSchema<typeof schema>;
 

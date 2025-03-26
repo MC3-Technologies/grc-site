@@ -90,7 +90,7 @@ backend.preSignUpFunction.resources.lambda.addToRolePolicy(
       "cognito-idp:AdminUpdateUserAttributes",
       "cognito-idp:AdminAddUserToGroup",
       "cognito-idp:AdminRemoveUserFromGroup",
-      "cognito-idp:ListUsers"
+      "cognito-idp:ListUsers",
     ],
     resources: ["*"],
   }),
