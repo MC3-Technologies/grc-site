@@ -767,6 +767,24 @@ export const userOperations = {
 
       console.log(`Reactivating user ${email} by admin: ${adminEmail}`);
 
+      // First, check the current status of the user
+      let currentStatus = "";
+      try {
+        const getUserStatusCommand = new GetItemCommand({
+          TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+          Key: marshall({ id: email })
+        });
+        
+        const userStatusResponse = await dynamodb.send(getUserStatusCommand);
+        if (userStatusResponse.Item) {
+          const userStatus = unmarshall(userStatusResponse.Item) as UserStatus;
+          currentStatus = userStatus.status;
+          console.log(`Current status for ${email} before reactivation: ${currentStatus}`);
+        }
+      } catch (error) {
+        console.warn(`Unable to get current status for ${email}:`, error);
+      }
+
       // Enable user
       const enableUserCommand = new AdminEnableUserCommand({
         UserPoolId: userPoolId,
@@ -792,18 +810,28 @@ export const userOperations = {
       // Update user status in DynamoDB
       await updateUserStatus(email, "active", adminEmail);
 
-      // Create audit log entry for reactivation
-      await createAuditLogEntry({
+      // Create audit log entry for reactivation with enhanced details
+      const auditLogEntry = {
         timestamp: new Date().toISOString(),
         action: "USER_REACTIVATED",
         performedBy: adminEmail,
         affectedResource: "user",
-        resourceId: email,
+        resourceId: email,  // Use email directly as resourceId
         details: {
           email: email,
+          previousStatus: currentStatus,
+          newStatus: "active",
           reactivatedAt: new Date().toISOString(),
         },
-      });
+      };
+      
+      console.log("Creating reactivation audit log:", JSON.stringify(auditLogEntry));
+      const logId = await createAuditLogEntry(auditLogEntry);
+      console.log(`Created audit log for reactivation with ID: ${logId}`);
+      
+      if (!logId) {
+        console.error("Failed to create audit log for reactivation event");
+      }
 
       // Send reactivation email
       await sendEmail({
@@ -964,6 +992,31 @@ export const userOperations = {
         `Updating role for user ${email} to ${role} by admin: ${adminEmail}`,
       );
 
+      // Get current role to log in the audit entry
+      let currentRole = "user";
+      try {
+        const getUserCommand = new AdminGetUserCommand({
+          UserPoolId: userPoolId,
+          Username: email
+        });
+        const userData = await cognito.send(getUserCommand);
+        if (userData.UserAttributes) {
+          const roleAttr = userData.UserAttributes.find(attr => 
+            attr.Name === "custom:role"
+          );
+          if (roleAttr && roleAttr.Value) {
+            currentRole = roleAttr.Value;
+          }
+        }
+      } catch (error) {
+        console.warn(`Error fetching current role for ${email}:`, error);
+      }
+
+      // Log the role change direction to help debug
+      const isPromoting = currentRole === "user" && role === "admin";
+      const isDemoting = currentRole === "admin" && role === "user"; 
+      console.log(`Role change direction: ${isPromoting ? "PROMOTION to admin" : isDemoting ? "DEMOTION to user" : "OTHER"}`);
+
       // Update custom:role attribute
       const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
         UserPoolId: userPoolId,
@@ -1018,8 +1071,8 @@ export const userOperations = {
       });
       await cognito.send(addToGroupCommand);
 
-      // Create audit log entry for role update
-      await createAuditLogEntry({
+      // Create audit log entry for role update with more details
+      const auditLogEntry = {
         timestamp: new Date().toISOString(),
         action: "USER_ROLE_UPDATED",
         performedBy: adminEmail,
@@ -1028,9 +1081,16 @@ export const userOperations = {
         details: {
           email: email,
           newRole: role,
+          previousRole: currentRole,
           updatedAt: new Date().toISOString(),
+          changeDirection: isPromoting ? "promotion" : isDemoting ? "demotion" : "unchanged",
+          changeDescription: `Changed role from ${currentRole} to ${role}`
         },
-      });
+      };
+      
+      console.log("Creating role update audit log:", JSON.stringify(auditLogEntry));
+      const logId = await createAuditLogEntry(auditLogEntry);
+      console.log(`Created audit log for role update with ID: ${logId}`);
 
       return true;
     } catch (error) {
@@ -1211,8 +1271,8 @@ export const userOperations = {
         console.log("Fetching recent activity");
         const scanCommand = new ScanCommand({
           TableName: process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE",
-          // Increase limit to ensure we get latest events
-          Limit: 50,
+          // Increase limit to ensure we get more events (maximum allowed in a single scan)
+          Limit: 1000,
         });
 
         const auditResponse = await dynamodb.send(scanCommand);
@@ -1225,21 +1285,52 @@ export const userOperations = {
               if (!log.timestamp) {
                 log.timestamp = new Date().toISOString();
               }
+              
+              // Make sure resourceId and affectedResource are consistently formatted
+              // This helps the UI properly display the activity details
+              if (log.affectedResource === "user" && !log.resourceId && log.details?.email) {
+                log.resourceId = log.details.email as string;
+              }
+              
               return log;
             }
           );
           
-          // Sort by timestamp, newest first
+          // Add detailed logging to help diagnose issues
+          console.log(`Raw audit logs count: ${auditLogs.length}`);
+          console.log(`Audit log actions: ${auditLogs.map(log => log.action).join(', ')}`);
+          
+          // Show some sample logs
+          if (auditLogs.length > 0) {
+            const sampleLogs = auditLogs.slice(0, 3);
+            console.log("Sample audit logs:", JSON.stringify(sampleLogs, null, 2));
+          }
+          
+          // Sort by timestamp, newest first - ensure proper comparison of dates
           auditLogs.sort((a, b) => {
+            // Parse ISO strings to timestamps for comparison
             const dateA = new Date(a.timestamp).getTime();
             const dateB = new Date(b.timestamp).getTime();
-            return dateB - dateA; // Descending order (newest first)
+            
+            // Compare by timestamp, newest first
+            const timeComparison = dateB - dateA;
+            
+            // If timestamps are identical, use ID as a tiebreaker to ensure consistent order
+            if (timeComparison === 0 && a.id && b.id) {
+              return a.id.localeCompare(b.id);
+            }
+            
+            return timeComparison;
           });
           
-          // Take only the first 10 after sorting
-          stats.recentActivity = auditLogs.slice(0, 10);
+          // Take more activities (increase to 100) - this should include all activities for test users
+          stats.recentActivity = auditLogs.slice(0, 100);
+          
+          console.log(`Returning ${stats.recentActivity.length} recent activities`);
+          console.log("First 3 activities:", stats.recentActivity.slice(0, 3).map(a => 
+            `${a.action} - ${a.timestamp} - ${a.affectedResource}/${a.resourceId || 'no-id'}`
+          ));
         }
-        console.log("Recent activity:", stats.recentActivity);
       } catch (error) {
         console.error("Error fetching recent activity:", error);
       }
@@ -1528,21 +1619,29 @@ export const userOperations = {
         };
       }
 
-      // Step 1: Create audit log entry for the deletion
+      // Step 1: Create audit log entry for the deletion with improved details
       const auditLogEntry = {
         timestamp: new Date().toISOString(),
         action: "USER_DELETED",
-        performedBy: adminEmail, // Use the admin email that was passed in
+        performedBy: adminEmail,
         affectedResource: "user",
-        resourceId: userId,
+        resourceId: email, // Ensure consistent use of email as resourceId
         details: {
           email: email,
           deletedAt: new Date().toISOString(),
+          userId: userId, // Store the internal user ID in details
+          deletedBy: adminEmail
         },
       };
 
-      await createAuditLogEntry(auditLogEntry);
-      console.log("Created audit log for user deletion");
+      console.log("Creating deletion audit log:", JSON.stringify(auditLogEntry));
+      const logId = await createAuditLogEntry(auditLogEntry);
+      console.log(`Created audit log for user deletion with ID: ${logId}`);
+
+      // Ensure the audit log entry is properly created before proceeding
+      if (!logId) {
+        console.error("Failed to create audit log for user deletion");
+      }
 
       // Update user status in DynamoDB to "deleted" with TTL (30 days from now)
       const thirtyDaysInSeconds = 30 * 24 * 60 * 60; // 30 days in seconds

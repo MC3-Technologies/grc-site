@@ -19,6 +19,74 @@ const ADMIN_STATS_CACHE_KEY = "admin_stats_cache";
 const ADMIN_STATS_CACHE_TIMESTAMP_KEY = "admin_stats_cache_timestamp";
 const ADMIN_STATS_CACHE_DURATION_MS = 15 * 1000; // 15 seconds (reduced from 60 seconds)
 
+// Define admin events enum for consistent event types
+export const AdminEvents = {
+  USER_CREATED: "USER_CREATED",
+  USER_UPDATED: "USER_UPDATED",
+  USER_DELETED: "USER_DELETED",
+  USER_APPROVED: "USER_APPROVED",
+  USER_REJECTED: "USER_REJECTED",
+  USER_SUSPENDED: "USER_SUSPENDED",
+  USER_REACTIVATED: "USER_REACTIVATED",
+  USER_ROLE_UPDATED: "USER_ROLE_UPDATED",
+  ASSESSMENT_CREATED: "ASSESSMENT_CREATED",
+  ASSESSMENT_COMPLETED: "ASSESSMENT_COMPLETED",
+  ASSESSMENT_DELETED: "ASSESSMENT_DELETED"
+};
+
+// Function to emit admin events
+export const emitAdminEvent = (eventType: string): boolean => {
+  try {
+    console.log(`Emitting admin event: ${eventType}`);
+    
+    // Create the event with details
+    const event = new CustomEvent('adminAction', {
+      detail: {
+        type: eventType,
+        timestamp: new Date().toISOString()
+      },
+      bubbles: true,
+      cancelable: false
+    });
+    
+    // Dispatch the event on both document and window
+    document.dispatchEvent(event);
+    window.dispatchEvent(event);
+    
+    // Add to adminUser global if available
+    if (typeof window !== 'undefined' && window.adminUser) {
+      window.adminUser.emitAdminEvent = emitAdminEvent;
+      window.adminUser.AdminEvents = AdminEvents;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error(`Error emitting admin event (${eventType}):`, error);
+    return false;
+  }
+};
+
+// Function to clear user cache
+export const clearUserCache = (): void => {
+  try {
+    // Remove all user cache items
+    localStorage.removeItem(USER_CACHE_KEY);
+    localStorage.removeItem(USER_CACHE_TIMESTAMP_KEY);
+    
+    // Clear status-specific caches
+    const statusTypes = ["active", "pending", "rejected", "suspended", "deleted"];
+    statusTypes.forEach(status => {
+      const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
+      localStorage.removeItem(key);
+      localStorage.removeItem(`${key}_timestamp`);
+    });
+    
+    console.log("User cache cleared successfully");
+  } catch (error) {
+    console.error("Error clearing user cache:", error);
+  }
+};
+
 // User interface
 export interface User {
   id?: string;
@@ -777,8 +845,8 @@ export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<Adm
     const timestamp = Date.now();
     console.log(`Requesting fresh admin stats at ${timestamp}`);
     
-    // Call the API directly without any options
-    const response = await client.queries.getAdminStats();
+    // Call the API with an empty object as parameter
+    const response = await client.queries.getAdminStats({});
     console.log("API response for getAdminStats:", response);
 
     // Process the data depending on its type
@@ -823,6 +891,23 @@ export const fetchAdminStats = async (forceRefresh: boolean = true): Promise<Adm
             console.log("Admin stats cached");
           } catch (error) {
             console.error("Error caching admin stats:", error);
+          }
+          
+          // Define a type for the activity structure
+          interface ActivityItem {
+            action: string;
+            timestamp: string;
+          }
+
+          // After parsing data, add the debugging log
+          if (parsedData && typeof parsedData === 'object') {
+            // Type assertion to access recentActivity safely
+            const statsData = parsedData as { recentActivity?: ActivityItem[] };
+            
+            console.log("Full unfiltered API response for audit logs:", 
+              statsData.recentActivity ? 
+              statsData.recentActivity.map(a => `${a.action} - ${a.timestamp}`) : 
+              "No recent activity");
           }
           
           return adminStats;
@@ -1231,71 +1316,5 @@ const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
     console.log(`Cached ${users.length} users with status ${status}`);
   } catch (error) {
     console.error(`Error caching users with status ${status}:`, error);
-  }
-};
-
-// Clear all user caches
-export const clearUserCache = (): void => {
-  try {
-    // Clear main user cache
-    localStorage.removeItem(USER_CACHE_KEY);
-    localStorage.removeItem(USER_CACHE_TIMESTAMP_KEY);
-
-    // Clear status-specific caches
-    ["pending", "active", "suspended", "rejected", "deleted"].forEach((status) => {
-      const cacheKey = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
-      localStorage.removeItem(cacheKey);
-      localStorage.removeItem(`${cacheKey}_timestamp`);
-    });
-
-    console.log("User cache cleared");
-  } catch (error) {
-    console.error("Error clearing cache:", error);
-  }
-};
-
-
-export { createUser } from "./cognitoAdmin";
-
-// Event bus for admin dashboard updates
-export const AdminEvents = {
-  USER_UPDATED: 'USER_UPDATED',
-  USER_DELETED: 'USER_DELETED',
-  USER_APPROVED: 'USER_APPROVED',
-  USER_REJECTED: 'USER_REJECTED',
-  USER_SUSPENDED: 'USER_SUSPENDED',
-  USER_REACTIVATED: 'USER_REACTIVATED',
-  USER_CREATED: 'USER_CREATED'
-};
-
-// Custom event emitter for admin actions with more robust implementation
-export const emitAdminEvent = (eventType: string) => {
-  console.log(`Emitting admin event: ${eventType} at ${new Date().toISOString()}`);
-  
-  try {
-    const event = new CustomEvent('adminAction', { 
-      detail: { 
-        type: eventType,
-        timestamp: new Date().toISOString() 
-      },
-      bubbles: true,
-      cancelable: false
-    });
-    
-    // Dispatch on document and also on window to ensure capture
-    document.dispatchEvent(event);
-    window.dispatchEvent(event);
-    
-    console.log(`Admin event dispatched successfully: ${eventType}`);
-    
-    // Force cache clear on any admin event
-    clearUserCache();
-    clearAdminStatsCache();
-    
-    // Return true to indicate success
-    return true;
-  } catch (error) {
-    console.error(`Error emitting admin event (${eventType}):`, error);
-    return false;
   }
 };

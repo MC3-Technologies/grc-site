@@ -20,7 +20,7 @@ import StatCard from "./StatCard";
 import AdminDebugPanel from "./AdminDebugPanel"; // Import the debug panel
 
 // Dashboard statistics interface
-interface AdminStatistics {
+interface AdminStats {
   users: {
     total: number;
     active: number;
@@ -37,7 +37,11 @@ interface AdminStatistics {
   };
   complianceRate: number;
   recentActivity: BackendAuditLog[];
+  debugTimestamp?: string;
 }
+
+
+
 
 // Helper function to format dates in HST
 const formatDateToHST = (dateString: string): string => {
@@ -59,14 +63,36 @@ const formatDateToHST = (dateString: string): string => {
   }
 };
 
+// Add window type extensions
+declare global {
+  interface Window {
+    createDebouncedHandler: () => (event: CustomEvent) => void;
+    debouncedHandler: (event: CustomEvent) => void;
+    emitSingleEvent: (eventType?: string) => string;
+    manualRefresh: () => string;
+    adminUser: {
+      clearAdminStatsCache: () => void;
+      clearUserCache: () => void;
+      emitAdminEvent: (type: string) => boolean;
+      AdminEvents: Record<string, string>;
+    };
+  }
+}
+
 export default function AdminHome() {
-  const [adminStats, setAdminStats] = useState<AdminStatistics | null>(null);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const lastRefreshTimeRef = useRef<Date>(new Date());
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [forceRefreshCounter, setForceRefreshCounter] = useState<number>(0);
+  // Add state for pagination
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [activitiesPerPage] = useState<number>(15); // Show 15 activities per page
+  // Add user filter
+  const [userFilter, setUserFilter] = useState<string>("");
+  const [showFilters, setShowFilters] = useState<boolean>(false);
 
   // Function to fetch stats with improved error handling and debugging
   const fetchStats = useCallback(async (forceRefresh = true) => {
@@ -91,11 +117,46 @@ export default function AdminHome() {
       if (stats) {
         logDebug(`Raw recent activity count: ${stats.recentActivity?.length || 0}`);
         
+        // Log ALL activities without filtering to debug what's actually coming from the API
+        if (Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0) {
+          logDebug("ALL activities from API response:");
+          stats.recentActivity.forEach((activity, idx) => {
+            logDebug(`[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || 'no-id'} - ID: ${activity.id?.substring(0, 8) || 'no-id'}`);
+          });
+        } else {
+          logDebug("⚠️ No activities received from API - this could indicate a backend issue");
+        }
+        
         // Ensure activity array is properly sorted by timestamp in descending order
         if (Array.isArray(stats.recentActivity)) {
           // Create a new array instead of trying to modify the original
           stats.recentActivity = [...stats.recentActivity]
-            .filter(activity => activity && activity.action !== "USER_STATUS_UPDATED")
+            // Only filter out invalid activities (null/undefined)
+            .filter(activity => {
+              if (!activity) return false;
+              
+              // Always log what we're processing
+              logDebug(`Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || 'unknown'}`);
+              
+              // Include all valid activities - USER_STATUS_UPDATED no longer exists
+              return true;
+            })
+            .map(activity => {
+              // Ensure resourceId is set to email when available for consistency
+              if (activity.affectedResource === "user" && !activity.resourceId && activity.details?.email) {
+                activity.resourceId = activity.details.email as string;
+                logDebug(`Fixed missing resourceId for ${activity.action}`);
+              }
+              
+              // Special handling for USER_DELETED events which may have different formats
+              if (activity.action === "USER_DELETED" && !activity.resourceId && activity.details?.userId) {
+                // Try to use email from details if available
+                activity.resourceId = (activity.details.email as string) || (activity.details.userId as string);
+                logDebug(`Fixed USER_DELETED resourceId to: ${activity.resourceId}`);
+              }
+              
+              return activity;
+            })
             .sort((a, b) => {
               // Sort by timestamp descending (newest first)
               const timeA = new Date(a.timestamp).getTime();
@@ -113,7 +174,45 @@ export default function AdminHome() {
           }
         }
         
-        setAdminStats(stats as unknown as AdminStatistics);
+        // After filtering and sorting, log the final set of activities
+        if (stats.recentActivity && stats.recentActivity.length > 0) {
+          logDebug(`After filtering and sorting: ${stats.recentActivity.length} activities`);
+          stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
+            logDebug(`Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`);
+          });
+        } else {
+          logDebug("⚠️ No activities found after filtering and sorting");
+          
+          // If we have no activities, schedule a retry with delay
+          if (forceRefresh) {
+            logDebug("Scheduling retry in 5 seconds due to missing activities...");
+            setTimeout(() => {
+              logDebug("Retrying stat fetch due to missing activities");
+              clearAdminStatsCache();
+              fetchAdminStats(true).then(retryStats => {
+                if (retryStats && Array.isArray(retryStats.recentActivity) && retryStats.recentActivity.length > 0) {
+                  logDebug(`Retry successful, got ${retryStats.recentActivity.length} activities`);
+                  setAdminStats(retryStats as unknown as AdminStats);
+                } else {
+                  logDebug("⚠️ Retry failed to get activities");
+                }
+                setIsLoading(false);
+              }).catch(err => {
+                logDebug(`Error in retry fetch: ${err}`);
+                setIsLoading(false);
+              });
+            }, 5000);
+            return; // Exit early, we'll update state in the retry
+          }
+        }
+        
+        // Add debugging timestamp to help identify when data was last processed
+        const statsWithDebug = {
+          ...stats,
+          debugTimestamp: new Date().toISOString()
+        };
+        
+        setAdminStats(statsWithDebug as unknown as AdminStats);
         lastRefreshTimeRef.current = new Date();
         logDebug("Stats updated in component state");
       }
@@ -196,10 +295,10 @@ export default function AdminHome() {
         const freshStats = await fetchAdminStats(true);
         
         if (freshStats) {
-          // Ensure proper sorting by timestamp
+          // Ensure proper sorting by timestamp - no filtering needed
           if (Array.isArray(freshStats.recentActivity)) {
             freshStats.recentActivity = [...freshStats.recentActivity]
-              .filter(activity => activity.action !== "USER_STATUS_UPDATED")
+              // No filtering needed for USER_STATUS_UPDATED since it no longer exists
               .sort((a, b) => {
                 const timeA = new Date(a.timestamp).getTime();
                 const timeB = new Date(b.timestamp).getTime();
@@ -207,7 +306,7 @@ export default function AdminHome() {
               });
           }
           
-          setAdminStats(freshStats as unknown as AdminStatistics);
+          setAdminStats(freshStats as unknown as AdminStats);
           lastRefreshTimeRef.current = new Date();
           logDebug("Stats updated in component state (first attempt)");
         }
@@ -221,10 +320,10 @@ export default function AdminHome() {
           const finalStats = await fetchAdminStats(true);
           
           if (finalStats) {
-            // Ensure proper sorting by timestamp again
+            // Ensure proper sorting by timestamp - no filtering needed
             if (Array.isArray(finalStats.recentActivity)) {
               const sortedActivities = [...finalStats.recentActivity]
-                .filter(activity => activity.action !== "USER_STATUS_UPDATED")
+                // No filtering needed for USER_STATUS_UPDATED since it no longer exists
                 .sort((a, b) => {
                   const timeA = new Date(a.timestamp).getTime();
                   const timeB = new Date(b.timestamp).getTime();
@@ -241,7 +340,7 @@ export default function AdminHome() {
               }
             }
             
-            setAdminStats(finalStats as unknown as AdminStatistics);
+            setAdminStats(finalStats as unknown as AdminStats);
             lastRefreshTimeRef.current = new Date();
             logDebug("Stats updated in component state (final attempt)");
           }
@@ -274,6 +373,7 @@ export default function AdminHome() {
           eventType === AdminEvents.USER_REJECTED ||
           eventType === AdminEvents.USER_SUSPENDED ||
           eventType === AdminEvents.USER_REACTIVATED ||
+          eventType === AdminEvents.USER_ROLE_UPDATED ||
           eventType === AdminEvents.USER_CREATED) {
         logDebug("Action requires refresh, initiating refresh sequence");
         
@@ -346,6 +446,60 @@ export default function AdminHome() {
       setActiveTab(tabParam);
     }
   }, []);
+
+  // Create a debounced version of your admin event handler
+  window.createDebouncedHandler = () => {
+    let timeout: NodeJS.Timeout | null = null;
+    let isRefreshing = false;
+    
+    return (event: CustomEvent) => {
+      console.log("✨ Debounced handler received event:", event.detail.type);
+      
+      // Clear any pending refreshes
+      if (timeout) {
+        console.log("🛑 Cancelling previous pending refresh");
+        clearTimeout(timeout);
+      }
+      
+      // If already refreshing, just schedule a final refresh
+      if (isRefreshing) {
+        console.log("⏳ Already refreshing, scheduling final refresh only");
+        timeout = setTimeout(() => {
+          console.log("🔄 Executing final debounced refresh");
+          window.adminUser.clearAdminStatsCache();
+          // No need to set force counter or anything - this is direct
+          timeout = null;
+          isRefreshing = false;
+        }, 2000);
+        return;
+      }
+      
+      // Start a new refresh sequence
+      isRefreshing = true;
+      console.log("🔄 Starting debounced refresh sequence");
+      
+      // Clear cache immediately
+      window.adminUser.clearAdminStatsCache();
+      
+      // Set a delayed refresh
+      timeout = setTimeout(() => {
+        console.log("🔄 Executing debounced refresh");
+        // This would ideally call your fetchStats function directly
+        // but we can use a workaround
+        document.dispatchEvent(new CustomEvent('manualRefresh'));
+        
+        // Reset state
+        timeout = null;
+        isRefreshing = false;
+      }, 1500);
+    };
+  };
+
+  // Create and install the debounced handler
+  const debouncedHandler = window.createDebouncedHandler();
+
+  // Install it on window object for testing
+  window.debouncedHandler = debouncedHandler;
 
   return (
     <div className="p-4">
@@ -554,28 +708,85 @@ export default function AdminHome() {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Recent Admin Activities
               </h2>
-              <button
-                onClick={handleManualRefresh}
-                disabled={isLoading}
-                className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800"
-              >
-                <svg
-                  className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  ></path>
-                </svg>
-                {isLoading ? "Refreshing..." : "Refresh Now"}
-              </button>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    ></path>
+                  </svg>
+                  Filters
+                </button>
+                <button
+                  onClick={handleManualRefresh}
+                  disabled={isLoading}
+                  className="flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800"
+                >
+                  <svg
+                    className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    ></path>
+                  </svg>
+                  {isLoading ? "Refreshing..." : "Refresh Now"}
+                </button>
+              </div>
             </div>
+            
+            {/* Filter controls */}
+            {showFilters && (
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
+                  <div className="flex-1">
+                    <label htmlFor="userFilter" className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Filter by User Email
+                    </label>
+                    <input
+                      type="text"
+                      id="userFilter"
+                      value={userFilter}
+                      onChange={(e) => {
+                        setUserFilter(e.target.value);
+                        setCurrentPage(1); // Reset to first page when filter changes
+                      }}
+                      placeholder="Enter user email"
+                      className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        setUserFilter("");
+                        setCurrentPage(1);
+                      }}
+                      className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="overflow-x-auto relative">
               {isLoading ? (
@@ -605,43 +816,73 @@ export default function AdminHome() {
                 </thead>
                 <tbody>
                   {adminStats?.recentActivity && 
+                    adminStats.recentActivity.length > 0 ? (
+                    // Filter activities by user email if filter is set
                     adminStats.recentActivity
-                      .filter(activity => activity.action !== "USER_STATUS_UPDATED")
-                      .length > 0 ? (
-                    adminStats.recentActivity
-                      .filter(activity => activity.action !== "USER_STATUS_UPDATED")
-                      .map((activity, index) => (
-                    <tr
-                      key={activity.id || `activity-${index}`}
-                      className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                    >
-                      <td className="py-4 px-6">
-                        {formatDateToHST(activity.timestamp)}
-                      </td>
-                      <td className="py-4 px-6">
-            <span
-              className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
-            >
-              {formatActionName(activity.action)}
-            </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        {activity.performedBy || "System"}
-                      </td>
-                      <td className="py-4 px-6">
-                        {activity.affectedResource}
-                        {activity.resourceId && (
-                          <span className="block text-xs text-gray-500 dark:text-gray-400">
-                            {(activity.details?.email as string) || activity.resourceId}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6">
-                        {formatActivityDetails(activity)}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+                      .filter(activity => {
+                        if (!userFilter) return true;
+                        
+                        // Check different places where the email might be stored
+                        const email = activity.resourceId || 
+                          (activity.details && activity.details.email as string) || 
+                          '';
+                        
+                        return email.toLowerCase().includes(userFilter.toLowerCase());
+                      })
+                      // Apply pagination to display only a subset of activities
+                      .slice(
+                        (currentPage - 1) * activitiesPerPage,
+                        currentPage * activitiesPerPage
+                      )
+                      .map((activity, index) => {
+                      // Skip invalid activities to prevent rendering errors
+                      if (!activity || !activity.action) {
+                        console.warn("Skipping invalid activity:", activity);
+                        return null;
+                      }
+                      
+                      try {
+                        return (
+                          <tr
+                            key={activity.id || `activity-${index}`}
+                            className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                          >
+                            <td className="py-4 px-6">
+                              {formatDateToHST(activity.timestamp)}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span
+                                className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
+                              >
+                                {formatActionName(activity.action)}
+                              </span>
+                              {/* Include activity ID to help with debugging */}
+                              <span className="block text-xs mt-1 text-gray-500">
+                                ID: {activity.id?.substring(0, 8) || "unknown"}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6">
+                              {activity.performedBy || "System"}
+                            </td>
+                            <td className="py-4 px-6">
+                              {activity.affectedResource || "Unknown"}
+                              {(activity.resourceId || activity.details?.email) && (
+                                <span className="block text-xs text-gray-500 dark:text-gray-400">
+                                  {(activity.details?.email as string) || activity.resourceId}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 px-6">
+                              {formatActivityDetails(activity)}
+                            </td>
+                          </tr>
+                        );
+                      } catch (error) {
+                        console.error("Error rendering activity:", error, activity);
+                        return null;
+                      }
+                    })
+                  ) : (
                   <tr>
                     <td colSpan={5} className="py-4 px-6 text-center">
                       No recent activities found
@@ -651,6 +892,89 @@ export default function AdminHome() {
                 </tbody>
               </table>
               )}
+              
+              {/* Add pagination controls */}
+              {adminStats?.recentActivity && (
+                () => {
+                  // Get filtered activities
+                  const filteredActivities = adminStats.recentActivity.filter(activity => {
+                    if (!userFilter) return true;
+                    
+                    // Check different places where the email might be stored
+                    const email = activity.resourceId || 
+                      (activity.details && activity.details.email as string) || 
+                      '';
+                    
+                    return email.toLowerCase().includes(userFilter.toLowerCase());
+                  });
+                  
+                  // Only show pagination if we have more than one page
+                  if (filteredActivities.length > activitiesPerPage) {
+                    return (
+                      <div className="flex justify-center mt-4">
+                        <nav aria-label="Page navigation">
+                          <ul className="inline-flex -space-x-px">
+                            <li>
+                              <button
+                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                className={`px-3 py-2 ml-0 leading-tight ${
+                                  currentPage === 1
+                                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                                    : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
+                                } rounded-l-lg border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`}
+                              >
+                                Previous
+                              </button>
+                            </li>
+                            
+                            {/* Generate page numbers */}
+                            {Array.from({ length: Math.min(5, Math.ceil(filteredActivities.length / activitiesPerPage)) }, (_, i) => {
+                              // Show at most 5 page numbers
+                              const pageStart = Math.max(1, currentPage - 2);
+                              const pageNum = pageStart + i;
+                              
+                              if (pageNum <= Math.ceil(filteredActivities.length / activitiesPerPage)) {
+                                return (
+                                  <li key={pageNum}>
+                                    <button
+                                      onClick={() => setCurrentPage(pageNum)}
+                                      className={`px-3 py-2 leading-tight ${
+                                        currentPage === pageNum
+                                          ? "text-blue-600 bg-blue-50 border-blue-300 hover:bg-blue-100 hover:text-blue-700"
+                                          : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
+                                      } border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`}
+                                    >
+                                      {pageNum}
+                                    </button>
+                                  </li>
+                                );
+                              }
+                              return null;
+                            })}
+                            
+                            <li>
+                              <button
+                                onClick={() => setCurrentPage(Math.min(Math.ceil(filteredActivities.length / activitiesPerPage), currentPage + 1))}
+                                disabled={currentPage >= Math.ceil(filteredActivities.length / activitiesPerPage)}
+                                className={`px-3 py-2 leading-tight ${
+                                  currentPage >= Math.ceil(filteredActivities.length / activitiesPerPage)
+                                    ? "text-gray-400 bg-gray-100 cursor-not-allowed"
+                                    : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
+                                } rounded-r-lg border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`}
+                              >
+                                Next
+                              </button>
+                            </li>
+                          </ul>
+                        </nav>
+                      </div>
+                    );
+                  }
+                  
+                  return null;
+                })()
+              }
             </div>
           </div>
         </>
@@ -665,11 +989,7 @@ export default function AdminHome() {
 // Add these helper functions at the end of the component, before the final return statement
 // Function to format action names for display
 const formatActionName = (action: string): string => {
-  // Just check for USER_DELETED now
-  if (action === "USER_DELETED") {
-    return "User Deleted";
-  }
-
+  // Create an explicit mapping for all action types
   const actionMap: { [key: string]: string } = {
     USER_APPROVED: "User Approved",
     USER_REJECTED: "User Rejected",
@@ -681,34 +1001,45 @@ const formatActionName = (action: string): string => {
     ASSESSMENT_CREATED: "Assessment Created",
     ASSESSMENT_COMPLETED: "Assessment Completed",
     ASSESSMENT_DELETED: "Assessment Deleted",
+    // Keep this for backward compatibility with existing data
+    USER_STATUS_UPDATED: "Status Updated"
   };
 
+  // Return the mapped value or format the raw action string
   return actionMap[action] || action.replace(/_/g, " ");
 };
 
 // Function to determine the badge style based on action
 const getActionBadgeStyle = (action: string): string => {
-  if (action.includes("APPROVED") || action.includes("REACTIVATED")) {
+  // Positive actions - green
+  if (action.includes("APPROVED") || action.includes("REACTIVATED") || action.includes("CREATED")) {
     return "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300";
-  } else if (action.includes("REJECTED") || action.includes("DELETED")) {
+  } 
+  // Negative actions - red
+  else if (action.includes("REJECTED") || action.includes("DELETED")) {
     return "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300";
-  } else if (action.includes("SUSPENDED")) {
+  } 
+  // Warning actions - orange
+  else if (action.includes("SUSPENDED")) {
     return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
-  } else if (action.includes("CREATED")) {
-    return "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300";
-  } else if (action === "USER_ROLE_UPDATED") { // Be more specific here
+  } 
+  // Update actions - purple
+  else if (action === "USER_ROLE_UPDATED") {
     return "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300";
-  } else {
+  } 
+  // Default style - gray
+  else {
     return "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300";
   }
 };
 
 // Function to format activity details
 const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
-  if (!activity.details) return <></>;
+  // Safe guard against missing details
+  if (!activity || !activity.details) return <span>No details available</span>;
 
   // Time-related properties to exclude from the details display
-  const timeKeys = ["timestamp", "createdAt", "updatedAt", "completedAt"];
+  const timeKeys = ["timestamp", "createdAt", "updatedAt", "completedAt", "deletedAt", "approvedAt", "rejectedAt", "suspendedAt", "reactivatedAt"];
 
   // Find the first available time value to display
   const getTimeValue = (
@@ -721,120 +1052,156 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       : defaultTime;
   };
 
-  // Extract the most relevant details based on action type
-  switch (activity.action) {
-    case "USER_ROLE_UPDATED":
-      return (
-        <span>
-          Changed role to <strong>{activity.details.newRole}</strong>
-          {activity.details.updatedAt && (
+  // Safely get a timestamp display value
+  const safeTimeDisplay = (timestamp: string): string => {
+    try {
+      return new Date(timestamp).toLocaleString();
+    } catch (error) {
+      console.error("Error formatting timestamp:", error);
+      return "Unknown time";
+    }
+  };
+
+  try {
+    // Extract the most relevant details based on action type
+    switch (activity.action) {
+      case "USER_ROLE_UPDATED":
+        // Enhanced role update display with direction indicators
+        return (
+          <span>
+            {activity.details.changeDirection === "promotion" ? (
+              <span className="font-medium text-green-600 dark:text-green-400">Promoted to admin</span>
+            ) : activity.details.changeDirection === "demotion" ? (
+              <span className="font-medium text-orange-600 dark:text-orange-400">Changed to regular user</span>
+            ) : (
+              <span>Changed role to <strong>{activity.details.newRole || "unknown role"}</strong></span>
+            )}
+            
+            {activity.details.previousRole && (
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                from <strong>{activity.details.previousRole}</strong>
+              </span>
+            )}
+            {activity.details.updatedAt && (
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                on {safeTimeDisplay(activity.details.updatedAt as string)}
+              </span>
+            )}
+          </span>
+        );
+      case "USER_DELETED":
+        return (
+          <span>
+            <strong>Deleted</strong> by {activity.performedBy}
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
-              {new Date(activity.details.updatedAt as string).toLocaleString()}
+              {activity.details.deletedAt
+                ? new Date(activity.details.deletedAt as string).toLocaleString()
+                : new Date(activity.timestamp).toLocaleString()}
             </span>
-          )}
-        </span>
-      );
-    case "USER_APPROVED":
-      return (
-        <span>
-          <strong>Approved</strong> on{" "}
-          {activity.details.approvedAt
-            ? new Date(activity.details.approvedAt as string).toLocaleString()
-            : new Date(activity.timestamp).toLocaleString()}
-        </span>
-      );
-    case "USER_REACTIVATED":
-      return (
-        <span>
-          <strong>Reactivated</strong> on{" "}
-          {activity.details.reactivatedAt
-            ? new Date(
-                activity.details.reactivatedAt as string,
-              ).toLocaleString()
-            : new Date(activity.timestamp).toLocaleString()}
-        </span>
-      );
-    case "USER_REJECTED":
-      return (
-        <span>
-          <strong>Rejected</strong>
-          {activity.details.rejectedAt && (
-            <span className="block text-xs">
+          </span>
+        );
+      case "USER_REACTIVATED":
+        return (
+          <span>
+            <strong className="text-green-600 dark:text-green-400">Reactivated</strong> user account
+            {activity.details.previousStatus && (
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                from status: <strong>{activity.details.previousStatus}</strong>
+              </span>
+            )}
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
-              {new Date(activity.details.rejectedAt as string).toLocaleString()}
+              {activity.details.reactivatedAt
+                ? new Date(activity.details.reactivatedAt as string).toLocaleString()
+                : new Date(activity.timestamp).toLocaleString()}
             </span>
-          )}
-          {activity.details.reason && (
-            <span className="block text-xs italic mt-1">
-              Reason: "{activity.details.reason}"
-            </span>
-          )}
-        </span>
-      );
-    case "USER_SUSPENDED":
-      return (
-        <span>
-          <strong>Suspended</strong>
-          {activity.details.suspendedAt && (
-            <span className="block text-xs">
-              on{" "}
+          </span>
+        );
+      case "USER_APPROVED":
+        return (
+          <span>
+            <strong>Approved</strong> on{" "}
+            {activity.details.approvedAt
+              ? new Date(activity.details.approvedAt as string).toLocaleString()
+              : new Date(activity.timestamp).toLocaleString()}
+          </span>
+        );
+      case "USER_REJECTED":
+        return (
+          <span>
+            <strong>Rejected</strong>
+            {activity.details.rejectedAt && (
+              <span className="block text-xs">
+                on{" "}
+                {new Date(activity.details.rejectedAt as string).toLocaleString()}
+              </span>
+            )}
+            {activity.details.reason && (
+              <span className="block text-xs italic mt-1">
+                Reason: "{activity.details.reason}"
+              </span>
+            )}
+          </span>
+        );
+      case "USER_SUSPENDED":
+        return (
+          <span>
+            <strong>Suspended</strong>
+            {activity.details.suspendedAt && (
+              <span className="block text-xs">
+                on{" "}
+                {new Date(
+                  activity.details.suspendedAt as string,
+                ).toLocaleString()}
+              </span>
+            )}
+            {activity.details.reason && (
+              <span className="block text-xs italic mt-1">
+                Reason: "{activity.details.reason}"
+              </span>
+            )}
+          </span>
+        );
+      case "USER_CREATED":
+        return (
+          <span>
+            Role: <strong>{activity.details.role || "user"}</strong>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              Created on{" "}
               {new Date(
-                activity.details.suspendedAt as string,
+                (activity.details.createdAt as string) || activity.timestamp,
               ).toLocaleString()}
             </span>
-          )}
-          {activity.details.reason && (
-            <span className="block text-xs italic mt-1">
-              Reason: "{activity.details.reason}"
-            </span>
-          )}
-        </span>
-      );
-    case "USER_CREATED":
-      return (
-        <span>
-          Role: <strong>{activity.details.role || "user"}</strong>
-          <span className="block text-xs text-gray-500 dark:text-gray-400">
-            Created on{" "}
-            {new Date(
-              (activity.details.createdAt as string) || activity.timestamp,
-            ).toLocaleString()}
           </span>
-        </span>
-      );
-    case "USER_DELETED":
-      return (
-        <span>
-          <strong>Deleted</strong> on{" "}
-          {activity.details.deletedAt
-            ? new Date(activity.details.deletedAt as string).toLocaleString()
-            : new Date(activity.timestamp).toLocaleString()}
-        </span>
-      );
-    default: {
-      // For any other action types, try to extract and display the most relevant information
-      const timeValue = getTimeValue(activity.details, activity.timestamp);
+        );
+      default: {
+        // For any other action types, try to extract and display the most relevant information
+        const timeValue = getTimeValue(activity.details, activity.timestamp);
 
-      return (
-        <span>
-          {Object.entries(activity.details)
-            .filter(([key]) => !timeKeys.includes(key))
-            .map(([key, value]) =>
-              typeof value === "object" ? null : (
-                <span key={key} className="block">
-                  {key
-                    .replace(/([A-Z])/g, " $1")
-                    .replace(/^./, (str) => str.toUpperCase())}
-                  :<strong> {String(value)}</strong>
-                </span>
-              ),
-            )}
-          <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-            {new Date(timeValue as string).toLocaleString()}
+        return (
+          <span>
+            {Object.entries(activity.details)
+              .filter(([key]) => !timeKeys.includes(key) && key !== "email")
+              .map(([key, value]) =>
+                typeof value === "object" ? null : (
+                  <span key={key} className="block">
+                    {key
+                      .replace(/([A-Z])/g, " $1")
+                      .replace(/^./, (str) => str.toUpperCase())}
+                    :<strong> {String(value)}</strong>
+                  </span>
+                ),
+              )}
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {safeTimeDisplay(timeValue as string)}
+            </span>
           </span>
-        </span>
-      );
+        );
+      }
     }
+  } catch (error) {
+    console.error("Error formatting activity details:", error, activity);
+    return <span>Error displaying details</span>;
   }
 };

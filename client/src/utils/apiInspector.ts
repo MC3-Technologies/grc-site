@@ -18,7 +18,7 @@ export async function inspectAdminStats() {
     
     // Get client and make the request
     const client = getClientSchema();
-    const response = await client.queries.getAdminStats();
+    const response = await client.queries.getAdminStats({});
     
     const endTime = Date.now();
     console.log(`✅ API response received in ${endTime - startTime}ms`);
@@ -51,7 +51,6 @@ export async function inspectAdminStats() {
             console.log("📜 Recent activities (newest first):");
             // Sort by timestamp (newest first) and display
             const sortedActivities = [...parsedData.recentActivity]
-              .filter(a => a.action !== "USER_STATUS_UPDATED")
               .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             
             // Display the first 10 activities
@@ -121,7 +120,7 @@ export async function inspectRecentActivities() {
         // Get just the user-related logs
         const userLogs = sortedLogs.filter(log => 
           log.affectedResource === "user" && 
-          log.action !== "USER_STATUS_UPDATED"
+          true // Include all action types
         );
         
         console.log(`📊 Found ${userLogs.length} user-related logs`);
