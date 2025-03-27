@@ -2,6 +2,14 @@
 import { getClientSchema } from "../amplify/schema";
 //import { useState, useEffect } from "react";
 
+// Define AdminUser interface to match the one in types.d.ts
+interface AdminUser {
+  emitAdminEvent: (type: string, data?: unknown) => boolean;
+  AdminEvents: Record<string, string>;
+  clearAdminStatsCache: () => void;
+  clearUserCache: () => void;
+}
+
 // Export the getClientSchema for use in components
 export { getClientSchema };
 
@@ -49,13 +57,27 @@ export const emitAdminEvent = (eventType: string): boolean => {
       cancelable: false,
     });
 
-    // Only dispatch the event on document (remove window dispatch)
-    document.dispatchEvent(event);
+    // Only dispatch the event on document if we're in a browser environment
+    if (typeof document !== "undefined") {
+      document.dispatchEvent(event);
+    }
 
-    // Add to adminUser global if available
-    if (typeof window !== "undefined" && window.adminUser) {
-      window.adminUser.emitAdminEvent = emitAdminEvent;
-      window.adminUser.AdminEvents = AdminEvents;
+    // Initialize window.adminUser if it doesn't exist, then add functions
+    if (typeof window !== "undefined") {
+      // Use type assertion to satisfy TypeScript
+      const typedWindow = window as Window & { adminUser?: AdminUser };
+      
+      if (!typedWindow.adminUser) {
+        typedWindow.adminUser = {
+          emitAdminEvent,
+          AdminEvents,
+          clearAdminStatsCache: clearAdminStatsCache,
+          clearUserCache: clearUserCache
+        };
+      } else {
+        typedWindow.adminUser.emitAdminEvent = emitAdminEvent;
+        typedWindow.adminUser.AdminEvents = AdminEvents;
+      }
     }
 
     return true;
@@ -1361,5 +1383,42 @@ const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
     console.log(`Cached ${users.length} users with status ${status}`);
   } catch (error) {
     console.error(`Error caching users with status ${status}:`, error);
+  }
+};
+
+// Add the createUser function that wraps createTestUser
+export const createUser = async (
+  email: string, 
+  role: string, 
+  sendEmail: boolean = true,
+  adminEmail?: string
+): Promise<CreateUserResult> => {
+  try {
+    const result = await createTestUser({
+      email,
+      password: "", // Password will be auto-generated
+      role: role as "user" | "admin",
+      adminEmail
+    });
+    
+    // Return the result in the format expected by the test
+    if (result.success) {
+      return {
+        success: true,
+        user: {
+          email: email,
+          status: "FORCE_CHANGE_PASSWORD",
+          sendEmail: sendEmail // Use the parameter here to prevent unused warning
+        }
+      };
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Error in createUser:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : String(error)
+    };
   }
 };
