@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "types": ["jest", "node"],
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "target": "ES2018"
+  },
+  "include": ["**/__tests__/**/*.test.ts", "**/__mocks__/**/*.ts"]
+}

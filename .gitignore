@@ -5,3 +5,6 @@ amplify_outputs*
 amplifyconfiguration*
 .env
 .env.local
+password.mjs
+amplify.zip
+authConfig.mjs

@@ -48,11 +48,14 @@ const Navbar = () => {
     };
 
     checkUser();
-    initFlowbite();
-    setLoading(false);
+
+    // Initialize Flowbite after a small delay to ensure DOM is ready
+    setTimeout(() => {
+      initFlowbite();
+      setLoading(false);
+    }, 100);
 
     return () => {
-      // Stop listening for data memory leaks
       hubListener();
     };
   }, [authEvents]);
@@ -78,6 +81,7 @@ const Navbar = () => {
                 aria-expanded="false"
                 data-dropdown-toggle="user-dropdown"
                 data-dropdown-placement="bottom"
+                data-dropdown-trigger="click"
               >
                 <svg
                   className="w-6 h-6 text-gray-800 dark:text-white"
@@ -95,6 +99,10 @@ const Navbar = () => {
               <div
                 className="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600"
                 id="user-dropdown"
+                role="menu"
+                aria-orientation="vertical"
+                aria-labelledby="user-menu-button"
+                tabIndex={-1}
               >
                 <div className="px-4 py-3">
                   <span className="block text-sm text-gray-900 dark:text-white">
@@ -106,10 +114,10 @@ const Navbar = () => {
                     <>
                       <li>
                         <a
-                          href="#"
+                          href="/admin/"
                           className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                         >
-                          Admin
+                          Admin Dashboard
                         </a>
                       </li>
                     </>

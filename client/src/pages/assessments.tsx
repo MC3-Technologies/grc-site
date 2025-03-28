@@ -17,6 +17,7 @@ import {
 import Spinner from "../components/Spinner";
 
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
+import { fetchUsers } from "../utils/adminUser";
 
 // Helper function to format dates
 const formatDate = (dateString: string): string => {
@@ -155,6 +156,9 @@ export function Assessments() {
   // Is loading
   const [loading, setLoading] = useState<boolean>(true);
 
+  // New state for user ID to email mapping
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+
   // Add a toast notification
   const addToast = useCallback(
     (message: string, type: "error" | "success" | "info" = "error") => {
@@ -173,6 +177,45 @@ export function Assessments() {
   const dismissToast = (id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
+
+  // Load users and create user ID to email mapping
+  useEffect(() => {
+    const loadUserMap = async () => {
+      try {
+        // Force refresh to ensure we get latest user data
+        const users = await fetchUsers(true);
+        const userMapping: Record<string, string> = {};
+
+        users.forEach((user) => {
+          // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
+          const userId = user.attributes?.sub || user.email;
+          // The actual email is in user.attributes.email or user.email if it's already an email
+          const userEmail =
+            user.attributes?.email ||
+            (user.email.includes("@") ? user.email : null);
+
+          if (userId && userEmail) {
+            userMapping[userId] = userEmail;
+            console.log(`Mapped user ID ${userId} to email ${userEmail}`);
+          }
+        });
+
+        setUserMap(userMapping);
+        console.log("User ID to email mapping created:", userMapping);
+      } catch (error) {
+        console.error("Error creating user mapping:", error);
+      }
+    };
+
+    loadUserMap();
+
+    // Set up interval to periodically refresh user mapping
+    const refreshInterval = setInterval(loadUserMap, 30000);
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, []);
 
   // useEffect to handle assessment setting up and adding on completion handler
   useEffect(() => {
@@ -459,7 +502,11 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {assessment.owner}
+                                  Owner:{" "}
+                                  {userMap[assessment.owner] ||
+                                    (assessment.owner?.includes("@")
+                                      ? assessment.owner
+                                      : assessment.owner)}
                                 </p>
                               )}
 
@@ -562,7 +609,11 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {assessment.owner}
+                                  Owner:{" "}
+                                  {userMap[assessment.owner] ||
+                                    (assessment.owner?.includes("@")
+                                      ? assessment.owner
+                                      : assessment.owner)}
                                 </p>
                               )}
 

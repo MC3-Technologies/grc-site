@@ -8,6 +8,9 @@ import { Model } from "survey-core";
 import { MockClient, __resetMockClient } from "../../__mocks__/amplify-client";
 import { __resetMockStorage } from "../../__mocks__/aws-amplify/storage";
 import { __resetMockAuth } from "../../__mocks__/aws-amplify/auth";
+import { __resetMockCognito } from "../../__mocks__/@aws-sdk/client-cognito-identity-provider";
+import { __resetMockSES } from "../../__mocks__/@aws-sdk/client-ses";
+import { __resetMockDynamoDB } from "../../__mocks__/@aws-sdk/client-dynamodb";
 
 // Create a test version of the assessment utility that uses mocks
 import { surveyJson } from "../../assessmentQuestions";
@@ -27,6 +30,28 @@ jest.mock("aws-amplify/storage", () => {
 jest.mock("aws-amplify/auth", () => {
   const auth = jest.requireActual("../../__mocks__/aws-amplify/auth");
   return auth;
+});
+
+// Mock AWS SDK Cognito client
+jest.mock("@aws-sdk/client-cognito-identity-provider", () => {
+  return jest.requireActual(
+    "../../__mocks__/@aws-sdk/client-cognito-identity-provider",
+  );
+});
+
+// Mock AWS SDK SES client
+jest.mock("@aws-sdk/client-ses", () => {
+  return jest.requireActual("../../__mocks__/@aws-sdk/client-ses");
+});
+
+// Mock AWS SDK DynamoDB client
+jest.mock("@aws-sdk/client-dynamodb", () => {
+  return jest.requireActual("../../__mocks__/@aws-sdk/client-dynamodb");
+});
+
+// Mock AWS SDK util-dynamodb
+jest.mock("@aws-sdk/util-dynamodb", () => {
+  return jest.requireActual("../../__mocks__/@aws-sdk/util-dynamodb");
 });
 
 // Create test data helpers
@@ -53,4 +78,7 @@ export const resetAllMocks = () => {
   __resetMockClient();
   __resetMockStorage();
   __resetMockAuth();
+  __resetMockCognito();
+  __resetMockSES();
+  __resetMockDynamoDB();
 };

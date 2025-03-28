@@ -10,11 +10,12 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
 import { CompletedAssessment } from "../utils/assessment";
-import { surveyJson } from "../assessmentQuestions";
+import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
+import { fetchUsers } from "../utils/adminUser";
 
 type PageData = {
   assessment: Model | null;
@@ -74,6 +75,9 @@ export function CompletedAssessmentView() {
   // Page ready or not
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Add user map state for ID to email mapping
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+
   useEffect(() => {
     initFlowbite();
 
@@ -111,7 +115,7 @@ export function CompletedAssessmentView() {
         window.removeEventListener("lightMode", handleLightMode);
       };
     }
-  });
+  }, [pageData.assessment]);
 
   useEffect(() => {
     // Initialization function
@@ -138,7 +142,7 @@ export function CompletedAssessmentView() {
           );
 
         // Create assessment and give assessment data
-        const assessment = new Model(surveyJson);
+        const assessment = new Model(getLatestQuestionnaireData());
         assessment.data = JSON.parse(assessmentJsonData as string);
 
         // Set survey to display mode (read-only)
@@ -160,23 +164,40 @@ export function CompletedAssessmentView() {
     initialize().finally(() => setLoading(false));
   }, []);
 
-  // Error component to show if errors
-  type ErrorFeedbackProps = {
-    message: string;
-  };
+  // Add a useEffect to load user email mapping
+  useEffect(() => {
+    const loadUserMap = async () => {
+      try {
+        // Force refresh to ensure we get latest user data
+        const users = await fetchUsers(true);
+        const userMapping: Record<string, string> = {};
 
-  // Error component to show if errors
-  const ErrorFeedback: React.FC<ErrorFeedbackProps> = ({
-    message,
-  }): React.JSX.Element => {
-    useEffect(() => {
-      const timer = setTimeout(() => {
-        window.location.href = "/assessments/";
-      }, 5000);
+        users.forEach((user) => {
+          // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
+          const userId = user.attributes?.sub || user.email;
+          // The actual email is in user.attributes.email or user.email if it's already an email
+          const userEmail =
+            user.attributes?.email ||
+            (user.email.includes("@") ? user.email : null);
 
-      return () => clearTimeout(timer);
-    }, []);
+          if (userId && userEmail) {
+            userMapping[userId] = userEmail;
+            console.log(`Mapped user ID ${userId} to email ${userEmail}`);
+          }
+        });
 
+        setUserMap(userMapping);
+        console.log("User ID to email mapping created:", userMapping);
+      } catch (error) {
+        console.error("Error creating user mapping:", error);
+      }
+    };
+
+    loadUserMap();
+  }, []);
+
+  // errorFeedback function to show error feedback and redirect after 5 seconds
+  const errorFeedback = (message: string): React.JSX.Element => {
     return (
       <>
         <section className="bg-white dark:bg-gray-900">
@@ -189,7 +210,7 @@ export function CompletedAssessmentView() {
                 Something went wrong.
               </p>
               <p className="mb-4 text-lg font-light text-gray-500 dark:text-gray-400">
-                There was an error fetching your assessment: {message}
+                There was an error fetching your assessment : {`${message}`}
               </p>
               <p className="mb-4 text-lg text-gray-500 dark:text-gray-400 font-bold">
                 Redirecting you back to the assessments page in 5 seconds.
@@ -201,14 +222,38 @@ export function CompletedAssessmentView() {
     );
   };
 
+  // Add redirection effect when there's an error
+  useEffect(() => {
+    if (pageData.error) {
+      const timer = setTimeout(() => {
+        window.location.href = "/assessments/";
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [pageData.error]);
+
+  // Update the owner display in getPageData to use the email mapping
+  const getOwnerEmail = (ownerId: string | null): string | null => {
+    if (!ownerId) return null;
+
+    // If owner ID is already an email, return it
+    if (ownerId.includes("@")) return ownerId;
+
+    // Look up in our mapping
+    if (userMap[ownerId]) return userMap[ownerId];
+
+    // If no match, log and return owner ID (better than nothing)
+    console.log(`Could not find email for owner ID: ${ownerId}`);
+    return ownerId;
+  };
+
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {
     // If error fetching assessment
     if (pageData.error) {
-      return (
-        <ErrorFeedback
-          message={`There was an error fetching your completed assessment : ${pageData.error}`}
-        />
+      return errorFeedback(
+        `There was an error fetching your completed assessment : ${pageData.error}`,
       );
     }
     // If fetching assessment successful
@@ -295,7 +340,7 @@ export function CompletedAssessmentView() {
                             clipRule="evenodd"
                           ></path>
                         </svg>
-                        {assessmentData.owner}
+                        {getOwnerEmail(assessmentData.owner)}
                       </p>
                     )}
                   </div>
@@ -375,8 +420,8 @@ export function CompletedAssessmentView() {
       );
     }
     // If no conditions above met, it means fetching of any assessment never started
-    return (
-      <ErrorFeedback message="Error getting assessment, fetching operation never started!" />
+    return errorFeedback(
+      "Error getting assessment, fetching operation never started!",
     );
   };
 
