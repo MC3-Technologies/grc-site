@@ -8,3 +8,6 @@ amplifyconfiguration*
 password.mjs
 amplify.zip
 authConfig.mjs
+eventTester
+apiInspector
+assessment.error.test.ts

@@ -236,12 +236,20 @@ class InProgressAssessment extends Assessment {
     currentPage: number,
     percentCompleted: number,
   ): Promise<void> => {
-    // Assessment to be updated
-    const updatedAssessment = {
+    // Assessment to be updated with proper schema format
+    // Use a type expected by the API to avoid 'any' type
+    type AssessmentUpdateParams = {
+      id: string;
+      currentPage: number;
+      percentCompleted: number;
+    };
+    
+    const updatedAssessment: AssessmentUpdateParams = {
       id,
       currentPage,
       percentCompleted,
     };
+    
     // Updated database entry
     const { data, errors } =
       await this.client.models.InProgressAssessment.update(updatedAssessment);
@@ -631,3 +639,156 @@ class CompletedAssessment extends Assessment {
 }
 
 export { InProgressAssessment, CompletedAssessment };
+
+
+
+// Function to save an assessment
+export async function saveAssessment({
+  id,
+  name,
+  data,
+}: {
+  id: string;
+  name: string;
+  data: unknown;
+}): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get identity for storage path
+    const session = await fetchAuthSession();
+    if (!session.identityId) {
+      return {
+        success: false,
+        message: "Could not determine user identity for storage",
+      };
+    }
+
+    // Convert data to JSON and create a file
+    const dataToSave = typeof data === 'object' && data !== null 
+      ? { ...data, name }
+      : { name };
+    const jsonString = JSON.stringify(dataToSave, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const file = new File([blob], `${id}.json`, { type: "application/json" });
+
+    // Upload to storage
+    await uploadData({
+      path: `assessments/${session.identityId}/in-progress/${file.name}`,
+      data: file,
+      options: { bucket: "assessmentStorage" },
+    });
+
+    return { success: true, message: "Assessment saved successfully" };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error saving assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Function to get an assessment
+export async function getAssessment(id: string): Promise<unknown | null> {
+  try {
+    // Get identity for storage path
+    const session = await fetchAuthSession();
+    if (!session.identityId) {
+      throw new Error("Could not determine user identity");
+    }
+
+    // Download from storage
+    const path = `assessments/${session.identityId}/in-progress/${id}.json`;
+    const result = await downloadData({
+      path,
+      options: { bucket: "assessmentStorage" },
+    }).result;
+    
+    const jsonString = await result.body.text();
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Error downloading assessment:", error);
+    return null;
+  }
+}
+
+// Function to list all assessments
+export async function listAssessments(): Promise<{ id: string; title: string }[]> {
+  try {
+    // Wrap the InProgressAssessment.fetchAllAssessments method
+    const assessments = await InProgressAssessment.fetchAllAssessments();
+    return assessments.map(assessment => ({
+      id: assessment.id,
+      title: assessment.name || '',
+    }));
+  } catch (error) {
+    console.error("Error listing assessments:", error);
+    return [];
+  }
+}
+
+// Function to delete an assessment
+export async function deleteAssessment(
+  id: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    await InProgressAssessment.deleteAssessment(id);
+    return { success: true, message: "Assessment deleted successfully" };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error deleting assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Function to create a new assessment
+export async function createAssessment(
+  title: string
+): Promise<{ success: boolean; message: string; id?: string }> {
+  try {
+    const id = await InProgressAssessment.createAssessment(title);
+    return {
+      success: true,
+      message: "Assessment created successfully",
+      id,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error creating assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Function to update an assessment
+export async function updateAssessment(
+  id: string,
+  updates: { name?: string }
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get the current assessment data
+    const assessmentData = await getAssessment(id);
+    if (!assessmentData) {
+      throw new Error("Assessment not found");
+    }
+    
+    // Apply updates
+    const updatedData = {
+      ...assessmentData,
+      ...(updates.name ? { name: updates.name } : {}),
+    };
+    
+    // Save the updated assessment
+    const result = await saveAssessment({
+      id,
+      name: updates.name || (assessmentData as { name?: string }).name || id || 'Untitled Assessment',
+      data: updatedData,
+    });
+    
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error updating assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}

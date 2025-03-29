@@ -499,3 +499,28 @@ export const createUser = async (
 
 // Export for backwards compatibility
 export const fetchUserDetails = getUserDetails;
+
+// Add a helper function to get mock data for testing
+export const __getMocks = async () => {
+  const adminUserModule = await import("./adminUser");
+  return { adminUser: adminUserModule };
+};
+
+// Helper function for development mode testing - expose publicly for tests
+export const _getUserDetailsDevelopment = async (email: string): Promise<User> => {
+  // In development mode, fetch from mock data
+  try {
+    const adminUserModule = await import("./adminUser");
+    // Get mock users
+    const mockUsers = adminUserModule.getMockUsers();
+    // Find user by email
+    const user = mockUsers.find((u: { email: string }) => u.email === email);
+    if (!user) {
+      throw new Error("User not found in mock data");
+    }
+    return user;
+  } catch (err) {
+    console.error("Error in development getUserDetails:", err);
+    return {} as User;
+  }
+};
