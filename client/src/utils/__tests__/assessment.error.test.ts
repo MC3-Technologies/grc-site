@@ -11,7 +11,7 @@ import { describe, test, expect, jest, beforeEach, afterEach } from "@jest/globa
 import { InProgressAssessment, CompletedAssessment } from "../assessment";
 import * as assessment from "../assessment";
 import { getClientSchema as originalGetClientSchema } from "../../amplify/schema"; // Import original for type inference
-import { uploadData, downloadData, remove } from "aws-amplify/storage"; // Import storage functions directly
+import { uploadData, remove } from "aws-amplify/storage"; // Import storage functions directly
 
 // Update imports to use the existing mock files correctly
 import { __setMockIdentity, __setMockAuthError, __resetMocks as __resetAuthMocks } from "../../__mocks__/aws-amplify/auth";
@@ -25,7 +25,7 @@ const getClientSchema = originalGetClientSchema as jest.MockedFunction<typeof or
 // Mock storage functions directly
 jest.mock("aws-amplify/storage");
 const mockedUploadData = uploadData as jest.MockedFunction<typeof uploadData>;
-const mockedDownloadData = downloadData as jest.MockedFunction<typeof downloadData>;
+//const mockedDownloadData = downloadData as jest.MockedFunction<typeof downloadData>;
 const mockedRemove = remove as jest.MockedFunction<typeof remove>;
 
 
