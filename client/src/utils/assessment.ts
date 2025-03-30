@@ -196,9 +196,12 @@ class InProgressAssessment extends Assessment {
     // Create hash to use for id
     const idHash = this._generateUrlSafeHash();
 
+    // Fetch the latest questionnaire data from S3 (falling back to local if needed)
+    const questionnaireData = await getLatestQuestionnaireData();
+
     // Create new assessment JSON to upload
     const jsonString = JSON.stringify(
-      new Model(getLatestQuestionnaireData()).data,
+      new Model(questionnaireData).data,
       null,
       2,
     );

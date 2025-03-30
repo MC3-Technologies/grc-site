@@ -7,6 +7,7 @@ import {
   SurveyPage,
   loadSavedQuestionnaire,
   QUESTIONNAIRE_STORAGE_KEY,
+  saveQuestionnaireToS3,
 } from "../../utils/questionnaireUtils";
 
 // New interface for edit form element state
@@ -45,6 +46,9 @@ const AdminQuestionnaire = () => {
 
   // Success notification
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Loading state for S3 operations
+  const [isSaving, setIsSaving] = useState<boolean>(false);
 
   // Event for notifying other components of questionnaire updates
   const notifyQuestionnaireUpdate = () => {
@@ -209,50 +213,65 @@ const AdminQuestionnaire = () => {
   };
 
   // Handle save changes
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (editForm && selectedPage) {
-      // Prepare the updated elements by removing the id property
-      const updatedElements = editForm.elements.map((element) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id, ...rest } = element;
-        return rest;
-      });
+      setIsSaving(true);
+      
+      try {
+        // Prepare the updated elements by removing the id property
+        const updatedElements = editForm.elements.map((element) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id, ...rest } = element;
+          return rest;
+        });
 
-      // Create the updated page
-      const updatedPage = {
-        title: editForm.title,
-        elements: updatedElements,
-      };
+        // Create the updated page
+        const updatedPage = {
+          title: editForm.title,
+          elements: updatedElements,
+        };
 
-      // Update the pages state
-      const updatedPages = pages.map((page) =>
-        page.id === selectedPage ? { ...updatedPage, id: page.id } : page,
-      );
+        // Update the pages state
+        const updatedPages = pages.map((page) =>
+          page.id === selectedPage ? { ...updatedPage, id: page.id } : page,
+        );
 
-      // Update the state
-      setPages(updatedPages);
+        // Update the state
+        setPages(updatedPages);
 
-      // Save to localStorage for persistence
-      localStorage.setItem(
-        QUESTIONNAIRE_STORAGE_KEY,
-        JSON.stringify(updatedPages),
-      );
+        // Save to localStorage for persistence
+        localStorage.setItem(
+          QUESTIONNAIRE_STORAGE_KEY,
+          JSON.stringify(updatedPages),
+        );
 
-      // Notify other components that the questionnaire has been updated
-      notifyQuestionnaireUpdate();
+        // Save to S3 for sharing with all users
+        const saved = await saveQuestionnaireToS3(updatedPages);
+        
+        if (!saved) {
+          throw new Error("Failed to save questionnaire to S3");
+        }
 
-      // In a real implementation, this would also save the changes to the backend
-      console.log("Saving changes:", updatedPage);
+        // Notify other components that the questionnaire has been updated
+        notifyQuestionnaireUpdate();
 
-      // Show success message
-      setSuccessMessage(
-        "Section updated successfully! Changes have been saved and will persist.",
-      );
-      setTimeout(() => setSuccessMessage(null), 3000);
+        // Show success message
+        setSuccessMessage(
+          "Section updated successfully! Changes have been saved locally and published to all users.",
+        );
 
-      // Exit edit mode
-      setEditMode(false);
-      setEditForm(null);
+        // Exit edit mode
+        setEditMode(false);
+        setEditForm(null);
+      } catch (error) {
+        console.error("Error saving questionnaire:", error);
+        setSuccessMessage(
+          "Changes saved locally but failed to publish to all users. Please try again.",
+        );
+      } finally {
+        setIsSaving(false);
+        setTimeout(() => setSuccessMessage(null), 3000);
+      }
     }
   };
 
@@ -563,7 +582,7 @@ const AdminQuestionnaire = () => {
                                               value: e.target.value,
                                             };
                                           } else {
-                                            newChoices[idx] = e.target.value;
+                                            newChoices[idx] = { value: e.target.value, text: e.target.value };;
                                           }
                                           handleElementChange(
                                             element.id,
@@ -877,6 +896,18 @@ const AdminQuestionnaire = () => {
           </div>
         )}
       </div>
+
+      {/* Add saving indicator */}
+      {isSaving && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-xl">
+            <p className="text-lg font-medium">Publishing changes to all users...</p>
+            <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
+              <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

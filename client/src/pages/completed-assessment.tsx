@@ -141,8 +141,11 @@ export function CompletedAssessmentView() {
             assessmentIdParam,
           );
 
-        // Create assessment and give assessment data
-        const assessment = new Model(getLatestQuestionnaireData());
+        // Get the latest questionnaire data (will fetch from S3 if available)
+        const latestQuestionnaireData = await getLatestQuestionnaireData();
+
+        // Create assessment survey model with the data
+        const assessment = new Model(latestQuestionnaireData);
         assessment.data = JSON.parse(assessmentJsonData as string);
 
         // Set survey to display mode (read-only)

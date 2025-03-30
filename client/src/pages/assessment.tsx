@@ -336,8 +336,11 @@ export function Assessment() {
             assessmentIdParam,
           );
 
+        // Get the latest questionnaire data (will fetch from S3 if available)
+        const latestQuestionnaireData = await getLatestQuestionnaireData();
+
         // Create assessment and give assessment data and current page
-        const assessment = new Model(getLatestQuestionnaireData());
+        const assessment = new Model(latestQuestionnaireData);
         assessment.data = JSON.parse(assessmentJsonData as string);
         assessment.currentPageNo = assessmentEntryData.currentPage;
 
