@@ -61,18 +61,7 @@ const formatDateToHST = (dateString: string): string => {
 
 // Add window type extensions
 declare global {
-  interface Window {
-    createDebouncedHandler: () => (event: CustomEvent) => void;
-    debouncedHandler: (event: CustomEvent) => void;
-    emitSingleEvent: (eventType?: string) => string;
-    manualRefresh: () => string;
-    adminUser: {
-      clearAdminStatsCache: () => void;
-      clearUserCache: () => void;
-      emitAdminEvent: (type: string) => boolean;
-      AdminEvents: Record<string, string>;
-    };
-  }
+  // Window interface is now defined in types.d.ts
 }
 
 export default function AdminHome() {
@@ -497,7 +486,9 @@ export default function AdminHome() {
         console.log("⏳ Already refreshing, scheduling final refresh only");
         timeout = setTimeout(() => {
           console.log("🔄 Executing final debounced refresh");
-          window.adminUser.clearAdminStatsCache();
+          if (window.adminUser) {
+            window.adminUser.clearAdminStatsCache();
+          }
           // No need to set force counter or anything - this is direct
           timeout = null;
           isRefreshing = false;
@@ -510,7 +501,9 @@ export default function AdminHome() {
       console.log("🔄 Starting debounced refresh sequence");
 
       // Clear cache immediately
-      window.adminUser.clearAdminStatsCache();
+      if (window.adminUser) {
+        window.adminUser.clearAdminStatsCache();
+      }
 
       // Set a delayed refresh
       timeout = setTimeout(() => {

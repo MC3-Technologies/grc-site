@@ -22,18 +22,14 @@ const backend = defineBackend({
   assessmentStorage,
 });
 
-// Add SES permissions to the user management Lambda function
-backend.userManagementFunction.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: ["ses:SendEmail", "ses:SendRawEmail"],
-    resources: ["*"],
-  }),
-);
+
 
 // Add DynamoDB permissions to the user management Lambda function
 backend.userManagementFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: [
+      "ses:SendRawEmail",
+      "ses:SendEmail",
       "dynamodb:Scan",
       "dynamodb:Query",
       "dynamodb:GetItem",
@@ -42,15 +38,6 @@ backend.userManagementFunction.resources.lambda.addToRolePolicy(
       "dynamodb:DeleteItem",
       "dynamodb:BatchGetItem",
       "dynamodb:BatchWriteItem",
-    ],
-    resources: ["*"],
-  }),
-);
-
-// Add Cognito permissions to the user management Lambda function
-backend.userManagementFunction.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: [
       "cognito-idp:AdminGetUser",
       "cognito-idp:AdminCreateUser",
       "cognito-idp:AdminUpdateUserAttributes",
@@ -66,6 +53,7 @@ backend.userManagementFunction.resources.lambda.addToRolePolicy(
   }),
 );
 
+
 // Add permissions to the preSignUp Lambda function
 backend.preSignUpFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
@@ -75,15 +63,6 @@ backend.preSignUpFunction.resources.lambda.addToRolePolicy(
       "ses:SendEmail",
       "ses:SendRawEmail",
       "sns:Publish",
-    ],
-    resources: ["*"],
-  }),
-);
-
-// Add Cognito permissions to the auth-triggers Lambda function
-backend.preSignUpFunction.resources.lambda.addToRolePolicy(
-  new PolicyStatement({
-    actions: [
       "cognito-idp:AdminDisableUser",
       "cognito-idp:AdminEnableUser",
       "cognito-idp:AdminGetUser",
@@ -95,3 +74,4 @@ backend.preSignUpFunction.resources.lambda.addToRolePolicy(
     resources: ["*"],
   }),
 );
+

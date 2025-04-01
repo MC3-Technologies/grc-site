@@ -23,7 +23,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
-      allow.groups(["GRC-Admin"]).to(["read"]),
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]), // Grant full CRUD to Admins
     ]),
   InProgressAssessment: a
     .model({
@@ -37,7 +37,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
-      allow.groups(["GRC-Admin"]).to(["read"]),
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]), // Grant full CRUD to Admins
     ]),
   gptCompletion: a
     .query()
