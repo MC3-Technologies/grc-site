@@ -18,6 +18,7 @@ import AdminAssessments from "../components/admin/AdminAssessments";
 import AdminQuestionnaire from "../components/admin/AdminQuestionnaire";
 import AdminReports from "../components/admin/AdminReports";
 import AdminSystemSettings from "../components/admin/AdminSystemSettings";
+import Chat from "../components/Chat";
 
 export function AdminDashboard() {
   const [loading, setLoading] = useState<boolean>(true);
@@ -112,6 +113,7 @@ export function AdminDashboard() {
         </section>
       </AdminProtected>
       <Footer />
+      <Chat />
     </>
   );
 }

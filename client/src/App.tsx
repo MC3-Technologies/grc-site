@@ -19,7 +19,7 @@ function App() {
   }, []);
   
   return (
-    <div>
+    <div className="relative min-h-screen">
       <Outlet />
     </div>
   );
