@@ -47,18 +47,22 @@ export const emitAdminEvent = (eventType: string): boolean => {
   try {
     console.log(`Emitting admin event: ${eventType}`);
 
-    // Create the event with details
-    const event = new CustomEvent("adminAction", {
-      detail: {
-        type: eventType,
-        timestamp: new Date().toISOString(),
-      },
-      bubbles: true,
-      cancelable: false,
-    });
+    // Create the event details
+    const eventDetails = {
+      type: eventType,
+      timestamp: new Date().toISOString(),
+    };
 
-    // Only dispatch the event on document if we're in a browser environment
-    if (typeof document !== "undefined") {
+    // Only try to dispatch DOM event if we're in a browser environment
+    if (typeof window !== "undefined" && typeof document !== "undefined") {
+      // Create the event with details
+      const event = new CustomEvent("adminAction", {
+        detail: eventDetails,
+        bubbles: true,
+        cancelable: false,
+      });
+
+      // Dispatch the event
       document.dispatchEvent(event);
     }
 
@@ -1391,9 +1395,29 @@ export const createUser = async (
   email: string, 
   role: string, 
   sendEmail: boolean = true,
+  skipEmailVerification: boolean = false,
   adminEmail?: string
 ): Promise<CreateUserResult> => {
   try {
+    // If we're in mock mode for testing
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(`Mock creating user: ${email} with role: ${role}`);
+      const status = skipEmailVerification ? "CONFIRMED" : "FORCE_CHANGE_PASSWORD";
+      return {
+        success: true,
+        user: {
+          email,
+          status,
+          role,
+          enabled: true,
+          created: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+          sendEmail
+        }
+      };
+    }
+
+    // For real implementation, use createTestUser
     const result = await createTestUser({
       email,
       password: "", // Password will be auto-generated
@@ -1407,8 +1431,12 @@ export const createUser = async (
         success: true,
         user: {
           email: email,
-          status: "FORCE_CHANGE_PASSWORD",
-          sendEmail: sendEmail // Use the parameter here to prevent unused warning
+          status: skipEmailVerification ? "CONFIRMED" : "FORCE_CHANGE_PASSWORD",
+          sendEmail: sendEmail,
+          role,
+          enabled: true,
+          created: new Date().toISOString(),
+          lastModified: new Date().toISOString()
         }
       };
     }
