@@ -1125,13 +1125,17 @@ const getActionBadgeStyle = (action: string): string => {
   ) {
     return "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300";
   }
-  // Negative actions - red
-  else if (action.includes("REJECTED") || action.includes("DELETED")) {
+  // Rejection actions - orange
+  else if (action.includes("REJECTED")) {
+    return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
+  }
+  // Deletion actions - red
+  else if (action.includes("DELETED")) {
     return "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300";
   }
-  // Warning actions - orange
+  // Suspension actions - yellow
   else if (action.includes("SUSPENDED")) {
-    return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
+    return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300";
   }
   // Update actions - purple
   else if (action === "USER_ROLE_UPDATED") {
@@ -1284,7 +1288,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_REJECTED":
         return (
           <span>
-            <strong className="text-red-600 dark:text-red-400">Rejected</strong>
+            <strong className="text-orange-600 dark:text-orange-400">Rejected</strong> {/* Changed text color to orange */}
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
@@ -1317,7 +1321,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
 
         return (
           <span>
-            <strong className="text-orange-600 dark:text-orange-400">
+            <strong className="text-yellow-600 dark:text-yellow-400"> {/* Changed text color to yellow */}
               Suspended
             </strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">

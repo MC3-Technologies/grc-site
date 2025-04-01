@@ -266,6 +266,7 @@ const updateUserStatus = async (
   email: string,
   newStatus: UserStatus["status"],
   updatedBy: string = "system",
+  reason?: string, // Add optional reason parameter
   ttl?: number,
 ): Promise<void> => {
   const tableName =
@@ -284,6 +285,15 @@ const updateUserStatus = async (
     lastStatusChange: timestamp,
     lastStatusChangeBy: updatedBy,
   };
+
+  // Add reason if provided and status is relevant
+  if (reason) {
+    if (normalizedStatus === "rejected") {
+      item.rejectionReason = reason;
+    } else if (normalizedStatus === "suspended") {
+      item.suspensionReason = reason;
+    }
+  }
 
   // Add TTL if provided (for deleted items)
   if (ttl) {
@@ -667,8 +677,8 @@ export const userOperations = {
 
       await cognito.send(updateUserAttributesCommand);
 
-      // Update user status in DynamoDB
-      await updateUserStatus(email, "rejected", adminEmail);
+      // Update user status in DynamoDB, passing the reason
+      await updateUserStatus(email, "rejected", adminEmail, reason);
 
       // Create audit log entry for rejection
       await createAuditLogEntry({
@@ -737,8 +747,8 @@ export const userOperations = {
 
       await cognito.send(updateUserAttributesCommand);
 
-      // Update user status in DynamoDB
-      await updateUserStatus(email, "suspended", adminEmail);
+      // Update user status in DynamoDB, passing the reason
+      await updateUserStatus(email, "suspended", adminEmail, reason);
 
       // Create audit log entry for suspension
       await createAuditLogEntry({
@@ -829,6 +839,7 @@ export const userOperations = {
       await cognito.send(updateUserAttributesCommand);
 
       // Update user status in DynamoDB
+      // Update user status in DynamoDB (no reason needed for reactivation)
       await updateUserStatus(email, "active", adminEmail);
 
       // Create audit log entry for reactivation with enhanced details
@@ -1682,7 +1693,12 @@ export const userOperations = {
         };
       }
 
-      // Step 1: Create audit log entry for the deletion with improved details
+      // Step 1: Update user status in DynamoDB to "deleted" with TTL (30 days from now)
+      const thirtyDaysInSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
+      const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds; // Current time + 30 days in Unix timestamp
+      await updateUserStatus(email, "deleted", adminEmail, undefined, ttl); // Pass undefined for reason
+
+      // Step 2: Create audit log entry for the deletion AFTER updating status
       const auditLogEntry = {
         timestamp: new Date().toISOString(),
         action: "USER_DELETED",
@@ -1709,12 +1725,7 @@ export const userOperations = {
         console.error("Failed to create audit log for user deletion");
       }
 
-      // Update user status in DynamoDB to "deleted" with TTL (30 days from now)
-      const thirtyDaysInSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
-      const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds; // Current time + 30 days in Unix timestamp
-      await updateUserStatus(email, "deleted", adminEmail, ttl);
-
-      // Step 2: Delete user's assessments
+      // Step 3: Delete user's assessments
       // This would require finding any assessments owned by this user and deleting them
       // We'll need to scan the InProgressAssessment and CompletedAssessment tables
       try {
@@ -1891,10 +1902,11 @@ export const userOperations = {
         );
 
         try {
-          // Create UserStatus entry
+          // Create/Update UserStatus entry (no reason for migration)
           await updateUserStatus(email, status, "system-migration");
 
-          // Update role if needed
+          // Update role if needed (this PutItem might be redundant if updateUserStatus handles role)
+          // Consider refactoring updateUserStatus to handle role updates as well
           await dynamodb.send(
             new PutItemCommand({
               TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus",
