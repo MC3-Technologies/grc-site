@@ -34,6 +34,15 @@ class Report<T> {
     }
   };
 
+  private _getAccessControlResult = ():ControlResult=>{
+    for (const key in this._assessmentData) {
+      if (Object.prototype.hasOwnProperty.call(this._assessmentData, "AC.L1-b")) {
+        console.log(`${key}: ${this._assessmentData[key]}`);
+      }
+    }
+    
+  }
+
   public generateReportData = ():ReportResult=>{
 
   }
