@@ -65,7 +65,7 @@ const surveyJson = {
         {
           type: "text",
           inputType: "number",
-          name: "remoteEmployees_followup",
+          name: "remoteEmployees_followup", // no "@" so left unchanged
           title: "If yes, how many remote employees?",
           isRequired: true,
           visibleIf: "{remoteEmployees} = 'Yes'",
@@ -92,7 +92,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "industry_followup",
+          name: "industry_followup", // no "@" so left unchanged
           title: "If 'Other', please list your industry:",
           isRequired: true,
           visibleIf: "{industry} = 'Other'",
@@ -107,7 +107,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "itPoliciesQuestion_followup",
+          name: "itPoliciesQuestion_followup", // no "@" so left unchanged
           title: "If yes, please list any policies or procedures you may have.",
           isRequired: true,
           visibleIf: "{itPoliciesQuestion} = 'Yes'",
@@ -120,7 +120,8 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.i@individualAccounts",
+          // Non-followup transformation: prefix remains, then title is appended.
+          name: "AC.L1-b.1.i@Do your employees use individual (not shared) accounts to access company systems and data?",
           title:
             "Do your employees use individual (not shared) accounts to access company systems and data?",
           choices: ["Yes", "No"],
@@ -128,15 +129,17 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "AC.L1-b.1.i@individualAccounts_followup",
+          // Followup: take prefix "AC.L1-b.1.i@" and append title, then ensure _followup is at end.
+          name: "AC.L1-b.1.i@If yes, please list any policies or procedures you may have that enforce this._followup",
           title:
             "If yes, please list any policies or procedures you may have that enforce this.",
           isRequired: true,
-          visibleIf: "{AC.L1-b.1.i@individualAccounts} = 'Yes'",
+          visibleIf:
+            "{AC.L1-b.1.i@Do your employees use individual (not shared) accounts to access company systems and data?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.ii@limitingEmployeeAccess",
+          name: "AC.L1-b.1.ii@Do you limit each employee’s access so they can only perform tasks relevant to their job role?",
           title:
             "Do you limit each employee’s access so they can only perform tasks relevant to their job role?",
           choices: ["Yes", "No"],
@@ -144,15 +147,16 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "AC.L1-b.1.ii@limitingEmployeeAccess_followup",
+          name: "AC.L1-b.1.ii@If yes, please list any policies or procedures you may have that outline job roles and access._followup",
           title:
             "If yes, please list any policies or procedures you may have that outline job roles and access.",
           isRequired: true,
-          visibleIf: "{AC.L1-b.1.ii@limitingEmployeeAccess} = 'Yes'",
+          visibleIf:
+            "{AC.L1-b.1.ii@Do you limit each employee’s access so they can only perform tasks relevant to their job role?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.iii@controllingMonitoringExternalSystems",
+          name: "AC.L1-b.1.iii@Do you control and monitor all external system connections (e.g., cloud services, remote systems)?",
           title:
             "Do you control and monitor all external system connections (e.g., cloud services, remote systems)?",
           choices: ["Yes", "No"],
@@ -160,15 +164,15 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "AC.L1-b.1.iii@controllingMonitoringExternalSystems_followup",
+          name: "AC.L1-b.1.iii@If yes, please describe the controls you have in place._followup",
           title: "If yes, please describe the controls you have in place.",
           isRequired: true,
           visibleIf:
-            "{AC.L1-b.1.iii@controllingMonitoringExternalSystems} = 'Yes'",
+            "{AC.L1-b.1.iii@Do you control and monitor all external system connections (e.g., cloud services, remote systems)?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.iv@publicCompanyInformation",
+          name: "AC.L1-b.1.iv@Do you review and approve what company information can be made public (e.g., on your website)?",
           title:
             "Do you review and approve what company information can be made public (e.g., on your website)?",
           choices: ["Yes", "No"],
@@ -176,11 +180,12 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "AC.L1-b.1.iv@publicCompanyInformation_followup",
+          name: "AC.L1-b.1.iv@If yes, please list any policies or procedures you may have that enforce this._followup",
           title:
             "If yes, please list any policies or procedures you may have that enforce this.",
           isRequired: true,
-          visibleIf: "{AC.L1-b.1.iv@publicCompanyInformation} = 'Yes'",
+          visibleIf:
+            "{AC.L1-b.1.iv@Do you review and approve what company information can be made public (e.g., on your website)?} = 'Yes'",
         },
       ],
     },
@@ -190,7 +195,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.v@uniquelyIdentifiedPeople",
+          name: "IA.L1-b.1.v@Is each person uniquely identified before they can log into your systems?",
           title:
             "Is each person uniquely identified before they can log into your systems?",
           choices: ["Yes", "No"],
@@ -198,15 +203,16 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "IA.L1-b.1.v@uniquelyIdentifiedPeople_followup",
+          name: "IA.L1-b.1.v@If yes, do you have an inventory of all users and the systems they have access to?_followup",
           title:
             "If yes, do you have an inventory of all users and the systems they have access to?",
           isRequired: true,
-          visibleIf: "{IA.L1-b.1.v@uniquelyIdentifiedPeople} = 'Yes'",
+          visibleIf:
+            "{IA.L1-b.1.v@Is each person uniquely identified before they can log into your systems?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.v@uniquelyIdentifiedDevices",
+          name: "IA.L1-b.1.v@Is each device uniquely identified before they can log into your systems?",
           title:
             "Is each device uniquely identified before they can log into your systems?",
           choices: ["Yes", "No"],
@@ -214,15 +220,16 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "IA.L1-b.1.v@uniquelyIdentifiedDevices_followup",
+          name: "IA.L1-b.1.v@If yes, how is this implemented (Active Directory, Office 365, Duo, etc.)?_followup",
           title:
             "If yes, how is this implemented (Active Directory, Office 365, Duo, etc.)?",
           isRequired: true,
-          visibleIf: "{IA.L1-b.1.v@uniquelyIdentifiedDevices} = 'Yes'",
+          visibleIf:
+            "{IA.L1-b.1.v@Is each device uniquely identified before they can log into your systems?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.vi@anotherMethodVerification",
+          name: "IA.L1-b.1.vi@Are users required to enter a password or use another method to verify their identity?",
           title:
             "Are users required to enter a password or use another method to verify their identity?",
           choices: ["Yes", "No"],
@@ -230,33 +237,36 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "IA.L1-b.1.vi@anotherMethodVerification_followup",
+          name: "IA.L1-b.1.vi@If yes, do you have a password authentication policy that outlines password requirements?_followup",
           title:
             "If yes, do you have a password authentication policy that outlines password requirements?",
           isRequired: true,
-          visibleIf: "{IA.L1-b.1.vi@anotherMethodVerification} = 'Yes'",
+          visibleIf:
+            "{IA.L1-b.1.vi@Are users required to enter a password or use another method to verify their identity?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.vii@mfaUtilized",
+          name: "IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?",
           title: "Is Multi-Factor Authentication utilized?",
           choices: ["Yes", "No"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "IA.L1-b.1.vii@mfaUtilized_followup",
+          name: "IA.L1-b.1.vii@If yes, how is this implemented?_followup",
           title: "If yes, how is this implemented?",
           isRequired: true,
-          visibleIf: "{IA.L1-b.1.vii@mfaUtilized} = 'Yes'",
+          visibleIf:
+            "{IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?} = 'Yes'",
         },
         {
           type: "comment",
-          name: "IA.L1-b.1.vii@mfaUtilized_followup2",
+          name: "IA.L1-b.1.vii@If yes, is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?_followup",
           title:
             "If yes, is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?",
           isRequired: true,
-          visibleIf: "{IA.L1-b.1.vii@mfaUtilized} = 'Yes'",
+          visibleIf:
+            "{IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?} = 'Yes'",
         },
       ],
     },
@@ -266,7 +276,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name: "MP.L1-b.1.vii@mediaDestruction",
+          name: "MP.L1-b.1.vii@Do you properly destroy or wipe computers, hard drives, or media before disposing of them?",
           title:
             "Do you properly destroy or wipe computers, hard drives, or media before disposing of them?",
           choices: ["Yes", "No"],
@@ -274,10 +284,11 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "MP.L1-b.1.vii@mediaDestruction_followup",
+          name: "MP.L1-b.1.vii@If yes, what is the process? Is this documented?_followup",
           title: "If yes, what is the process? Is this documented?",
           isRequired: true,
-          visibleIf: "{MP.L1-b.1.vii@mediaDestruction} = 'Yes'",
+          visibleIf:
+            "{MP.L1-b.1.vii@Do you properly destroy or wipe computers, hard drives, or media before disposing of them?} = 'Yes'",
         },
       ],
     },
@@ -287,7 +298,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name: "PE.L1-b.1.viii@devicesRestrictedAreas",
+          name: "PE.L1-b.1.viii@Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?",
           title:
             "Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?",
           choices: ["Yes", "No"],
@@ -295,15 +306,16 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "PE.L1-b.1.viii@devicesRestrictedAreas_followup",
+          name: "PE.L1-b.1.viii@If yes, describe how these areas are secured and what measures are taken?_followup",
           title:
-            "If yes, describe how these areas are secured and what measures are taken.",
+            "If yes, describe how these areas are secured and what measures are taken?",
           isRequired: true,
-          visibleIf: "{PE.L1-b.1.viii@devicesRestrictedAreas} = 'Yes'",
+          visibleIf:
+            "{PE.L1-b.1.viii@Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "PE.L1-b.1.ix@visitorLoggingMonitoring",
+          name: "PE.L1-b.1.ix@Do you log and monitor visitors when they enter secure company areas?",
           title:
             "Do you log and monitor visitors when they enter secure company areas?",
           choices: ["Yes", "No"],
@@ -311,11 +323,12 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "PE.L1-b.1.ix@visitorLoggingMonitoring_followup",
+          name: "PE.L1-b.1.ix@If yes, do you have a policy documenting this and a visitor log?_followup",
           title:
             "If yes, do you have a policy documenting this and a visitor log?",
           isRequired: true,
-          visibleIf: "{PE.L1-b.1.ix@visitorLoggingMonitoring} = 'Yes'",
+          visibleIf:
+            "{PE.L1-b.1.ix@Do you log and monitor visitors when they enter secure company areas?} = 'Yes'",
         },
       ],
     },
@@ -325,7 +338,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name: "SC.L1-b.1.x@protectionSoftwareUsage",
+          name: "SC.L1-b.1.x@Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?",
           title:
             "Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?",
           choices: ["Yes", "No"],
@@ -333,14 +346,15 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "SC.L1-b.1.x@protectionSoftwareUsage_followup",
+          name: "SC.L1-b.1.x@If yes, list these tools and software in use._followup",
           title: "If yes, list these tools and software in use.",
           isRequired: true,
-          visibleIf: "{SC.L1-b.1.x@protectionSoftwareUsage} = 'Yes'",
+          visibleIf:
+            "{SC.L1-b.1.x@Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "SC.L1-b.1.xi@publicPrivateSystemsSeparate",
+          name: "SC.L1-b.1.xi@If you have a public website, is it kept separate from your internal business systems?",
           title:
             "If you have a public website, is it kept separate from your internal business systems?",
           choices: ["Yes", "No"],
@@ -348,11 +362,12 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "SC.L1-b.1.xi@publicPrivateSystemsSeparate_followup",
+          name: "SC.L1-b.1.xi@If yes, do you have a policy in place documenting website management and information approval before posting?_followup",
           title:
             "If yes, do you have a policy in place documenting website management and information approval before posting?",
           isRequired: true,
-          visibleIf: "{SC.L1-b.1.xi@publicPrivateSystemsSeparate} = 'Yes'",
+          visibleIf:
+            "{SC.L1-b.1.xi@If you have a public website, is it kept separate from your internal business systems?} = 'Yes'",
         },
       ],
     },
@@ -362,7 +377,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name: "SI.L1-b.1.xii@systemPatching",
+          name: "SI.L1-b.1.xii@Do you install security patches and updates on your systems as soon as possible?",
           title:
             "Do you install security patches and updates on your systems as soon as possible?",
           choices: ["Yes", "No"],
@@ -370,15 +385,16 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "SI.L1-b.1.xii@systemPatching_followup",
+          name: "SI.L1-b.1.xii@If yes, do you enable auto-update for OS updates/patches, install updates for third-party applications, and enable auto-update for all third-party apps?_followup",
           title:
             "If yes, do you enable auto-update for OS updates/patches, install updates for third-party applications, and enable auto-update for all third-party apps?",
           isRequired: true,
-          visibleIf: "{SI.L1-b.1.xii@systemPatching} = 'Yes'",
+          visibleIf:
+            "{SI.L1-b.1.xii@Do you install security patches and updates on your systems as soon as possible?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "SI.L1-b.1.xiii@protectionSoftwareUsage",
+          name: "SI.L1-b.1.xiii@Do you use antivirus or endpoint protection on all company devices?",
           title:
             "Do you use antivirus or endpoint protection on all company devices?",
           choices: ["Yes", "No"],
@@ -386,14 +402,15 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "SI.L1-b.1.xiii@protectionSoftwareUsage_followup",
+          name: "SI.L1-b.1.xiii@If yes, please list all tools utilized._followup",
           title: "If yes, please list all tools utilized.",
           isRequired: true,
-          visibleIf: "{SI.L1-b.1.xiii@protectionSoftwareUsage} = 'Yes'",
+          visibleIf:
+            "{SI.L1-b.1.xiii@Do you use antivirus or endpoint protection on all company devices?} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "SI.L1-b.1.xiv@antivirusSoftwareUsage",
+          name: "SI.L1-b.1.xiv@Do you regularly update your antivirus software to ensure it can detect new threats?",
           title:
             "Do you regularly update your antivirus software to ensure it can detect new threats?",
           choices: ["Yes", "No"],
@@ -401,7 +418,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name: "SI.L1-b.1.xv@mediaScanning",
+          name: "SI.L1-b.1.xv@Do you scan files, emails, or programs before they’re used to make sure they’re safe?",
           title:
             "Do you scan files, emails, or programs before they’re used to make sure they’re safe?",
           choices: ["Yes", "No"],
