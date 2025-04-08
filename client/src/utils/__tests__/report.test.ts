@@ -3,16 +3,14 @@ import { Report } from "../report";
 
 describe("Report class", () => {
   it("should throw an error if assessment data is null", () => {
-    // @ts-expect-error: Testing invalid input (null)
-    expect(() => new Report(null)).toThrow(
-      "Assessment data is not an object or is null!",
+    expect(() => new Report(null as unknown as Record<string, string>)).toThrow(
+      "Assessment data is not an object or is null!"
     );
   });
 
   it("should throw an error if assessment data is not an object", () => {
-    // @ts-expect-error: Testing invalid input (string)
-    expect(() => new Report("not an object")).toThrow(
-      "Assessment data is not an object or is null!",
+    expect(() => new Report("not an object" as unknown as Record<string, string>)).toThrow(
+      "Assessment data is not an object or is null!"
     );
   });
 
