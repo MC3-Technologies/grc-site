@@ -33,10 +33,6 @@ class Report<T extends Record<string, string>> {
     this._assessmentData = assessmentData;
   }
 
-  private _calculateScores = (report: ReportResult): ReportResult => {
-    return report;
-  };
-
   public generateReportData = (): ReportResult => {
     // New control group map
     const controlGroupsMap: Map<string, ControlGroupResult> = new Map();
@@ -54,13 +50,16 @@ class Report<T extends Record<string, string>> {
     //   If yes :
     //     1. Grab existing map key/value data
     //     2. Mutate that data
-    //     3. Set back that data in Map
     //   If no :
     //     1. Create new map entry with that question
+
+    // Loop through all assessment data
     for (const key in this._assessmentData) {
+      // Skip loop iteration if question does not contain '@' which symbolizes a calculatable question
       if (!key.includes("@")) {
         continue;
       }
+      // Follow up questions may contain '@' but are not calculatable so skip
       if (key.includes("followup")) {
         continue;
       }
@@ -72,8 +71,6 @@ class Report<T extends Record<string, string>> {
       const control = key.split("@")[0];
 
       if (ret.controlGroupResults.has(controlGroup)) {
-        console.info("Control group exists in map");
-
         // Get control group from map
         const getControlGroup = ret.controlGroupResults.get(controlGroup);
         // Throw error if control group  data was not fetched
@@ -126,8 +123,6 @@ class Report<T extends Record<string, string>> {
           getControlGroup.controlResults.set(control, newControl);
         }
       } else {
-        console.info("Control group does not yet exist in map");
-
         // Create new question answer
         const newQuestionAnswer: QuestionAnswer = {
           question,
@@ -163,6 +158,37 @@ class Report<T extends Record<string, string>> {
     ret = this._calculateScores(ret);
 
     // Return ret
+    return ret;
+  };
+
+  private _calculateScores = (report: ReportResult): ReportResult => {
+    // Return variables place holder
+    const ret = report;
+
+    // Loop through control group results
+    for (const [, controlGroupResult] of ret.controlGroupResults.entries()) {
+      // Loop through control results within control groups
+      for (const [
+        ,
+        controlResult,
+      ] of controlGroupResult.controlResults.entries()) {
+        // Loop through all questions associated with a control
+        controlResult.questionsAnswered.forEach((questionAnswer) => {
+          // Increment individual control, control group and overall max score for every question
+          controlResult.maxScore = controlResult.maxScore + 1;
+          controlGroupResult.maxScore = controlGroupResult.maxScore + 1;
+          ret.maxScore = ret.maxScore + 1;
+
+          if (questionAnswer.answer.toLowerCase() === "yes") {
+            // If question is yes, incremement individual control, control group and overall score
+            controlResult.score = controlResult.score + 1;
+            controlGroupResult.score = controlGroupResult.score + 1;
+            ret.score = ret.score + 1;
+          }
+        });
+      }
+    }
+
     return ret;
   };
 }
