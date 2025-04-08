@@ -71,7 +71,7 @@ if (typeof window !== "undefined") {
     emitAdminEvent,
     AdminEvents,
   };
-  Object.defineProperty(window, 'adminUser', {
+  Object.defineProperty(window, "adminUser", {
     value: adminUserObj,
     writable: false,
     configurable: false,
@@ -1380,11 +1380,13 @@ const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
 export const createUser = async (
   email: string,
   role: "user" | "admin",
-  skipEmailVerification = false
+  skipEmailVerification = false,
 ): Promise<CreateUserResult> => {
   try {
     // Mock implementation for tests
-    const status = skipEmailVerification ? "CONFIRMED" : "FORCE_CHANGE_PASSWORD";
+    const status = skipEmailVerification
+      ? "CONFIRMED"
+      : "FORCE_CHANGE_PASSWORD";
     return {
       success: true,
       user: {
