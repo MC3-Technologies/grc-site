@@ -76,7 +76,7 @@ class Report<T extends Record<string, string>> {
         // Throw error if control group  data was not fetched
         if (!getControlGroup) {
           throw new Error(
-            "Control group exists in control groups map but no data returned from get"
+            "Control group exists in control groups map but no data returned from get",
           );
         }
         // Control group controls map data
@@ -89,7 +89,7 @@ class Report<T extends Record<string, string>> {
           // Throw error if control data was not fetched
           if (!getControl) {
             throw new Error(
-              "Control exists in controls map but no data returned from get"
+              "Control exists in controls map but no data returned from get",
             );
           }
 

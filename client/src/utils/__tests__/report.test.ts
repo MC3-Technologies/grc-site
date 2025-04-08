@@ -5,14 +5,14 @@ describe("Report class", () => {
   it("should throw an error if assessment data is null", () => {
     // @ts-expect-error: Testing invalid input (null)
     expect(() => new Report(null)).toThrow(
-      "Assessment data is not an object or is null!"
+      "Assessment data is not an object or is null!",
     );
   });
 
   it("should throw an error if assessment data is not an object", () => {
     // @ts-expect-error: Testing invalid input (string)
     expect(() => new Report("not an object")).toThrow(
-      "Assessment data is not an object or is null!"
+      "Assessment data is not an object or is null!",
     );
   });
 
@@ -57,7 +57,7 @@ describe("Report class", () => {
         expect(acControl.maxScore).toBe(1);
         expect(acControl.questionsAnswered.length).toBe(1);
         expect(acControl.questionsAnswered[0].question).toBe(
-          "Do you review and approve what company information can be made public (e.g., on your website)?"
+          "Do you review and approve what company information can be made public (e.g., on your website)?",
         );
         expect(acControl.questionsAnswered[0].answer).toBe("Yes");
       }
@@ -76,7 +76,7 @@ describe("Report class", () => {
         expect(iaControl.maxScore).toBe(1);
         expect(iaControl.questionsAnswered.length).toBe(1);
         expect(iaControl.questionsAnswered[0].question).toBe(
-          "Is each person uniquely identified before they can log into your systems?"
+          "Is each person uniquely identified before they can log into your systems?",
         );
         expect(iaControl.questionsAnswered[0].answer).toBe("No");
       }
