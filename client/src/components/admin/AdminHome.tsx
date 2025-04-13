@@ -1103,6 +1103,7 @@ const formatActionName = (action: string): string => {
     USER_REACTIVATED: "User Reactivated",
     USER_CREATED: "User Created",
     USER_ROLE_UPDATED: "Role Updated",
+    USER_PROFILE_UPDATED: "User Profile Updated", // Added title case mapping
     USER_DELETED: "User Deleted",
     ASSESSMENT_CREATED: "Assessment Created",
     ASSESSMENT_COMPLETED: "Assessment Completed",

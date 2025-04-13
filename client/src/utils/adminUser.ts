@@ -134,13 +134,34 @@ export interface User {
   lastModified: string;
   firstName?: string;
   lastName?: string;
+  companyName?: string;
   role?: string;
   attributes?: Record<string, string>;
   customStatus?: string | null;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    companyName?: string;
+    [key: string]: unknown;
+  };
 }
 
 // Add type-safe enum for statuses
 export type UserStatusType = "pending" | "active" | "suspended" | "rejected" | "deleted";
+
+// Define UserData interface for transformed user data (moved up to be defined before it's used)
+export interface UserData {
+  email: string;
+  status: UserStatusType;
+  role: "user" | "admin";
+  created: string;
+  lastLogin?: string;
+  enabled: boolean;
+  customStatus?: string | null;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+}
 
 // Generate mock users for development when API fails
 export const getMockUsers = (): User[] => {
@@ -497,7 +518,10 @@ export const getUserDetails = async (email: string): Promise<User> => {
     }
 
     const client = getClientSchema();
+    console.log(`Fetching user details for ${email}`);
     const response = await client.queries.getUserDetails({ email });
+
+    console.log(`User details response for ${email}:`, response);
 
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
@@ -724,9 +748,13 @@ export const deleteUser = async (
 // Add this interface for createTestUser
 export interface CreateUserParams {
   email: string;
-  password: string;
+  password?: string;
   role: "user" | "admin";
   adminEmail?: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  sendEmail?: boolean;
 }
 
 export interface CreateUserResult {
@@ -745,13 +773,26 @@ export async function createTestUser(
 ): Promise<CreateUserResult> {
   try {
     const client = getClientSchema();
-    const response = await client.mutations.createUser({
+    console.log("Creating user with params:", params);
+    
+    // Create mutation parameters including profile information
+    const mutationParams = {
       email: params.email,
       role: params.role,
       adminEmail: params.adminEmail,
       // Only set sendEmail to false for test users, regular users should get emails
-      sendEmail: false, // For test users, don't send verification emails
-    });
+      sendEmail: params.sendEmail !== undefined ? params.sendEmail : false,
+      firstName: params.firstName,
+      lastName: params.lastName,
+      companyName: params.companyName,
+    };
+    
+    // Log the API call for debugging
+    console.log("Calling createUser mutation with:", mutationParams);
+    
+    const response = await client.mutations.createUser(mutationParams);
+
+    console.log("User creation API response:", response);
 
     if (response && response.data) {
       // Clear caches to ensure fresh data
@@ -761,9 +802,23 @@ export async function createTestUser(
       // Emit the event for listeners
       emitAdminEvent(AdminEvents.USER_CREATED);
 
+      // Generate current timestamp for created/modified dates
+      const now = new Date().toISOString();
+
       return {
         success: true,
-        message: `Test user ${params.email} created successfully with auto-generated password. User will need password reset.`,
+        message: `User ${params.email} created successfully with auto-generated password. User will need password reset.`,
+        user: {
+          email: params.email,
+          status: "FORCE_CHANGE_PASSWORD", // Add required status field
+          role: params.role,
+          firstName: params.firstName,
+          lastName: params.lastName,
+          companyName: params.companyName,
+          created: now,
+          lastModified: now,
+          enabled: true
+        }
       };
     } else {
       return {
@@ -786,7 +841,10 @@ export const createUser = async (
   role: string,
   sendEmail: boolean = true,
   skipEmailVerification: boolean = false,
-  adminEmail?: string
+  adminEmail?: string,
+  firstName?: string,
+  lastName?: string,
+  companyName?: string
 ): Promise<CreateUserResult> => {
   try {
     // If we're in mock mode for testing
@@ -803,20 +861,36 @@ export const createUser = async (
           created: new Date().toISOString(),
           lastModified: new Date().toISOString(),
           sendEmail,
+          firstName,
+          lastName,
+          companyName
         },
       };
     }
 
-    // For real implementation, use createTestUser
+    console.log(`Creating user with profile info:`, { 
+      email, 
+      role,
+      firstName, 
+      lastName, 
+      companyName 
+    });
+
+    // For real implementation, use createTestUser with parameters including profile info
     const result = await createTestUser({
       email,
       password: "", // Password will be auto-generated
       role: role as "user" | "admin",
       adminEmail,
+      firstName,
+      lastName,
+      companyName,
+      sendEmail
     });
 
     // Return the result in the format expected by the test
     if (result.success) {
+      const now = new Date().toISOString();
       return {
         success: true,
         user: {
@@ -825,8 +899,11 @@ export const createUser = async (
           sendEmail,
           role,
           enabled: true,
-          created: new Date().toISOString(),
-          lastModified: new Date().toISOString(),
+          created: now,
+          lastModified: now,
+          firstName,
+          lastName,
+          companyName
         },
       };
     }
@@ -1306,3 +1383,88 @@ const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
     console.error(`Error caching users with status ${status}:`, error);
   }
 };
+
+// Define the transformUserData function (proper export)
+export function transformUserData(fetchedUsers: User[]): UserData[] {
+  if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
+    console.error("Invalid user data received:", fetchedUsers);
+    return [];
+  }
+
+  console.log("transformUserData called with:", fetchedUsers);
+
+  // Helper function to determine user role
+  const determineUserRole = (user: User): "user" | "admin" => {
+    if (user.attributes?.["cognito:groups"]) {
+      try {
+        const groups = JSON.parse(user.attributes["cognito:groups"]);
+        if (Array.isArray(groups) && groups.includes("GRC-Admin")) {
+          return "admin";
+        }
+      } catch {
+        console.warn("Failed to parse groups from user attributes");
+      }
+    }
+
+    return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
+  };
+  // Simplified helper function to extract user profile data
+  const extractUserProfileData = (user: User) => {
+    // Directly use the properties expected from the updated listUsers backend function
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+    const companyName = user.companyName || "";
+
+    console.log(`User ${user.email} extracted profile:`, { firstName, lastName, companyName });
+    return { firstName, lastName, companyName };
+  };
+
+  // Transform the API data
+  const transformedUsers = fetchedUsers
+    .map((user) => {
+      if (!user || !user.email) {
+        console.warn("Invalid user object in response:", user);
+        return null;
+      }
+
+      // Log the raw user object received from fetchUsers before transformation
+      console.log(`[transformUserData] Raw user data for ${user.email}:`, JSON.stringify(user, null, 2));
+
+      // Debug raw user status values before transformation
+      console.log(`User ${user.email} raw data:`, {
+        status: user.status,
+        enabled: user.enabled,
+        customStatus: user.customStatus,
+        attributes: user.attributes,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        companyName: user.companyName
+      });
+
+      const transformedStatus = getUserStatus(
+        user.status || "",
+        Boolean(user.enabled),
+        user.customStatus || undefined,
+      );
+
+      // Extract user profile information
+      const profileData = extractUserProfileData(user);
+
+      return {
+        email: user.attributes?.email || user.email,
+        status: transformedStatus,
+        role: determineUserRole(user),
+        created: user.created,
+        lastLogin: user.lastModified,
+        enabled: user.enabled,
+        customStatus: user.customStatus,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        companyName: profileData.companyName,
+      };
+    })
+    .filter(Boolean) as UserData[]; // Remove any null entries
+
+  console.log("transformUserData result:", transformedUsers);
+  return transformedUsers;
+}

@@ -23,6 +23,7 @@ interface AssessmentData {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
+  version?: string; // Added version field
 }
 
 // User info for the dropdown
@@ -194,6 +195,7 @@ const AdminAssessments = () => {
               progress: assessment.percentCompleted,
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
+              version: assessment.version,
             };
           },
         );
@@ -214,6 +216,7 @@ const AdminAssessments = () => {
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
               completedAt: assessment.completedAt,
+              version: assessment.version,
             };
           },
         );
@@ -533,7 +536,7 @@ const AdminAssessments = () => {
             </svg>
             {selectedUser
               ? `Filtered by: ${userMap[selectedUser] || "Unknown"}`
-              : "Filter by User"}
+              : "Filter by Owner"}
             <svg
               className="w-4 h-4 ml-2"
               fill="currentColor"
@@ -680,6 +683,9 @@ const AdminAssessments = () => {
               <th scope="col" className="px-6 py-3 hidden lg:table-cell">
                 Compliance Score
               </th>
+              <th scope="col" className="px-6 py-3 hidden lg:table-cell">
+                Version
+              </th>
               <th scope="col" className="px-6 py-3">
                 Actions
               </th>
@@ -732,6 +738,21 @@ const AdminAssessments = () => {
                         ? formatDate(assessment.completedAt || "")
                         : formatDate(assessment.updatedAt)}
                     </div>
+                    <div className="flex items-center">
+                      <svg 
+                        className="w-3.5 h-3.5 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                          clipRule="evenodd"
+                        ></path>
+                      </svg>
+                      Version: {assessment.version || "N/A"}
+                    </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mt-2">
                       <div
                         className={`h-2 rounded-full ${
@@ -780,53 +801,37 @@ const AdminAssessments = () => {
                   {formatDate(assessment.createdAt)}
                 </td>
                 <td className="px-6 py-4 hidden lg:table-cell">
-                  {assessment.status === "completed"
-                    ? formatDate(assessment.completedAt || "")
+                  {assessment.completedAt ? formatDate(assessment.completedAt) : "-"}
+                </td>
+                <td className="px-6 py-4 hidden lg:table-cell">
+                  {assessment.score !== undefined
+                    ? `${assessment.score}%`
                     : "-"}
                 </td>
                 <td className="px-6 py-4 hidden lg:table-cell">
-                  {assessment.status === "completed" ? (
-                    <div className="flex items-center">
-                      <span
-                        className={`font-medium ${assessment.isCompliant ? "text-green-600" : "text-red-600"}`}
-                      >
-                        {assessment.score}%
-                      </span>
-                      <span
-                        className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                          assessment.isCompliant
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                        }`}
-                      >
-                        {assessment.isCompliant ? "Compliant" : "Non-Compliant"}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-gray-500">-</span>
-                  )}
+                  {assessment.version || "N/A"}
                 </td>
                 <td className="px-6 py-4 space-x-2 flex flex-wrap gap-1">
                   <button
+                    className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     onClick={() => handleViewAssessment(assessment)}
-                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
-                    aria-label="View assessment"
-                    title="View assessment"
                   >
-                    <svg
-                      className="w-3.5 h-3.5 mr-1"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                      <path
-                        fillRule="evenodd"
-                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                        clipRule="evenodd"
-                      ></path>
-                    </svg>
-                    View
+                    <span className="flex items-center">
+                      <svg
+                        className="w-3.5 h-3.5 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                        <path
+                          fillRule="evenodd"
+                          d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                          clipRule="evenodd"
+                        ></path>
+                      </svg>
+                      View
+                    </span>
                   </button>
                   <button
                     className="flex items-center px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"

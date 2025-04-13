@@ -1,7 +1,6 @@
 // File: client/src/components/admin/AdminUsers.tsx
 import { useState, useEffect, useMemo } from "react";
 import {
-  User,
   fetchUsers,
   refreshUserData,
   approveUser,
@@ -9,30 +8,23 @@ import {
   suspendUser,
   reactivateUser,
   deleteUser,
-  getUserStatus,
-  getClientSchema,
   createTestUser,
   UserStatusType,
+  UserData,
+  transformUserData,
+  getClientSchema,
 } from "../../utils/adminUser";
 import { getCurrentUser } from "../../amplify/auth";
 import Spinner from "../Spinner";
-
-// Interface to match our component needs
-interface UserData {
-  email: string;
-  status: UserStatusType;
-  role: "user" | "admin";
-  created: string;
-  lastLogin?: string;
-  enabled: boolean;
-  customStatus?: string | null;
-}
 
 // Add interface for new user form
 interface NewUserForm {
   email: string;
   password: string;
   role: "user" | "admin";
+  firstName: string;
+  lastName: string;
+  companyName: string;
 }
 
 const AdminUsers = () => {
@@ -44,6 +36,7 @@ const AdminUsers = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [originalEditingUser, setOriginalEditingUser] = useState<UserData | null>(null); // Store original user data for comparison
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -59,6 +52,9 @@ const AdminUsers = () => {
     email: "",
     password: "",
     role: "user",
+    firstName: "",
+    lastName: "",
+    companyName: "",
   });
 
   // Add state for suspension modal
@@ -73,6 +69,8 @@ const AdminUsers = () => {
 
   // Add state for filtering
   const [emailFilter, setEmailFilter] = useState<string>("");
+  const [nameFilter, setNameFilter] = useState<string>("");
+  const [companyFilter, setCompanyFilter] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
 
   // Set up a timer that updates every second to refresh the "time since last update" display
@@ -184,75 +182,6 @@ const AdminUsers = () => {
     getAdminEmail();
   }, []);
 
-  // Function to transform API user data into the format we need
-  const transformUserData = (fetchedUsers: User[]): UserData[] => {
-    if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
-      console.error("Invalid user data received:", fetchedUsers);
-      return [];
-    }
-
-    console.log("transformUserData called with:", fetchedUsers);
-
-    // Helper function to determine user role
-    const determineUserRole = (user: User): "user" | "admin" => {
-      if (user.attributes?.["cognito:groups"]) {
-        try {
-          const groups = JSON.parse(user.attributes["cognito:groups"]);
-          if (Array.isArray(groups) && groups.includes("GRC-Admin")) {
-            return "admin";
-          }
-        } catch {
-          console.warn("Failed to parse groups from user attributes");
-        }
-      }
-
-      return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
-    };
-
-    // Transform the API data
-    const transformedUsers = fetchedUsers
-      .map((user) => {
-        if (!user || !user.email) {
-          console.warn("Invalid user object in response:", user);
-          return null;
-        }
-
-        // Debug raw user status values before transformation
-        console.log(`User ${user.email} raw status:`, {
-          status: user.status,
-          enabled: user.enabled,
-          customStatus: user.customStatus,
-          attributes: user.attributes,
-        });
-
-        const transformedStatus = getUserStatus(
-          user.status || "",
-          Boolean(user.enabled),
-          user.customStatus || undefined,
-        );
-
-        // Debug transformed status
-        console.log(
-          `User ${user.email} transformed status:`,
-          transformedStatus,
-        );
-
-        return {
-          email: user.attributes?.email || user.email,
-          status: transformedStatus,
-          role: determineUserRole(user),
-          created: user.created,
-          lastLogin: user.lastModified,
-          enabled: user.enabled,
-          customStatus: user.customStatus,
-        };
-      })
-      .filter(Boolean) as UserData[]; // Remove any null entries
-
-    console.log("transformUserData result:", transformedUsers);
-    return transformedUsers;
-  };
-
   // Add a function to handle tab changes
   const handleTabChange = async (tabName: UserStatusType) => {
     console.log(`Tab change requested: ${tabName}`);
@@ -288,8 +217,10 @@ const AdminUsers = () => {
       // Update last refresh time
       setLastRefreshTime(new Date());
 
-      // Clear email filter when changing tabs
+      // Clear all filters when changing tabs
       setEmailFilter("");
+      setNameFilter("");
+      setCompanyFilter("");
     } catch (error) {
       console.error("Error during tab change:", error);
       setError("Failed to load data for selected tab");
@@ -347,42 +278,95 @@ const AdminUsers = () => {
 
   // Handle opening the edit modal
   const handleEditUser = (user: UserData) => {
-    setEditingUser(user);
+    setOriginalEditingUser(user); // Store the original state
+    setEditingUser({ ...user }); // Store a mutable copy for editing
     setIsEditModalOpen(true);
   };
 
   // Handle closing the edit modal
   const handleCloseEditModal = () => {
     setEditingUser(null);
+    setOriginalEditingUser(null); // Clear original state on close
     setIsEditModalOpen(false);
   };
 
   // Handle saving user edits
   const handleSaveUserEdits = async (updatedUser: UserData) => {
+    if (!originalEditingUser) {
+      setError("Original user data not found. Cannot save changes.");
+      return;
+    }
+
     setActionInProgress(updatedUser.email);
     setError(null);
     setSuccess(null);
 
+    let roleUpdated = false;
+    let profileUpdated = false;
+    let updateError: string | null = null;
+
     try {
       const client = getClientSchema();
-      console.log(
-        `Updating role for ${updatedUser.email} to ${updatedUser.role} by admin: ${currentAdminEmail || "unknown"}`,
-      );
 
-      const response = await client.mutations.updateUserRole({
-        email: updatedUser.email,
-        role: updatedUser.role,
-        adminEmail: currentAdminEmail || undefined,
-      });
-
-      console.log("Update user role response:", response);
-
-      if (response && response.data) {
-        setSuccess(
-          `User ${updatedUser.email}'s role updated successfully to ${updatedUser.role}`,
+      // --- 1. Update Role (if changed) ---
+      if (updatedUser.role !== originalEditingUser.role) {
+        console.log(
+          `Updating role for ${updatedUser.email} from ${originalEditingUser.role} to ${updatedUser.role} by admin: ${currentAdminEmail || "unknown"}`,
         );
+        const roleResponse = await client.mutations.updateUserRole({
+          email: updatedUser.email,
+          role: updatedUser.role,
+          adminEmail: currentAdminEmail || undefined,
+        });
+        console.log("Update user role response:", roleResponse);
+        if (!roleResponse || !roleResponse.data) {
+          updateError = `Failed to update role for ${updatedUser.email}.`;
+        } else {
+          roleUpdated = true;
+        }
+      }
 
-        // Refresh data to ensure UI is up to date
+      // --- 2. Update Profile (if changed) ---
+      const profileChanged =
+        updatedUser.firstName !== originalEditingUser.firstName ||
+        updatedUser.lastName !== originalEditingUser.lastName ||
+        updatedUser.companyName !== originalEditingUser.companyName;
+
+      if (profileChanged && !updateError) { // Only proceed if role update didn't fail
+        console.log(
+          `Updating profile for ${updatedUser.email} by admin: ${currentAdminEmail || "unknown"}`,
+          `Data: ${updatedUser.firstName}, ${updatedUser.lastName}, ${updatedUser.companyName}`
+        );
+        const profileResponse = await client.mutations.updateUserProfile({
+          email: updatedUser.email,
+          firstName: updatedUser.firstName || "", // Send empty string if null/undefined
+          lastName: updatedUser.lastName || "",   // Send empty string if null/undefined
+          companyName: updatedUser.companyName || "", // Send empty string if null/undefined
+          adminEmail: currentAdminEmail || undefined,
+        });
+        console.log("Update user profile response:", profileResponse);
+        if (!profileResponse || !profileResponse.data) {
+          updateError = (updateError ? updateError + " " : "") + `Failed to update profile for ${updatedUser.email}.`;
+        } else {
+          profileUpdated = true;
+        }
+      }
+
+      // --- 3. Handle Results ---
+      if (updateError) {
+        setError(updateError);
+      } else if (roleUpdated && profileUpdated) {
+        setSuccess(`User ${updatedUser.email}'s role and profile updated successfully.`);
+      } else if (roleUpdated) {
+        setSuccess(`User ${updatedUser.email}'s role updated successfully to ${updatedUser.role}.`);
+      } else if (profileUpdated) {
+        setSuccess(`User ${updatedUser.email}'s profile updated successfully.`);
+      } else {
+        setSuccess(`No changes detected for user ${updatedUser.email}.`); // Or simply close modal without message
+      }
+
+      // Refresh data if any update was successful
+      if (roleUpdated || profileUpdated) {
         await refreshUserData();
 
         // Get all users from listUsers
@@ -469,6 +453,9 @@ const AdminUsers = () => {
         password: newUserForm.password,
         role: newUserForm.role,
         adminEmail: currentAdminEmail || undefined,
+        firstName: newUserForm.firstName || undefined,
+        lastName: newUserForm.lastName || undefined,
+        companyName: newUserForm.companyName || undefined,
       });
 
       if (response && response.success) {
@@ -482,6 +469,9 @@ const AdminUsers = () => {
           email: "",
           password: "",
           role: "user",
+          firstName: "",
+          lastName: "",
+          companyName: "",
         });
 
         // Refresh data with consistent approach
@@ -1180,10 +1170,48 @@ const AdminUsers = () => {
                 className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
               />
             </div>
+            <div className="flex-1">
+              <label
+                htmlFor="nameFilter"
+                className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Filter by Name
+              </label>
+              <input
+                type="text"
+                id="nameFilter"
+                value={nameFilter}
+                onChange={(e) => {
+                  setNameFilter(e.target.value);
+                }}
+                placeholder="Enter user name"
+                className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label
+                htmlFor="companyFilter"
+                className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Filter by Company
+              </label>
+              <input
+                type="text"
+                id="companyFilter"
+                value={companyFilter}
+                onChange={(e) => {
+                  setCompanyFilter(e.target.value);
+                }}
+                placeholder="Enter company name"
+                className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              />
+            </div>
             <div className="flex items-end">
               <button
                 onClick={() => {
                   setEmailFilter("");
+                  setNameFilter("");
+                  setCompanyFilter("");
                 }}
                 className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
               >
@@ -1208,6 +1236,12 @@ const AdminUsers = () => {
                     Email
                   </th>
                   <th scope="col" className="px-6 py-3">
+                    Name
+                  </th>
+                  <th scope="col" className="px-6 py-3">
+                    Company
+                  </th>
+                  <th scope="col" className="px-6 py-3">
                     Status
                   </th>
                   <th scope="col" className="px-6 py-3">
@@ -1226,13 +1260,30 @@ const AdminUsers = () => {
               </thead>
               <tbody>
                 {users
-                  .filter((user) =>
-                    emailFilter
+                  .filter((user) => {
+                    // Apply email filter
+                    const matchesEmail = emailFilter
                       ? user.email
                           .toLowerCase()
                           .includes(emailFilter.toLowerCase())
-                      : true,
-                  )
+                      : true;
+                    
+                    // Apply name filter (check both first and last name)
+                    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim().toLowerCase();
+                    const matchesName = nameFilter
+                      ? fullName.includes(nameFilter.toLowerCase())
+                      : true;
+                    
+                    // Apply company filter
+                    const matchesCompany = companyFilter
+                      ? (user.companyName || '')
+                          .toLowerCase()
+                          .includes(companyFilter.toLowerCase())
+                      : true;
+                    
+                    // User must match all active filters
+                    return matchesEmail && matchesName && matchesCompany;
+                  })
                   .map((user) => (
                     <tr
                       key={user.email}
@@ -1244,6 +1295,12 @@ const AdminUsers = () => {
                       >
                         {user.email}
                       </th>
+                      <td className="px-6 py-4">
+                        {user.firstName} {user.lastName}
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.companyName}
+                      </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={user.status} />
                       </td>
@@ -1344,15 +1401,25 @@ const AdminUsers = () => {
             </table>
           </div>
 
-          {users.filter((user) =>
-            emailFilter
+          {users.filter((user) => {
+            // Apply all filters
+            const matchesEmail = emailFilter
               ? user.email.toLowerCase().includes(emailFilter.toLowerCase())
-              : true,
-          ).length === 0 && (
+              : true;
+            
+            const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim().toLowerCase();
+            const matchesName = nameFilter
+              ? fullName.includes(nameFilter.toLowerCase())
+              : true;
+            
+            const matchesCompany = companyFilter
+              ? (user.companyName || '').toLowerCase().includes(companyFilter.toLowerCase())
+              : true;
+            
+            return matchesEmail && matchesName && matchesCompany;
+          }).length === 0 && (
             <div className="p-4 mt-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-900 dark:text-blue-300">
-              {emailFilter
-                ? `No users found matching email filter "${emailFilter}" in the ${activeTab} tab.`
-                : `No users found in the ${activeTab} tab.`}
+              No users found matching the current filters in the {activeTab} tab.
             </div>
           )}
         </>
@@ -1385,6 +1452,54 @@ const AdminUsers = () => {
                     className="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
                     value={editingUser.email}
                     disabled
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    value={editingUser.firstName || ""}
+                    onChange={(e) =>
+                      setEditingUser({
+                        ...editingUser,
+                        firstName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    value={editingUser.lastName || ""}
+                    onChange={(e) =>
+                      setEditingUser({
+                        ...editingUser,
+                        lastName: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                    value={editingUser.companyName || ""}
+                    onChange={(e) =>
+                      setEditingUser({
+                        ...editingUser,
+                        companyName: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div className="mb-4">
@@ -1687,6 +1802,45 @@ const AdminUsers = () => {
                     onChange={handleNewUserInputChange}
                     placeholder="Password"
                     required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    name="firstName"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                    value={newUserForm.firstName}
+                    onChange={handleNewUserInputChange}
+                    placeholder="John"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                    value={newUserForm.lastName}
+                    onChange={handleNewUserInputChange}
+                    placeholder="Doe"
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    name="companyName"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"
+                    value={newUserForm.companyName}
+                    onChange={handleNewUserInputChange}
+                    placeholder="ACME Corp"
                   />
                 </div>
                 <div className="mb-4">
