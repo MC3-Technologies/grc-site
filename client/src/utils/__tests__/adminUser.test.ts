@@ -13,7 +13,7 @@ const mockUsers = [
     status: "active",
     enabled: true,
     created: "2023-01-01T00:00:00Z",
-    lastModified: "2023-01-01T00:00:00Z"
+    lastModified: "2023-01-01T00:00:00Z",
   },
   {
     id: "user2",
@@ -24,8 +24,8 @@ const mockUsers = [
     status: "pending",
     enabled: true,
     created: "2023-01-02T00:00:00Z",
-    lastModified: "2023-01-02T00:00:00Z"
-  }
+    lastModified: "2023-01-02T00:00:00Z",
+  },
 ];
 
 const mockPendingUsers = [
@@ -179,9 +179,9 @@ describe("Admin User Management API", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.clear();
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   describe("fetchUsers", () => {
@@ -265,7 +265,7 @@ describe("Admin User Management API", () => {
       document.dispatchEvent.mockImplementationOnce(() => {
         throw new Error("Test error");
       });
-      
+
       const result = emitAdminEvent(AdminEvents.USER_APPROVED);
       expect(result).toBe(false);
       expect(console.error).toHaveBeenCalled();
@@ -276,16 +276,28 @@ describe("Admin User Management API", () => {
     it("should clear user cache from localStorage", () => {
       // Setup - populate localStorage with mock cache
       localStorageMock.setItem("admin_users_cache", JSON.stringify(mockUsers));
-      localStorageMock.setItem("admin_users_cache_timestamp", Date.now().toString());
-      localStorageMock.setItem("admin_users_cache_status_active", JSON.stringify(mockActiveUsers));
-      
+      localStorageMock.setItem(
+        "admin_users_cache_timestamp",
+        Date.now().toString(),
+      );
+      localStorageMock.setItem(
+        "admin_users_cache_status_active",
+        JSON.stringify(mockActiveUsers),
+      );
+
       // Act
       clearUserCache();
-      
+
       // Assert
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith("admin_users_cache");
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith("admin_users_cache_timestamp");
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith("admin_users_cache_status_active");
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
+        "admin_users_cache",
+      );
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
+        "admin_users_cache_timestamp",
+      );
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
+        "admin_users_cache_status_active",
+      );
     });
 
     it("should handle errors gracefully", () => {
@@ -293,10 +305,10 @@ describe("Admin User Management API", () => {
       localStorageMock.removeItem.mockImplementationOnce(() => {
         throw new Error("Storage error");
       });
-      
+
       // Act
       clearUserCache();
-      
+
       // Assert
       expect(console.error).toHaveBeenCalled();
     });
@@ -334,23 +346,23 @@ describe("Admin User Management API", () => {
       // Create spies
       const clearUserCacheSpy = jest.fn();
       const fetchUsersSpy = jest.fn().mockResolvedValue(mockUsers);
-      
+
       // Use the mock implementation for refreshUserData
       const refreshUserDataTest = async () => {
         clearUserCacheSpy();
         await fetchUsersSpy(true);
       };
-      
+
       // Stub the original refreshUserData
       const originalRefreshUserData = refreshUserData;
-      
+
       try {
         // Replace the original function with our test version
         global.refreshUserData = refreshUserDataTest;
-        
+
         // Call the test function
         await refreshUserDataTest();
-        
+
         // Verify our spy functions were called
         expect(clearUserCacheSpy).toHaveBeenCalled();
         expect(fetchUsersSpy).toHaveBeenCalledWith(true);
@@ -375,26 +387,26 @@ describe("Admin User Management API", () => {
           message: "User deleted successfully",
         }),
       });
-      
+
       // Create a custom schema with our fresh mock
       const customSchema = {
         mutations: {
-          deleteUser: mockDeleteUser
-        }
+          deleteUser: mockDeleteUser,
+        },
       };
-      
+
       // Replace the getClientSchema function temporarily
       (getClientSchema as jest.Mock).mockReturnValueOnce(customSchema);
-      
+
       // Act
       await deleteUser("user1@example.com", "admin@example.com");
-      
+
       // Assert
       expect(mockDeleteUser).toHaveBeenCalledWith({
         email: "user1@example.com",
         adminEmail: "admin@example.com",
       });
-      
+
       // No need to restore since mockReturnValueOnce only affects one call
     });
   });

@@ -255,10 +255,10 @@ export function Assessments() {
         // Filter assessments to show only those owned by the current user for this page
         if (userSub) {
           const myInProgress = allInProgressAssessments.filter(
-            (assessment) => assessment.owner === userSub
+            (assessment) => assessment.owner === userSub,
           );
           const myCompleted = allCompletedAssessments.filter(
-            (assessment) => assessment.owner === userSub
+            (assessment) => assessment.owner === userSub,
           );
           setInProgressAssessments(myInProgress);
           setCompletedAssessments(myCompleted);
@@ -535,7 +535,8 @@ export function Assessments() {
                                     : userMap[assessment.owner] || // Otherwise, use the map (for admins)
                                       (assessment.owner?.includes("@") // Fallback 1: If owner is already email
                                         ? assessment.owner
-                                        : assessment.owner)} {/* Fallback 2: Raw owner ID/UUID */}
+                                        : assessment.owner)}{" "}
+                                  {/* Fallback 2: Raw owner ID/UUID */}
                                 </p>
                               )}
 
@@ -644,7 +645,8 @@ export function Assessments() {
                                     : userMap[assessment.owner] || // Otherwise, use the map (for admins)
                                       (assessment.owner?.includes("@") // Fallback 1: If owner is already email
                                         ? assessment.owner
-                                        : assessment.owner)} {/* Fallback 2: Raw owner ID/UUID */}
+                                        : assessment.owner)}{" "}
+                                  {/* Fallback 2: Raw owner ID/UUID */}
                                 </p>
                               )}
 

@@ -3,7 +3,7 @@ const mockStorageData = new Map<string, Blob>();
 const mockErrors = new Map<string, Error | null>();
 
 export const uploadData = jest.fn(async ({ path, data }) => {
-  const error = mockErrors.get('uploadData');
+  const error = mockErrors.get("uploadData");
   if (error) {
     throw error;
   }
@@ -17,11 +17,11 @@ export const uploadData = jest.fn(async ({ path, data }) => {
 });
 
 export const downloadData = jest.fn(async ({ path }) => {
-  const error = mockErrors.get('downloadData');
+  const error = mockErrors.get("downloadData");
   if (error) {
     throw error;
   }
-  
+
   const data = mockStorageData.get(path);
   if (!data) {
     throw new Error(`File not found at path: ${path}`);
@@ -41,11 +41,11 @@ export const downloadData = jest.fn(async ({ path }) => {
 });
 
 export const remove = jest.fn(async ({ path }) => {
-  const error = mockErrors.get('remove');
+  const error = mockErrors.get("remove");
   if (error) {
     throw error;
   }
-  
+
   if (!mockStorageData.has(path)) {
     throw new Error(`File not found for deletion at path: ${path}`);
   }
@@ -69,7 +69,10 @@ export const __setMockStorageItem = (path: string, data: unknown) => {
 };
 
 // Utility to set mock errors for specific functions
-export const __setMockStorageError = (functionName: 'uploadData' | 'downloadData' | 'remove', error: Error | null) => {
+export const __setMockStorageError = (
+  functionName: "uploadData" | "downloadData" | "remove",
+  error: Error | null,
+) => {
   if (error) {
     mockErrors.set(functionName, error);
   } else {

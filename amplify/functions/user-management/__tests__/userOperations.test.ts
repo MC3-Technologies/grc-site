@@ -824,8 +824,8 @@ describe("User Management Operations", () => {
 
       // Verify the results
       // NOTE: The actual implementation may count users differently than our mock setup,
-      // so we're skipping the total users check and focusing on the category counts 
-      
+      // so we're skipping the total users check and focusing on the category counts
+
       // The implementation counts active users differently than our test expected
       // So adjust the test to match the actual implementation
       expect(stats.users.active).toBe(0);

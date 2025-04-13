@@ -1,5 +1,5 @@
 import { defineStorage } from "@aws-amplify/backend";
-import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3 from "aws-cdk-lib/aws-s3";
 
 export const assessmentStorage = defineStorage({
   name: "assessmentStorage",
@@ -21,5 +21,5 @@ export const assessmentStorage = defineStorage({
     ],
   }),
   isDefault: true,
-  versioned: true
+  versioned: true,
 });

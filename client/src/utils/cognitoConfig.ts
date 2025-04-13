@@ -53,7 +53,7 @@ function getEnvConfig(): Partial<CognitoConfig> {
   let viteUserPoolId = "";
   let viteRegion = "";
   let viteClientId = "";
-  
+
   // Check for Vite env vars in a browser-safe way
   if (typeof window !== "undefined") {
     try {
@@ -69,7 +69,7 @@ function getEnvConfig(): Partial<CognitoConfig> {
       console.error("Error accessing Vite environment variables:", error);
     }
   }
-  
+
   return {
     userPoolId: viteUserPoolId || process.env.REACT_APP_USER_POOL_ID || "",
     region: viteRegion || process.env.REACT_APP_AWS_REGION || "",

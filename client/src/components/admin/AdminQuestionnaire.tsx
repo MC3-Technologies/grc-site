@@ -47,7 +47,9 @@ const AdminQuestionnaire = () => {
 
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<boolean>(false);
-  const [currentView, setCurrentView] = useState<AdminView>(AdminView.QUESTIONNAIRE_EDITOR);
+  const [currentView, setCurrentView] = useState<AdminView>(
+    AdminView.QUESTIONNAIRE_EDITOR,
+  );
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
 
   // New state for editing form
@@ -62,7 +64,7 @@ const AdminQuestionnaire = () => {
 
   // Success notification
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  
+
   // Loading state for S3 operations
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -80,7 +82,7 @@ const AdminQuestionnaire = () => {
         console.error("Error initializing questionnaire versioning:", error);
       }
     };
-    
+
     initialize();
   }, []);
 
@@ -250,7 +252,7 @@ const AdminQuestionnaire = () => {
   const handleSaveChanges = async () => {
     if (editForm && selectedPage) {
       setIsSaving(true);
-      
+
       try {
         // Prepare the updated elements by removing the id property
         const updatedElements = editForm.elements.map((element) => {
@@ -282,31 +284,31 @@ const AdminQuestionnaire = () => {
         // Directly save to S3 with the current version
         if (currentVersion) {
           const saved = await saveVersionToS3(currentVersion, updatedPages);
-          
+
           if (saved) {
             setSuccessMessage(
-              `Changes saved to version ${currentVersion} successfully.`
+              `Changes saved to version ${currentVersion} successfully.`,
             );
           } else {
             setSuccessMessage(
-              "Changes saved locally but failed to publish to S3. Try again later."
+              "Changes saved locally but failed to publish to S3. Try again later.",
             );
           }
         } else {
-          setSuccessMessage("Warning: No current version set. Changes saved locally only.");
+          setSuccessMessage(
+            "Warning: No current version set. Changes saved locally only.",
+          );
         }
 
         // Exit edit mode
         setEditMode(false);
         setEditForm(null);
-        
+
         // Notify other components that the questionnaire has been updated
         notifyQuestionnaireUpdate();
       } catch (error) {
         console.error("Error saving questionnaire:", error);
-        setSuccessMessage(
-          "Error saving changes. Please try again."
-        );
+        setSuccessMessage("Error saving changes. Please try again.");
       } finally {
         setIsSaving(false);
         setTimeout(() => setSuccessMessage(null), 3000);
@@ -317,11 +319,11 @@ const AdminQuestionnaire = () => {
   // Handle creating a new version
   const handleCreateVersion = async (metadata: VersionMetadata) => {
     setIsSaving(true);
-    
+
     try {
       // Save the current edited questionnaire as a new version to S3
       const saved = await saveQuestionnaireToS3(pages, metadata);
-      
+
       if (!saved) {
         throw new Error("Failed to save questionnaire to S3");
       }
@@ -341,9 +343,7 @@ const AdminQuestionnaire = () => {
       setCurrentView(AdminView.VERSION_MANAGER);
     } catch (error) {
       console.error("Error creating new version:", error);
-      setSuccessMessage(
-        "Error creating new version. Please try again."
-      );
+      setSuccessMessage("Error creating new version. Please try again.");
     } finally {
       setIsSaving(false);
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -355,20 +355,23 @@ const AdminQuestionnaire = () => {
     try {
       // Get current version info
       const versionInfo = await getCurrentVersionInfo();
-      
+
       if (versionInfo) {
         // Update state with current version number
         setCurrentVersion(versionInfo.version);
-        
+
         // Force reload the content from S3 instead of just using localStorage
         const loadedData = await loadQuestionnaireVersion(versionInfo.version);
-        
+
         if (loadedData) {
           // Update the pages state with fresh data
           setPages(loadedData);
-          
+
           // Reset selected page if needed
-          if (selectedPage && !loadedData.find(page => page.id === selectedPage)) {
+          if (
+            selectedPage &&
+            !loadedData.find((page) => page.id === selectedPage)
+          ) {
             setSelectedPage(null);
           }
         }
@@ -423,7 +426,7 @@ const AdminQuestionnaire = () => {
             onRefresh={handleVersionsRefresh}
           />
         );
-        
+
       case AdminView.NEW_VERSION:
         return (
           <NewVersionForm
@@ -433,7 +436,7 @@ const AdminQuestionnaire = () => {
             isSubmitting={isSaving}
           />
         );
-        
+
       case AdminView.QUESTIONNAIRE_EDITOR:
       default:
         return (
@@ -514,7 +517,9 @@ const AdminQuestionnaire = () => {
                           type="text"
                           id="section-title"
                           value={editForm.title}
-                          onChange={(e) => handleFormChange("title", e.target.value)}
+                          onChange={(e) =>
+                            handleFormChange("title", e.target.value)
+                          }
                           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                         />
                       </div>
@@ -558,7 +563,8 @@ const AdminQuestionnaire = () => {
                                   ></path>
                                 </svg>
                                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  Question {editForm.elements.indexOf(element) + 1}
+                                  Question{" "}
+                                  {editForm.elements.indexOf(element) + 1}
                                 </span>
                               </div>
                               <button
@@ -682,13 +688,18 @@ const AdminQuestionnaire = () => {
                                                 const newChoices = [
                                                   ...(element.choices || []),
                                                 ];
-                                                if (typeof choice === "object") {
+                                                if (
+                                                  typeof choice === "object"
+                                                ) {
                                                   newChoices[idx] = {
                                                     ...choice,
                                                     value: e.target.value,
                                                   };
                                                 } else {
-                                                  newChoices[idx] = { value: e.target.value, text: e.target.value };
+                                                  newChoices[idx] = {
+                                                    value: e.target.value,
+                                                    text: e.target.value,
+                                                  };
                                                 }
                                                 handleElementChange(
                                                   element.id,
@@ -764,7 +775,9 @@ const AdminQuestionnaire = () => {
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const newChoices = [...(element.choices || [])];
+                                      const newChoices = [
+                                        ...(element.choices || []),
+                                      ];
 
                                       // Use object form by default for better UX
                                       newChoices.push({
@@ -832,10 +845,9 @@ const AdminQuestionnaire = () => {
                                   <select
                                     value={
                                       element.visibleIf
-                                        ? (element.visibleIf.match(/{([^}]+)}/) || [
-                                            "",
-                                            "",
-                                          ])[1]
+                                        ? (element.visibleIf.match(
+                                            /{([^}]+)}/,
+                                          ) || ["", ""])[1]
                                         : ""
                                     }
                                     onChange={(e) => {
@@ -858,12 +870,21 @@ const AdminQuestionnaire = () => {
                                     }}
                                     className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                   >
-                                    <option value="">None (no condition)</option>
+                                    <option value="">
+                                      None (no condition)
+                                    </option>
                                     {editForm.elements
-                                      .filter((el) => el.id !== element.id && el.name)
+                                      .filter(
+                                        (el) => el.id !== element.id && el.name,
+                                      )
                                       .map((el) => (
-                                        <option key={el.id} value={el.name || ""}>
-                                          {el.title || el.name || "Unnamed question"}
+                                        <option
+                                          key={el.id}
+                                          value={el.name || ""}
+                                        >
+                                          {el.title ||
+                                            el.name ||
+                                            "Unnamed question"}
                                         </option>
                                       ))}
                                   </select>
@@ -1034,8 +1055,18 @@ const AdminQuestionnaire = () => {
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 dark:bg-blue-900 dark:bg-opacity-20 dark:border-blue-600">
           <div className="flex justify-between items-center">
             <div className="flex items-center">
-              <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              <svg
+                className="w-5 h-5 mr-2 text-blue-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                ></path>
               </svg>
               <span className="font-medium text-blue-800 dark:text-blue-300">
                 Current questionnaire version: {currentVersion}
@@ -1074,7 +1105,9 @@ const AdminQuestionnaire = () => {
       {isSaving && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl">
-            <p className="text-lg font-medium">Publishing changes to all users...</p>
+            <p className="text-lg font-medium">
+              Publishing changes to all users...
+            </p>
             <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
               <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
             </div>

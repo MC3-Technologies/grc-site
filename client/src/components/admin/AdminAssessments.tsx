@@ -48,12 +48,12 @@ const AdminAssessments = () => {
 
   // State for delete confirmation
   const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [assessmentToDelete, setAssessmentToDelete] = useState<AssessmentData | null>(null);
+  const [assessmentToDelete, setAssessmentToDelete] =
+    useState<AssessmentData | null>(null);
 
   // State for alert banner
   const [alertMessage, setAlertMessage] = useState<string | null>(null);
   const [alertType, setAlertType] = useState<"success" | "error" | null>(null);
-
 
   // Read the tab from URL and set activeTab accordingly
   useEffect(() => {
@@ -300,7 +300,9 @@ const AdminAssessments = () => {
     if (!assessmentToDelete) return;
 
     const { id, status, name } = assessmentToDelete;
-    console.log(`Attempting to delete ${status} assessment: ${name} (ID: ${id})`);
+    console.log(
+      `Attempting to delete ${status} assessment: ${name} (ID: ${id})`,
+    );
 
     try {
       if (status === "in-progress") {
@@ -311,15 +313,15 @@ const AdminAssessments = () => {
 
       // Remove the assessment from the local state immediately
       setAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
 
       console.log(`Successfully deleted assessment: ${name} (ID: ${id})`);
       setAlertMessage(`Assessment "${name}" has been permanently deleted.`);
       setAlertType("success");
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       console.error(`Error deleting assessment ${id}:`, errorMessage);
       setAlertMessage(`Failed to delete assessment "${name}": ${errorMessage}`);
       setAlertType("error");
@@ -332,7 +334,6 @@ const AdminAssessments = () => {
 
   // --- End Delete Functionality ---
 
-
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -344,7 +345,7 @@ const AdminAssessments = () => {
   // Custom success alert to match the style in AdminUsers
   const SuccessAlert = () => {
     if (!alertMessage || alertType !== "success") return null;
-    
+
     return (
       <div
         className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300 shadow-md animate-fadeIn"
@@ -395,7 +396,7 @@ const AdminAssessments = () => {
   // Custom error alert to match the style in AdminUsers
   const ErrorAlert = () => {
     if (!alertMessage || alertType !== "error") return null;
-    
+
     return (
       <div
         className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-300 shadow-md animate-fadeIn"
@@ -739,7 +740,7 @@ const AdminAssessments = () => {
                         : formatDate(assessment.updatedAt)}
                     </div>
                     <div className="flex items-center">
-                      <svg 
+                      <svg
                         className="w-3.5 h-3.5 mr-1"
                         fill="currentColor"
                         viewBox="0 0 20 20"
@@ -801,7 +802,9 @@ const AdminAssessments = () => {
                   {formatDate(assessment.createdAt)}
                 </td>
                 <td className="px-6 py-4 hidden lg:table-cell">
-                  {assessment.completedAt ? formatDate(assessment.completedAt) : "-"}
+                  {assessment.completedAt
+                    ? formatDate(assessment.completedAt)
+                    : "-"}
                 </td>
                 <td className="px-6 py-4 hidden lg:table-cell">
                   {assessment.score !== undefined
@@ -859,7 +862,18 @@ const AdminAssessments = () => {
                     aria-label="Delete assessment"
                     title="Delete assessment"
                   >
-                     <svg className="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
+                    <svg
+                      className="w-3.5 h-3.5 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      ></path>
+                    </svg>
                     Delete
                   </button>
                 </td>
@@ -929,9 +943,9 @@ const AdminAssessments = () => {
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     You are about to delete the assessment{" "}
-                    <span className="font-bold">{assessmentToDelete.name}</span>. This
-                    action cannot be undone and will permanently remove the assessment
-                    and all associated data.
+                    <span className="font-bold">{assessmentToDelete.name}</span>
+                    . This action cannot be undone and will permanently remove
+                    the assessment and all associated data.
                   </p>
                 </div>
                 {/* Modal footer */}

@@ -1,20 +1,35 @@
 import { useState, useEffect } from "react";
-import { VersionInfo, listVersions, setCurrentVersion, getCurrentVersionInfo, deleteVersion, loadQuestionnaireVersion, saveVersionToS3, loadSavedQuestionnaire, QUESTIONNAIRE_STORAGE_KEY } from "../../utils/questionnaireUtils";
+import {
+  VersionInfo,
+  listVersions,
+  setCurrentVersion,
+  getCurrentVersionInfo,
+  deleteVersion,
+  loadQuestionnaireVersion,
+  saveVersionToS3,
+  loadSavedQuestionnaire,
+  QUESTIONNAIRE_STORAGE_KEY,
+} from "../../utils/questionnaireUtils";
 
 interface VersionManagerProps {
   onCreateVersion: () => void;
   onRefresh: () => void;
 }
 
-const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefresh }) => {
+const VersionManager: React.FC<VersionManagerProps> = ({
+  onCreateVersion,
+  onRefresh,
+}) => {
   const [versions, setVersions] = useState<VersionInfo[]>([]);
-  const [currentVersion, setCurrentVersionState] = useState<string | null>(null);
+  const [currentVersion, setCurrentVersionState] = useState<string | null>(
+    null,
+  );
   const [loading, setLoading] = useState<boolean>(true);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [actionVersion, setActionVersion] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  
+
   // Confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [versionToDelete, setVersionToDelete] = useState<string | null>(null);
@@ -23,12 +38,12 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
   const loadVersions = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Get all versions
       const versionsList = await listVersions();
       setVersions(versionsList);
-      
+
       // Get current version
       const currentVersionInfo = await getCurrentVersionInfo();
       if (currentVersionInfo) {
@@ -51,27 +66,30 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
   const handleUseVersion = async (version: string) => {
     try {
       setActionLoading(true);
-      
+
       // First save any current changes to the current version
       const currentVersionInfo = await getCurrentVersionInfo();
       const savedData = loadSavedQuestionnaire();
-      
+
       if (currentVersionInfo && savedData) {
         await saveVersionToS3(currentVersionInfo.version, savedData);
       }
-      
+
       // Now set the selected version as current
       const success = await setCurrentVersion(version);
-      
+
       if (success) {
         // Force reload the content for this version from S3
         const loadedData = await loadQuestionnaireVersion(version);
-        
+
         if (loadedData) {
           // Update localStorage with the freshly loaded data
-          localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(loadedData));
+          localStorage.setItem(
+            QUESTIONNAIRE_STORAGE_KEY,
+            JSON.stringify(loadedData),
+          );
         }
-        
+
         // Refresh the versions list
         await loadVersions();
         setSuccess(`Successfully set current version to ${version}`);
@@ -81,7 +99,9 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
       }
     } catch (error) {
       console.error(`Error setting version ${version}:`, error);
-      setError(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      setError(
+        `Error: ${error instanceof Error ? error.message : String(error)}`,
+      );
     } finally {
       setActionLoading(false);
     }
@@ -92,33 +112,33 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
     setVersionToDelete(version);
     setShowDeleteModal(true);
   };
-  
+
   // Handle delete confirmation
   const confirmDeleteVersion = async () => {
     if (!versionToDelete) return;
-    
+
     // Close modal
     setShowDeleteModal(false);
-    
+
     // Begin delete process
     setActionLoading(true);
     setActionVersion(versionToDelete);
     setError(null);
-    
+
     try {
       const success = await deleteVersion(versionToDelete);
-      
+
       if (success) {
         setSuccess(`Successfully deleted version ${versionToDelete}`);
-        
+
         // Reload versions list
         await loadVersions();
-        
+
         // Clear success message after a delay
         setTimeout(() => {
           setSuccess(null);
         }, 3000);
-        
+
         // Refresh parent component
         onRefresh();
       } else {
@@ -244,7 +264,8 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
                     >
                       {actionLoading && actionVersion === version.version ? (
                         <>
-                          <span className="animate-spin mr-1">↻</span> Setting...
+                          <span className="animate-spin mr-1">↻</span>{" "}
+                          Setting...
                         </>
                       ) : (
                         "Use This Version"
@@ -258,10 +279,14 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
                       actionLoading && actionVersion === version.version
                         ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
                         : versions.length <= 1
-                        ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                        : "bg-red-600 text-white hover:bg-red-700"
+                          ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                          : "bg-red-600 text-white hover:bg-red-700"
                     }`}
-                    title={versions.length <= 1 ? "Cannot delete the only version" : ""}
+                    title={
+                      versions.length <= 1
+                        ? "Cannot delete the only version"
+                        : ""
+                    }
                   >
                     {actionLoading && actionVersion === version.version ? (
                       <>
@@ -277,7 +302,7 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
           ))}
         </div>
       )}
-      
+
       {/* Delete Confirmation Modal (Inline) */}
       {showDeleteModal && versionToDelete && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-50 flex items-center justify-center">
@@ -350,4 +375,4 @@ const VersionManager: React.FC<VersionManagerProps> = ({ onCreateVersion, onRefr
   );
 };
 
-export default VersionManager; 
+export default VersionManager;

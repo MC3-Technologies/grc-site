@@ -143,7 +143,7 @@ export function CompletedAssessmentView() {
 
         // Parse the assessment JSON data
         const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
-        
+
         // Use the questionnaire stored with the assessment if available
         // Otherwise fall back to the latest questionnaire data (for backward compatibility)
         let questionnaireData;

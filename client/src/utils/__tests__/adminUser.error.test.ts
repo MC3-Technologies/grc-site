@@ -1,13 +1,13 @@
-import { 
-  fetchUsers, 
-  fetchUsersByStatus, 
-  approveUser, 
-  rejectUser, 
-  suspendUser, 
-  reactivateUser, 
+import {
+  fetchUsers,
+  fetchUsersByStatus,
+  approveUser,
+  rejectUser,
+  suspendUser,
+  reactivateUser,
   deleteUser,
-  getUserDetails
-} from '../adminUser';
+  getUserDetails,
+} from "../adminUser";
 
 // Mock localStorage since it's not available in Node.js environment
 const localStorageMock = (() => {
@@ -25,7 +25,7 @@ const localStorageMock = (() => {
     }),
   };
 })();
-Object.defineProperty(global, 'localStorage', { value: localStorageMock });
+Object.defineProperty(global, "localStorage", { value: localStorageMock });
 
 // Mock cognitoConfig before importing anything that might use it
 jest.mock("../cognitoConfig", () => ({
@@ -46,143 +46,164 @@ jest.mock("../../amplify/schema", () => ({
       getAdminStats: jest.fn().mockRejectedValue(new Error("Stats API error")),
     },
     mutations: {
-      approveUser: jest.fn().mockRejectedValue(new Error("Failed to approve user")),
-      rejectUser: jest.fn().mockRejectedValue(new Error("Failed to reject user")),
-      suspendUser: jest.fn().mockRejectedValue(new Error("Failed to suspend user")),
-      reactivateUser: jest.fn().mockRejectedValue(new Error("Failed to reactivate user")),
-      deleteUser: jest.fn().mockRejectedValue(new Error("Failed to delete user")),
+      approveUser: jest
+        .fn()
+        .mockRejectedValue(new Error("Failed to approve user")),
+      rejectUser: jest
+        .fn()
+        .mockRejectedValue(new Error("Failed to reject user")),
+      suspendUser: jest
+        .fn()
+        .mockRejectedValue(new Error("Failed to suspend user")),
+      reactivateUser: jest
+        .fn()
+        .mockRejectedValue(new Error("Failed to reactivate user")),
+      deleteUser: jest
+        .fn()
+        .mockRejectedValue(new Error("Failed to delete user")),
     },
     models: {
       InProgressAssessment: {
         get: jest.fn().mockRejectedValue(new Error("Failed to get assessment")),
       },
-    }
+    },
   })),
 }));
 
-describe('Admin User API Error Handling', () => {
+describe("Admin User API Error Handling", () => {
   // Setup and teardown for mocks
   beforeEach(() => {
     jest.clearAllMocks();
     localStorageMock.clear();
     // Mock console.error and console.log to suppress expected logs in tests
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "log").mockImplementation(() => {});
   });
 
   afterEach(() => {
     // Restore all mocks, including console.error
     jest.restoreAllMocks();
   });
-  
-  describe('fetchUsers error handling', () => {
-    test('should handle API failure gracefully', async () => {
+
+  describe("fetchUsers error handling", () => {
+    test("should handle API failure gracefully", async () => {
       const users = await fetchUsers();
       // Should return empty array when API fails
       expect(users).toEqual([]);
     });
 
-    test('should handle API failure even with forced refresh', async () => {
+    test("should handle API failure even with forced refresh", async () => {
       const users = await fetchUsers(true);
       // Should return empty array when API fails even with forced refresh
       expect(users).toEqual([]);
     });
   });
 
-  describe('fetchUsersByStatus error handling', () => {
-    test('should handle API failure gracefully', async () => {
-      const users = await fetchUsersByStatus('pending');
+  describe("fetchUsersByStatus error handling", () => {
+    test("should handle API failure gracefully", async () => {
+      const users = await fetchUsersByStatus("pending");
       // Should return empty array when API fails
       expect(users).toEqual([]);
     });
 
-    test('should handle API failure with forced refresh', async () => {
-      const users = await fetchUsersByStatus('active', true);
+    test("should handle API failure with forced refresh", async () => {
+      const users = await fetchUsersByStatus("active", true);
       // Should return empty array when API fails with forced refresh
       expect(users).toEqual([]);
     });
   });
 
-  describe('getUserDetails error handling', () => {
-    test('should handle API failure gracefully', async () => {
-      const user = await getUserDetails('test@example.com');
+  describe("getUserDetails error handling", () => {
+    test("should handle API failure gracefully", async () => {
+      const user = await getUserDetails("test@example.com");
       // Should return empty object when API fails
       expect(user).toEqual({});
     });
   });
 
-  describe('approveUser error handling', () => {
-    test('should return false when API call fails', async () => {
-      const result = await approveUser('test@example.com');
+  describe("approveUser error handling", () => {
+    test("should return false when API call fails", async () => {
+      const result = await approveUser("test@example.com");
       // Should return false to indicate failure
       expect(result).toBe(false);
     });
 
-    test('should return false when API call fails with admin email', async () => {
-      const result = await approveUser('test@example.com', 'admin@example.com');
-      // Should return false to indicate failure
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('rejectUser error handling', () => {
-    test('should return false when API call fails', async () => {
-      const result = await rejectUser('test@example.com');
-      // Should return false to indicate failure
-      expect(result).toBe(false);
-    });
-
-    test('should return false when API call fails with reason and admin email', async () => {
-      const result = await rejectUser('test@example.com', 'Not a valid user', 'admin@example.com');
+    test("should return false when API call fails with admin email", async () => {
+      const result = await approveUser("test@example.com", "admin@example.com");
       // Should return false to indicate failure
       expect(result).toBe(false);
     });
   });
 
-  describe('suspendUser error handling', () => {
-    test('should return false when API call fails', async () => {
-      const result = await suspendUser('test@example.com');
+  describe("rejectUser error handling", () => {
+    test("should return false when API call fails", async () => {
+      const result = await rejectUser("test@example.com");
       // Should return false to indicate failure
       expect(result).toBe(false);
     });
 
-    test('should return false when API call fails with reason and admin email', async () => {
-      const result = await suspendUser('test@example.com', 'Violation of terms', 'admin@example.com');
-      // Should return false to indicate failure
-      expect(result).toBe(false);
-    });
-  });
-
-  describe('reactivateUser error handling', () => {
-    test('should return false when API call fails', async () => {
-      const result = await reactivateUser('test@example.com');
-      // Should return false to indicate failure
-      expect(result).toBe(false);
-    });
-
-    test('should return false when API call fails with admin email', async () => {
-      const result = await reactivateUser('test@example.com', 'admin@example.com');
+    test("should return false when API call fails with reason and admin email", async () => {
+      const result = await rejectUser(
+        "test@example.com",
+        "Not a valid user",
+        "admin@example.com",
+      );
       // Should return false to indicate failure
       expect(result).toBe(false);
     });
   });
 
-  describe('deleteUser error handling', () => {
-    test('should return error object when API call fails', async () => {
-      const result = await deleteUser('test@example.com');
+  describe("suspendUser error handling", () => {
+    test("should return false when API call fails", async () => {
+      const result = await suspendUser("test@example.com");
+      // Should return false to indicate failure
+      expect(result).toBe(false);
+    });
+
+    test("should return false when API call fails with reason and admin email", async () => {
+      const result = await suspendUser(
+        "test@example.com",
+        "Violation of terms",
+        "admin@example.com",
+      );
+      // Should return false to indicate failure
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("reactivateUser error handling", () => {
+    test("should return false when API call fails", async () => {
+      const result = await reactivateUser("test@example.com");
+      // Should return false to indicate failure
+      expect(result).toBe(false);
+    });
+
+    test("should return false when API call fails with admin email", async () => {
+      const result = await reactivateUser(
+        "test@example.com",
+        "admin@example.com",
+      );
+      // Should return false to indicate failure
+      expect(result).toBe(false);
+    });
+  });
+
+  describe("deleteUser error handling", () => {
+    test("should return error object when API call fails", async () => {
+      const result = await deleteUser("test@example.com");
       // Should return object with success=false and error message
       expect(result).toEqual({
         success: false,
-        message: expect.stringContaining('Failed to delete user')
+        message: expect.stringContaining("Failed to delete user"),
       });
     });
 
-    test('should return error object when API call fails with admin email', async () => {
-      const result = await deleteUser('test@example.com', 'admin@example.com');
+    test("should return error object when API call fails with admin email", async () => {
+      const result = await deleteUser("test@example.com", "admin@example.com");
       // Should return object with success=false and error message
       expect(result).toEqual({
         success: false,
-        message: expect.stringContaining('Failed to delete user')
+        message: expect.stringContaining("Failed to delete user"),
       });
     });
   });

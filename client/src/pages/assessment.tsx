@@ -302,9 +302,9 @@ export function Assessment() {
     // Initialization function
     const initialize = async (): Promise<void> => {
       // Sanitize assessment ID from URL
-      const assessmentIdParam = new URLSearchParams(
-        window.location.search,
-      ).get("assessment-id");
+      const assessmentIdParam = new URLSearchParams(window.location.search).get(
+        "assessment-id",
+      );
       // Make sure assessment id exists
       if (!assessmentIdParam) {
         setPageData((prev) => ({ ...prev, error: "No assessment ID found!" }));
@@ -335,10 +335,10 @@ export function Assessment() {
           await InProgressAssessment.fetchAssessmentStorageData(
             assessmentIdParam,
           );
-        
+
         // Parse the assessment JSON data
         const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
-        
+
         // Use the questionnaire stored with the assessment if available
         // Otherwise fall back to the latest questionnaire data (for backward compatibility)
         let questionnaireData;

@@ -427,7 +427,9 @@ export const userOperations = {
           try {
             const dbResponse = await dynamodb.send(
               new GetItemCommand({
-                TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE", // Use env var
+                TableName:
+                  process.env.USER_STATUS_TABLE_NAME ||
+                  "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE", // Use env var
                 Key: marshall({ id: email }),
               }),
             );
@@ -448,13 +450,18 @@ export const userOperations = {
             email,
             status: dbStatus.status || customStatus || user.UserStatus, // Prioritize DB status
             role: dbStatus.role || attributes["custom:role"] || "user", // Prioritize DB role
-            created: dbStatus.registrationDate || user.UserCreateDate?.toISOString(), // Use registrationDate or UserCreateDate
-            lastModified: dbStatus.lastStatusChange || user.UserLastModifiedDate?.toISOString(), // Use lastStatusChange or UserLastModifiedDate
+            created:
+              dbStatus.registrationDate || user.UserCreateDate?.toISOString(), // Use registrationDate or UserCreateDate
+            lastModified:
+              dbStatus.lastStatusChange ||
+              user.UserLastModifiedDate?.toISOString(), // Use lastStatusChange or UserLastModifiedDate
             enabled: user.Enabled,
             attributes, // Include all Cognito attributes
             // Add profile attributes directly for easier frontend access
-            firstName: attributes["custom:firstName"] || attributes["given_name"], // Prioritize custom
-            lastName: attributes["custom:lastName"] || attributes["family_name"], // Prioritize custom
+            firstName:
+              attributes["custom:firstName"] || attributes["given_name"], // Prioritize custom
+            lastName:
+              attributes["custom:lastName"] || attributes["family_name"], // Prioritize custom
             companyName: attributes["custom:companyName"], // Use custom attribute
           };
         }),
@@ -898,7 +905,7 @@ export const userOperations = {
     performedBy?: string,
     firstName?: string, // Add firstName parameter
     lastName?: string, // Add lastName parameter
-    companyName?: string // Add companyName parameter
+    companyName?: string, // Add companyName parameter
   ): Promise<{ success: boolean; user?: any; error?: string }> => {
     try {
       const userPoolId = getUserPoolId();
@@ -907,7 +914,7 @@ export const userOperations = {
       console.log("Creating user with user pool ID:", userPoolId);
       console.log(
         `Creating user ${email} with role ${role} by admin: ${performedBy}`,
-        `Profile: ${firstName} ${lastName} @ ${companyName}` // Log profile info
+        `Profile: ${firstName} ${lastName} @ ${companyName}`, // Log profile info
       );
 
       if (!userPoolId || !cognito) {
@@ -1187,7 +1194,7 @@ export const userOperations = {
 
       console.log(
         `Updating profile for user ${email} by admin: ${adminEmail}`,
-        `Data: ${firstName} ${lastName} @ ${companyName}`
+        `Data: ${firstName} ${lastName} @ ${companyName}`,
       );
 
       // Prepare attributes to update
@@ -1201,7 +1208,10 @@ export const userOperations = {
         attributesToUpdate.push({ Name: "family_name", Value: lastName }); // Also update standard attribute
       }
       if (companyName !== undefined) {
-        attributesToUpdate.push({ Name: "custom:companyName", Value: companyName });
+        attributesToUpdate.push({
+          Name: "custom:companyName",
+          Value: companyName,
+        });
       }
 
       // Only proceed if there are attributes to update
@@ -1228,7 +1238,7 @@ export const userOperations = {
         resourceId: email,
         details: {
           email: email,
-          updatedFields: attributesToUpdate.map(attr => attr.Name),
+          updatedFields: attributesToUpdate.map((attr) => attr.Name),
           updatedAt: new Date().toISOString(),
         },
       });
@@ -1997,7 +2007,9 @@ export const userOperations = {
           // Consider refactoring updateUserStatus to handle role updates as well
           await dynamodb.send(
             new PutItemCommand({
-              TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+              TableName:
+                process.env.USER_STATUS_TABLE_NAME ||
+                "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
               Item: marshall(
                 {
                   id: email,

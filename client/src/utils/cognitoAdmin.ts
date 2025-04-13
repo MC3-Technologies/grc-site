@@ -507,7 +507,9 @@ export const __getMocks = async () => {
 };
 
 // Helper function for development mode testing - expose publicly for tests
-export const _getUserDetailsDevelopment = async (email: string): Promise<User> => {
+export const _getUserDetailsDevelopment = async (
+  email: string,
+): Promise<User> => {
   // In development mode, fetch from mock data
   try {
     const adminUserModule = await import("./adminUser");

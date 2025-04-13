@@ -26,7 +26,7 @@ const NewVersionForm: React.FC<NewVersionFormProps> = ({
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -40,7 +40,7 @@ const NewVersionForm: React.FC<NewVersionFormProps> = ({
     // Ensure the version is explicitly set for new version creation
     onSubmit({
       ...formData,
-      lastUpdated: new Date().toISOString() // Update timestamp
+      lastUpdated: new Date().toISOString(), // Update timestamp
     });
   };
 
@@ -133,4 +133,4 @@ const NewVersionForm: React.FC<NewVersionFormProps> = ({
   );
 };
 
-export default NewVersionForm; 
+export default NewVersionForm;

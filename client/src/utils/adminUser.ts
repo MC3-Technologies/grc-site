@@ -112,7 +112,13 @@ export const clearUserCache = (): void => {
     localStorage.removeItem(USER_CACHE_TIMESTAMP_KEY);
 
     // Clear status-specific caches
-    const statusTypes = ["active", "pending", "rejected", "suspended", "deleted"];
+    const statusTypes = [
+      "active",
+      "pending",
+      "rejected",
+      "suspended",
+      "deleted",
+    ];
     statusTypes.forEach((status) => {
       const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
       localStorage.removeItem(key);
@@ -148,7 +154,12 @@ export interface User {
 }
 
 // Add type-safe enum for statuses
-export type UserStatusType = "pending" | "active" | "suspended" | "rejected" | "deleted";
+export type UserStatusType =
+  | "pending"
+  | "active"
+  | "suspended"
+  | "rejected"
+  | "deleted";
 
 // Define UserData interface for transformed user data (moved up to be defined before it's used)
 export interface UserData {
@@ -210,7 +221,10 @@ export const getFilteredMockUsers = (status: UserStatusType): User[] => {
     switch (status) {
       case "pending":
         // Only count as pending if FORCE_CHANGE_PASSWORD and not rejected
-        return user.status === "FORCE_CHANGE_PASSWORD" && user.customStatus !== "REJECTED";
+        return (
+          user.status === "FORCE_CHANGE_PASSWORD" &&
+          user.customStatus !== "REJECTED"
+        );
       case "active":
         return user.status === "CONFIRMED" && user.enabled;
       case "suspended":
@@ -286,8 +300,12 @@ export const getUserStatus = (
   if (status === "CONFIRMED" && enabled) {
     console.log("getUserStatus: returning 'active' (confirmed and enabled)");
     return "active";
-  } else if (["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)) {
-    console.log("getUserStatus: returning 'pending' (password change/unconfirmed)");
+  } else if (
+    ["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)
+  ) {
+    console.log(
+      "getUserStatus: returning 'pending' (password change/unconfirmed)",
+    );
     return "pending";
   }
 
@@ -504,7 +522,10 @@ export const fetchUsersByStatus = async (
     console.error(`Failed to get users with status ${normalizedStatus}`);
     return [];
   } catch (error) {
-    console.error(`Error fetching users with status ${normalizedStatus}:`, error);
+    console.error(
+      `Error fetching users with status ${normalizedStatus}:`,
+      error,
+    );
     return [];
   }
 };
@@ -549,7 +570,9 @@ export const approveUser = async (
   try {
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(`Mock approving user: ${email} by admin: ${adminEmail || "unknown"}`);
+      console.log(
+        `Mock approving user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
 
@@ -586,7 +609,9 @@ export const rejectUser = async (
   try {
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(`Mock rejecting user: ${email} by admin: ${adminEmail || "unknown"}`);
+      console.log(
+        `Mock rejecting user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
 
@@ -624,7 +649,9 @@ export const suspendUser = async (
 ): Promise<boolean> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(`Mock suspending user: ${email} by admin: ${adminEmail || "unknown"}`);
+      console.log(
+        `Mock suspending user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
 
@@ -656,11 +683,15 @@ export const reactivateUser = async (
 ): Promise<boolean> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(`Mock reactivating user: ${email} by admin: ${adminEmail || "unknown"}`);
+      console.log(
+        `Mock reactivating user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return true;
     }
 
-    console.log(`Reactivating user ${email} by admin ${adminEmail || "unknown"}`);
+    console.log(
+      `Reactivating user ${email} by admin ${adminEmail || "unknown"}`,
+    );
 
     // Clear caches before the operation to ensure fresh data is fetched after
     clearUserCache();
@@ -703,7 +734,9 @@ export const deleteUser = async (
 ): Promise<{ success: boolean; message: string }> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(`Mock deleting user: ${email} by admin: ${adminEmail || "unknown"}`);
+      console.log(
+        `Mock deleting user: ${email} by admin: ${adminEmail || "unknown"}`,
+      );
       return {
         success: true,
         message: `User ${email} has been deleted (mock).`,
@@ -775,7 +808,7 @@ export async function createTestUser(
   try {
     const client = getClientSchema();
     console.log("Creating user with params:", params);
-    
+
     // Create mutation parameters including profile information
     const mutationParams = {
       email: params.email,
@@ -787,10 +820,10 @@ export async function createTestUser(
       lastName: params.lastName,
       companyName: params.companyName,
     };
-    
+
     // Log the API call for debugging
     console.log("Calling createUser mutation with:", mutationParams);
-    
+
     const response = await client.mutations.createUser(mutationParams);
 
     console.log("User creation API response:", response);
@@ -818,8 +851,8 @@ export async function createTestUser(
           companyName: params.companyName,
           created: now,
           lastModified: now,
-          enabled: true
-        }
+          enabled: true,
+        },
       };
     } else {
       return {
@@ -845,13 +878,15 @@ export const createUser = async (
   adminEmail?: string,
   firstName?: string,
   lastName?: string,
-  companyName?: string
+  companyName?: string,
 ): Promise<CreateUserResult> => {
   try {
     // If we're in mock mode for testing
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log(`Mock creating user: ${email} with role: ${role}`);
-      const status = skipEmailVerification ? "CONFIRMED" : "FORCE_CHANGE_PASSWORD";
+      const status = skipEmailVerification
+        ? "CONFIRMED"
+        : "FORCE_CHANGE_PASSWORD";
       return {
         success: true,
         user: {
@@ -864,17 +899,17 @@ export const createUser = async (
           sendEmail,
           firstName,
           lastName,
-          companyName
+          companyName,
         },
       };
     }
 
-    console.log(`Creating user with profile info:`, { 
-      email, 
+    console.log(`Creating user with profile info:`, {
+      email,
       role,
-      firstName, 
-      lastName, 
-      companyName 
+      firstName,
+      lastName,
+      companyName,
     });
 
     // For real implementation, use createTestUser with parameters including profile info
@@ -886,7 +921,7 @@ export const createUser = async (
       firstName,
       lastName,
       companyName,
-      sendEmail
+      sendEmail,
     });
 
     // Return the result in the format expected by the test
@@ -904,7 +939,7 @@ export const createUser = async (
           lastModified: now,
           firstName,
           lastName,
-          companyName
+          companyName,
         },
       };
     }
@@ -1052,14 +1087,22 @@ export const fetchAdminStats = async (
           if (Array.isArray(adminStats.recentActivity)) {
             // Clone the array to avoid mutating the original response
             adminStats.recentActivity = [...adminStats.recentActivity].sort(
-              (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime(),
             );
           }
 
           // Cache the stats data
           try {
-            localStorage.setItem(ADMIN_STATS_CACHE_KEY, JSON.stringify(adminStats));
-            localStorage.setItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY, Date.now().toString());
+            localStorage.setItem(
+              ADMIN_STATS_CACHE_KEY,
+              JSON.stringify(adminStats),
+            );
+            localStorage.setItem(
+              ADMIN_STATS_CACHE_TIMESTAMP_KEY,
+              Date.now().toString(),
+            );
             console.log("Admin stats cached");
           } catch (error) {
             console.error("Error caching admin stats:", error);
@@ -1075,7 +1118,9 @@ export const fetchAdminStats = async (
             console.log(
               "Full unfiltered API response for audit logs:",
               statsData.recentActivity
-                ? statsData.recentActivity.map((a) => `${a.action} - ${a.timestamp}`)
+                ? statsData.recentActivity.map(
+                    (a) => `${a.action} - ${a.timestamp}`,
+                  )
                 : "No recent activity",
             );
           }
@@ -1091,15 +1136,20 @@ export const fetchAdminStats = async (
           const stats: AdminStats = {
             users: {
               total: users.length,
-              active: users.filter((u: User) => u.status === "CONFIRMED" && u.enabled).length,
+              active: users.filter(
+                (u: User) => u.status === "CONFIRMED" && u.enabled,
+              ).length,
               pending: users.filter(
                 (u: User) =>
                   u.status === "FORCE_CHANGE_PASSWORD" &&
                   u.customStatus !== "REJECTED" &&
                   u.customStatus !== "SUSPENDED",
               ).length,
-              rejected: users.filter((u: User) => u.customStatus === "REJECTED").length,
-              suspended: users.filter((u: User) => u.customStatus === "SUSPENDED").length,
+              rejected: users.filter((u: User) => u.customStatus === "REJECTED")
+                .length,
+              suspended: users.filter(
+                (u: User) => u.customStatus === "SUSPENDED",
+              ).length,
             },
             assessments: {
               total: 0,
@@ -1121,7 +1171,13 @@ export const fetchAdminStats = async (
     console.error("Failed to get admin statistics");
     return {
       users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
-      assessments: { total: 0, inProgress: 0, completed: 0, compliant: 0, nonCompliant: 0 },
+      assessments: {
+        total: 0,
+        inProgress: 0,
+        completed: 0,
+        compliant: 0,
+        nonCompliant: 0,
+      },
       complianceRate: 0,
       recentActivity: [],
     };
@@ -1129,7 +1185,13 @@ export const fetchAdminStats = async (
     console.error("Error fetching admin stats:", error);
     return {
       users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
-      assessments: { total: 0, inProgress: 0, completed: 0, compliant: 0, nonCompliant: 0 },
+      assessments: {
+        total: 0,
+        inProgress: 0,
+        completed: 0,
+        compliant: 0,
+        nonCompliant: 0,
+      },
       complianceRate: 0,
       recentActivity: [],
     };
@@ -1153,7 +1215,11 @@ export interface AuditLog {
 // Fetch audit logs
 export const fetchAuditLogs = async (
   dateRange?: { startDate?: string; endDate?: string },
-  filters?: { action?: string; performedBy?: string; affectedResource?: string },
+  filters?: {
+    action?: string;
+    performedBy?: string;
+    affectedResource?: string;
+  },
 ): Promise<AuditLog[]> => {
   try {
     console.log("Fetching audit logs with filters:", { dateRange, filters });
@@ -1254,7 +1320,12 @@ export interface UpdateSystemSettingsResponse {
 export const updateSystemSettings = async (
   settings: SystemSetting | SystemSetting[],
   updatedBy?: string,
-): Promise<{ success: boolean; updatedCount?: number; updatedSettings?: SystemSetting[]; error?: string }> => {
+): Promise<{
+  success: boolean;
+  updatedCount?: number;
+  updatedSettings?: SystemSetting[];
+  error?: string;
+}> => {
   try {
     console.log("Updating system settings:", settings);
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
@@ -1276,7 +1347,11 @@ export const updateSystemSettings = async (
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
       console.log("Parsed update settings response:", parsedData);
-      if (parsedData && typeof parsedData === "object" && "success" in parsedData) {
+      if (
+        parsedData &&
+        typeof parsedData === "object" &&
+        "success" in parsedData
+      ) {
         return parsedData as UpdateSystemSettingsResponse;
       }
     }
@@ -1285,7 +1360,10 @@ export const updateSystemSettings = async (
     return { success: false, error: "Failed to update system settings" };
   } catch (error) {
     console.error("Error updating system settings:", error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 };
 
@@ -1295,25 +1373,26 @@ export interface SystemSettingsResponse {
 }
 
 // Fetch system settings
-export const fetchSystemSettings = async (): Promise<SystemSettingsResponse> => {
-  try {
-    const client = getClientSchema();
-    const response = await client.queries.getAllSystemSettings();
-    console.log("API response for getAllSystemSettings:", response);
+export const fetchSystemSettings =
+  async (): Promise<SystemSettingsResponse> => {
+    try {
+      const client = getClientSchema();
+      const response = await client.queries.getAllSystemSettings();
+      console.log("API response for getAllSystemSettings:", response);
 
-    if (response.data) {
-      const parsedData = safelyParseApiResponse(response.data);
-      console.log("Parsed system settings data:", parsedData);
-      if (parsedData && typeof parsedData === "object") {
-        return parsedData as SystemSettingsResponse;
+      if (response.data) {
+        const parsedData = safelyParseApiResponse(response.data);
+        console.log("Parsed system settings data:", parsedData);
+        if (parsedData && typeof parsedData === "object") {
+          return parsedData as SystemSettingsResponse;
+        }
       }
+      return { settings: [], settingsByCategory: {} };
+    } catch (error) {
+      console.error("Error fetching system settings:", error);
+      return { settings: [], settingsByCategory: {} };
     }
-    return { settings: [], settingsByCategory: {} };
-  } catch (error) {
-    console.error("Error fetching system settings:", error);
-    return { settings: [], settingsByCategory: {} };
-  }
-};
+  };
 
 // Cache helpers
 const getCachedUsers = (): User[] | null => {
@@ -1354,7 +1433,9 @@ const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
 
     const parsedData = JSON.parse(cachedData);
     if (Array.isArray(parsedData)) {
-      console.log(`Retrieved ${parsedData.length} users from cache with status ${status}`);
+      console.log(
+        `Retrieved ${parsedData.length} users from cache with status ${status}`,
+      );
       return parsedData;
     }
     return null;
@@ -1416,7 +1497,11 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
     const lastName = user.lastName || "";
     const companyName = user.companyName || "";
 
-    console.log(`User ${user.email} extracted profile:`, { firstName, lastName, companyName });
+    console.log(`User ${user.email} extracted profile:`, {
+      firstName,
+      lastName,
+      companyName,
+    });
     return { firstName, lastName, companyName };
   };
 
@@ -1429,7 +1514,10 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
       }
 
       // Log the raw user object received from fetchUsers before transformation
-      console.log(`[transformUserData] Raw user data for ${user.email}:`, JSON.stringify(user, null, 2));
+      console.log(
+        `[transformUserData] Raw user data for ${user.email}:`,
+        JSON.stringify(user, null, 2),
+      );
 
       // Debug raw user status values before transformation
       console.log(`User ${user.email} raw data:`, {
@@ -1439,7 +1527,7 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
         attributes: user.attributes,
         firstName: user.firstName,
         lastName: user.lastName,
-        companyName: user.companyName
+        companyName: user.companyName,
       });
 
       const transformedStatus = getUserStatus(

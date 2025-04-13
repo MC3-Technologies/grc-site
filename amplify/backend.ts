@@ -22,8 +22,6 @@ const backend = defineBackend({
   assessmentStorage,
 });
 
-
-
 // Add DynamoDB permissions to the user management Lambda function
 backend.userManagementFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
@@ -53,7 +51,6 @@ backend.userManagementFunction.resources.lambda.addToRolePolicy(
   }),
 );
 
-
 // Add permissions to the preSignUp Lambda function
 backend.preSignUpFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
@@ -74,4 +71,3 @@ backend.preSignUpFunction.resources.lambda.addToRolePolicy(
     resources: ["*"],
   }),
 );
-

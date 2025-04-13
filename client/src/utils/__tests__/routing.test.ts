@@ -4,7 +4,7 @@ import {
   redirectToAssessments,
   redirectToInProgressAssessment,
   redirectToCompletedAssessment,
-} from '../routing';
+} from "../routing";
 
 interface LocationMock {
   _href: string;
@@ -24,17 +24,17 @@ interface LocationMock {
   hash: string;
 }
 
-describe('Routing utils', () => {
+describe("Routing utils", () => {
   // Store original window.location
   let originalLocation: Location;
 
   beforeEach(() => {
     // Save original window.location
     originalLocation = window.location;
-    
+
     // Create a mock for window.location with working assign and replace methods
     const locationMock: LocationMock = {
-      _href: 'https://example.com/current-page',
+      _href: "https://example.com/current-page",
       get href() {
         return this._href;
       },
@@ -52,17 +52,17 @@ describe('Routing utils', () => {
       reload: jest.fn(),
       toString: jest.fn(() => locationMock._href),
       ancestorOrigins: {} as DOMStringList,
-      origin: 'https://example.com',
-      protocol: 'https:',
-      host: 'example.com',
-      hostname: 'example.com',
-      port: '',
-      pathname: '/current-page',
-      search: '',
-      hash: ''
+      origin: "https://example.com",
+      protocol: "https:",
+      host: "example.com",
+      hostname: "example.com",
+      port: "",
+      pathname: "/current-page",
+      search: "",
+      hash: "",
     };
-    
-    Object.defineProperty(window, 'location', {
+
+    Object.defineProperty(window, "location", {
       writable: true,
       value: locationMock,
     });
@@ -73,73 +73,81 @@ describe('Routing utils', () => {
     window.location = originalLocation;
   });
 
-  test('redirectHome should redirect to home page', () => {
+  test("redirectHome should redirect to home page", () => {
     // Act
     redirectHome();
-    
+
     // Assert
-    expect(window.location.href).toBe('/');
+    expect(window.location.href).toBe("/");
   });
 
-  test('redirectToSignIn should redirect to sign-in page', () => {
+  test("redirectToSignIn should redirect to sign-in page", () => {
     // Act
     redirectToSignIn();
-    
+
     // Assert
-    expect(window.location.href).toBe('/auth/?tab=sign-in');
+    expect(window.location.href).toBe("/auth/?tab=sign-in");
   });
 
-  test('redirectToAssessments should redirect to assessments page', () => {
+  test("redirectToAssessments should redirect to assessments page", () => {
     // Act
     redirectToAssessments();
-    
+
     // Assert
-    expect(window.location.href).toBe('/assessments/');
+    expect(window.location.href).toBe("/assessments/");
   });
 
-  test('redirectToInProgressAssessment should redirect to assessment page with ID', () => {
+  test("redirectToInProgressAssessment should redirect to assessment page with ID", () => {
     // Arrange
-    const testAssessmentId = 'test-assessment-id';
-    
+    const testAssessmentId = "test-assessment-id";
+
     // Act
     redirectToInProgressAssessment(testAssessmentId);
-    
+
     // Assert
-    expect(window.location.href).toBe(`/assessment/?assessment-id=${testAssessmentId}`);
+    expect(window.location.href).toBe(
+      `/assessment/?assessment-id=${testAssessmentId}`,
+    );
   });
 
-  test('redirectToCompletedAssessment should redirect to completed assessment page with ID', () => {
+  test("redirectToCompletedAssessment should redirect to completed assessment page with ID", () => {
     // Arrange
-    const testAssessmentId = 'test-assessment-id';
-    
+    const testAssessmentId = "test-assessment-id";
+
     // Act
     redirectToCompletedAssessment(testAssessmentId);
-    
+
     // Assert
-    expect(window.location.href).toBe(`/completed-assessment/?assessment-id=${testAssessmentId}`);
+    expect(window.location.href).toBe(
+      `/completed-assessment/?assessment-id=${testAssessmentId}`,
+    );
   });
 
-  test('redirectToInProgressAssessment should encode assessment ID', () => {
+  test("redirectToInProgressAssessment should encode assessment ID", () => {
     // Setup
-    const specialId = 'test id with spaces & special chars?';
+    const specialId = "test id with spaces & special chars?";
     const encodedId = encodeURIComponent(specialId);
-    
+
     // Act
     redirectToInProgressAssessment(specialId);
-    
+
     // Assert - directly check the href value which should contain the encoded ID
-    expect(window.location.href).toBe(`/assessment/?assessment-id=${encodedId}`);
+    expect(window.location.href).toBe(
+      `/assessment/?assessment-id=${encodedId}`,
+    );
   });
 
-  test('redirectToCompletedAssessment should encode assessment ID', () => {
+  test("redirectToCompletedAssessment should encode assessment ID", () => {
     // Setup
-    const specialId = 'test id with spaces & special chars?';
+    const specialId = "test id with spaces & special chars?";
     const encodedId = encodeURIComponent(specialId);
-    
+
     // Act
     redirectToCompletedAssessment(specialId);
-    
+
     // Assert - directly check the href value which should contain the encoded ID
-    expect(window.location.href).toBe(`/completed-assessment/?assessment-id=${encodedId}`);
+    expect(window.location.href).toBe(
+      `/completed-assessment/?assessment-id=${encodedId}`,
+    );
   });
-}); 
+});

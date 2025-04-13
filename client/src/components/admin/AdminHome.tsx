@@ -86,9 +86,9 @@ export default function AdminHome() {
   // Define possible actions for the filter dropdown
   // Include USER_UPDATED for backward compatibility in the dropdown
   const possibleActions = [
-    ...Object.values(AdminEvents), 
-    "USER_UPDATED" // Add USER_UPDATED for backward compatibility
-  ].filter(action => action !== "USER_STATUS_UPDATED");
+    ...Object.values(AdminEvents),
+    "USER_UPDATED", // Add USER_UPDATED for backward compatibility
+  ].filter((action) => action !== "USER_STATUS_UPDATED");
 
   // Function to fetch stats with improved error handling and debugging
   const fetchStats = useCallback(async (forceRefresh = true) => {
@@ -985,32 +985,47 @@ export default function AdminHome() {
                               (activity.details &&
                                 (activity.details.email as string)) ||
                               "";
-                            return email.toLowerCase().includes(userFilter.toLowerCase());
+                            return email
+                              .toLowerCase()
+                              .includes(userFilter.toLowerCase());
                           })();
 
                           // Action Filter
-                          const actionMatches = actionFilter ? 
-                            // Special handling for USER_UPDATED action
-                            (actionFilter === "USER_UPDATED" ? 
-                              activity.action === "USER_PROFILE_UPDATED" : 
-                              activity.action === actionFilter) : 
-                            true;
+                          const actionMatches = actionFilter
+                            ? // Special handling for USER_UPDATED action
+                              actionFilter === "USER_UPDATED"
+                              ? activity.action === "USER_PROFILE_UPDATED"
+                              : activity.action === actionFilter
+                            : true;
 
                           // Admin Email Filter
-                          const adminEmailMatches = adminEmailFilter ? (activity.performedBy || "").toLowerCase().includes(adminEmailFilter.toLowerCase()) : true;
+                          const adminEmailMatches = adminEmailFilter
+                            ? (activity.performedBy || "")
+                                .toLowerCase()
+                                .includes(adminEmailFilter.toLowerCase())
+                            : true;
 
                           // Date Range Filter
                           const activityDate = new Date(activity.timestamp);
                           // Adjust start date to beginning of the day (local time)
-                          const startDate = startDateFilter ? new Date(startDateFilter + 'T00:00:00') : null;
+                          const startDate = startDateFilter
+                            ? new Date(startDateFilter + "T00:00:00")
+                            : null;
                           // Adjust end date to end of the day (local time)
-                          const endDate = endDateFilter ? new Date(endDateFilter + 'T23:59:59.999') : null;
+                          const endDate = endDateFilter
+                            ? new Date(endDateFilter + "T23:59:59.999")
+                            : null;
 
-                          const dateMatches = 
+                          const dateMatches =
                             (!startDate || activityDate >= startDate) &&
                             (!endDate || activityDate <= endDate);
 
-                          return emailMatches && actionMatches && adminEmailMatches && dateMatches; // Combine all filters
+                          return (
+                            emailMatches &&
+                            actionMatches &&
+                            adminEmailMatches &&
+                            dateMatches
+                          ); // Combine all filters
                         })
                         // Apply pagination to display only a subset of activities
                         .slice(
@@ -1087,38 +1102,53 @@ export default function AdminHome() {
                   // Get filtered activities
                   const filteredActivities = adminStats.recentActivity.filter(
                     (activity) => {
-                       // User Email Filter
-                       const emailMatches = (() => {
+                      // User Email Filter
+                      const emailMatches = (() => {
                         if (!userFilter) return true;
                         const email =
                           activity.resourceId ||
                           (activity.details &&
                             (activity.details.email as string)) ||
                           "";
-                        return email.toLowerCase().includes(userFilter.toLowerCase());
+                        return email
+                          .toLowerCase()
+                          .includes(userFilter.toLowerCase());
                       })();
 
                       // Action Filter
-                      const actionMatches = actionFilter ? 
-                        // Special handling for USER_UPDATED action
-                        (actionFilter === "USER_UPDATED" ? 
-                          activity.action === "USER_PROFILE_UPDATED" : 
-                          activity.action === actionFilter) : 
-                        true;
+                      const actionMatches = actionFilter
+                        ? // Special handling for USER_UPDATED action
+                          actionFilter === "USER_UPDATED"
+                          ? activity.action === "USER_PROFILE_UPDATED"
+                          : activity.action === actionFilter
+                        : true;
 
                       // Admin Email Filter
-                      const adminEmailMatches = adminEmailFilter ? (activity.performedBy || "").toLowerCase().includes(adminEmailFilter.toLowerCase()) : true;
+                      const adminEmailMatches = adminEmailFilter
+                        ? (activity.performedBy || "")
+                            .toLowerCase()
+                            .includes(adminEmailFilter.toLowerCase())
+                        : true;
 
                       // Date Range Filter
                       const activityDate = new Date(activity.timestamp);
-                      const startDate = startDateFilter ? new Date(startDateFilter + 'T00:00:00') : null;
-                      const endDate = endDateFilter ? new Date(endDateFilter + 'T23:59:59.999') : null;
+                      const startDate = startDateFilter
+                        ? new Date(startDateFilter + "T00:00:00")
+                        : null;
+                      const endDate = endDateFilter
+                        ? new Date(endDateFilter + "T23:59:59.999")
+                        : null;
 
-                      const dateMatches = 
+                      const dateMatches =
                         (!startDate || activityDate >= startDate) &&
                         (!endDate || activityDate <= endDate);
 
-                      return emailMatches && actionMatches && adminEmailMatches && dateMatches; // Combine all filters
+                      return (
+                        emailMatches &&
+                        actionMatches &&
+                        adminEmailMatches &&
+                        dateMatches
+                      ); // Combine all filters
                     },
                   );
 
@@ -1284,8 +1314,8 @@ const getActionBadgeStyle = (action: string): string => {
   }
   // Update actions - purple - handle both USER_PROFILE_UPDATED and USER_UPDATED
   else if (
-    action === "USER_ROLE_UPDATED" || 
-    action === "USER_PROFILE_UPDATED" || 
+    action === "USER_ROLE_UPDATED" ||
+    action === "USER_PROFILE_UPDATED" ||
     action === "USER_UPDATED"
   ) {
     return "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300";
@@ -1455,7 +1485,10 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_REJECTED":
         return (
           <span>
-            <strong className="text-orange-600 dark:text-orange-400">Rejected</strong> {/* Changed text color to orange */}
+            <strong className="text-orange-600 dark:text-orange-400">
+              Rejected
+            </strong>{" "}
+            {/* Changed text color to orange */}
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
@@ -1488,7 +1521,9 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
 
         return (
           <span>
-            <strong className="text-yellow-600 dark:text-yellow-400"> {/* Changed text color to yellow */}
+            <strong className="text-yellow-600 dark:text-yellow-400">
+              {" "}
+              {/* Changed text color to yellow */}
               Suspended
             </strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">

@@ -77,11 +77,12 @@ export const createTestAssessmentFile = (
 export const resetAllMocks = () => {
   // Safely reset each mock, handling cases where a reset function might be undefined
   const safeReset = (resetFn: unknown) => {
-    if (typeof resetFn === 'function') {
+    if (typeof resetFn === "function") {
       try {
         resetFn();
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         console.warn(`Error resetting mock: ${errorMessage}`);
       }
     }

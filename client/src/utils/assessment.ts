@@ -1,6 +1,9 @@
 import { uploadData, downloadData } from "aws-amplify/storage";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { getCurrentVersionInfo, getLatestQuestionnaireData } from "./questionnaireUtils";
+import {
+  getCurrentVersionInfo,
+  getLatestQuestionnaireData,
+} from "./questionnaireUtils";
 import { Model } from "survey-core";
 import { getClientSchema } from "../amplify/schema";
 import { remove } from "aws-amplify/storage";
@@ -39,7 +42,7 @@ class Assessment {
         path,
         data: assessment,
         options: {
-          bucket: "assessmentStorage"
+          bucket: "assessmentStorage",
         },
         //accessLevel: 'protected' // Specify access level here for identity-based rules
       }).result;
@@ -109,7 +112,12 @@ class InProgressAssessment extends Assessment {
 
       // Get assessment data first to check ownership
       const assessmentData = await this.fetchAssessmentData(id);
-      console.log("Found assessment data:", assessmentData.id, "Owner:", assessmentData.owner);
+      console.log(
+        "Found assessment data:",
+        assessmentData.id,
+        "Owner:",
+        assessmentData.owner,
+      );
 
       // Get current session identity and user sub
       const session = await fetchAuthSession();
@@ -120,19 +128,27 @@ class InProgressAssessment extends Assessment {
       console.log("User has admin privileges:", isAdmin);
 
       // Check ownership - only allow delete if user is admin or assessment owner
-      if (!isAdmin && assessmentData.owner !== currentUserSub) { // <-- Compare owner with User Pool Sub
-        throw new Error("Permission denied: You can only delete your own assessments unless you are an admin");
+      if (!isAdmin && assessmentData.owner !== currentUserSub) {
+        // <-- Compare owner with User Pool Sub
+        throw new Error(
+          "Permission denied: You can only delete your own assessments unless you are an admin",
+        );
       }
 
       // First delete the database entry
       try {
         console.log("Deleting database entry for assessment:", id);
         const toBeDeletedAssessment = { id };
-        const deleteResult = await this.client.models.InProgressAssessment.delete(toBeDeletedAssessment);
+        const deleteResult =
+          await this.client.models.InProgressAssessment.delete(
+            toBeDeletedAssessment,
+          );
 
         if (deleteResult.errors) {
           // Format errors properly
-          const errorMessages = deleteResult.errors.map(e => e.message || JSON.stringify(e)).join(", ");
+          const errorMessages = deleteResult.errors
+            .map((e) => e.message || JSON.stringify(e))
+            .join(", ");
           throw new Error(`Database deletion errors: ${errorMessages}`);
         }
 
@@ -140,7 +156,10 @@ class InProgressAssessment extends Assessment {
 
         // Only after database entry is deleted, delete the storage
         try {
-          console.log("Now deleting assessment from storage:", assessmentData.storagePath);
+          console.log(
+            "Now deleting assessment from storage:",
+            assessmentData.storagePath,
+          );
           await remove({
             path: assessmentData.storagePath,
             options: { bucket: "assessmentStorage" },
@@ -150,18 +169,23 @@ class InProgressAssessment extends Assessment {
           console.error("Storage deletion error:", storageError);
           // Even if storage deletion fails, we've already deleted the database entry
           // Log the error but don't throw, as the database record is gone
-          console.warn("Database entry was deleted but storage file may remain orphaned");
+          console.warn(
+            "Database entry was deleted but storage file may remain orphaned",
+          );
         }
       } catch (dbError) {
         console.error("Database deletion error:", dbError);
-        throw new Error(`Failed to delete assessment from database: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+        throw new Error(
+          `Failed to delete assessment from database: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        );
       }
 
       console.log("Assessment deletion completed successfully");
     } catch (error) {
       console.error("Assessment deletion failed:", error);
       // Format the error message for better readability
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Error deleting assessment: ${errorMessage}`);
     }
   };
@@ -270,7 +294,7 @@ class InProgressAssessment extends Assessment {
       data: new Model(questionnaireData).data,
       questionnaire: questionnaireData, // Store the complete questionnaire
       questionnaireVersion: versionNumber, // Store version number
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     const jsonString = JSON.stringify(assessmentData, null, 2);
@@ -492,11 +516,18 @@ class CompletedAssessment extends Assessment {
   // Delete assessment by id -> delete database entry and storage data
   public static deleteAssessment = async (id: string): Promise<void> => {
     try {
-      console.log(`Starting deletion process for completed assessment ID: ${id}`);
+      console.log(
+        `Starting deletion process for completed assessment ID: ${id}`,
+      );
 
       // Get assessment data first to check ownership
       const assessmentData = await this.fetchAssessmentData(id);
-      console.log("Found completed assessment data:", assessmentData.id, "Owner:", assessmentData.owner);
+      console.log(
+        "Found completed assessment data:",
+        assessmentData.id,
+        "Owner:",
+        assessmentData.owner,
+      );
 
       // Get current session identity and user sub
       const session = await fetchAuthSession();
@@ -507,19 +538,27 @@ class CompletedAssessment extends Assessment {
       console.log("User has admin privileges:", isAdmin);
 
       // Check ownership - only allow delete if user is admin or assessment owner
-      if (!isAdmin && assessmentData.owner !== currentUserSub) { // <-- Compare owner with User Pool Sub
-        throw new Error("Permission denied: You can only delete your own assessments unless you are an admin");
+      if (!isAdmin && assessmentData.owner !== currentUserSub) {
+        // <-- Compare owner with User Pool Sub
+        throw new Error(
+          "Permission denied: You can only delete your own assessments unless you are an admin",
+        );
       }
 
       // First delete the database entry
       try {
         console.log("Deleting database entry for completed assessment:", id);
         const toBeDeletedAssessment = { id };
-        const deleteResult = await this.client.models.CompletedAssessment.delete(toBeDeletedAssessment);
+        const deleteResult =
+          await this.client.models.CompletedAssessment.delete(
+            toBeDeletedAssessment,
+          );
 
         if (deleteResult.errors) {
           // Format errors properly
-          const errorMessages = deleteResult.errors.map(e => e.message || JSON.stringify(e)).join(", ");
+          const errorMessages = deleteResult.errors
+            .map((e) => e.message || JSON.stringify(e))
+            .join(", ");
           throw new Error(`Database deletion errors: ${errorMessages}`);
         }
 
@@ -527,7 +566,10 @@ class CompletedAssessment extends Assessment {
 
         // Only after database entry is deleted, delete the storage
         try {
-          console.log("Now deleting completed assessment from storage:", assessmentData.storagePath);
+          console.log(
+            "Now deleting completed assessment from storage:",
+            assessmentData.storagePath,
+          );
           await remove({
             path: assessmentData.storagePath,
             options: { bucket: "assessmentStorage" },
@@ -537,18 +579,23 @@ class CompletedAssessment extends Assessment {
           console.error("Storage deletion error:", storageError);
           // Even if storage deletion fails, we've already deleted the database entry
           // Log the error but don't throw, as the database record is gone
-          console.warn("Database entry was deleted but storage file may remain orphaned");
+          console.warn(
+            "Database entry was deleted but storage file may remain orphaned",
+          );
         }
       } catch (dbError) {
         console.error("Database deletion error:", dbError);
-        throw new Error(`Failed to delete completed assessment from database: ${dbError instanceof Error ? dbError.message : String(dbError)}`);
+        throw new Error(
+          `Failed to delete completed assessment from database: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        );
       }
 
       console.log("Completed assessment deletion completed successfully");
     } catch (error) {
       console.error("Completed assessment deletion failed:", error);
       // Format the error message for better readability
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Error deleting completed assessment: ${errorMessage}`);
     }
   };
@@ -726,8 +773,6 @@ class CompletedAssessment extends Assessment {
 
 export { InProgressAssessment, CompletedAssessment };
 
-
-
 // Function to save an assessment
 export async function saveAssessment({
   id,
@@ -749,9 +794,8 @@ export async function saveAssessment({
     }
 
     // Convert data to JSON and create a file
-    const dataToSave = typeof data === 'object' && data !== null
-      ? { ...data, name }
-      : { name };
+    const dataToSave =
+      typeof data === "object" && data !== null ? { ...data, name } : { name };
     const jsonString = JSON.stringify(dataToSave, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const file = new File([blob], `${id}.json`, { type: "application/json" });
@@ -797,13 +841,15 @@ export async function getAssessment(id: string): Promise<unknown | null> {
 }
 
 // Function to list all assessments
-export async function listAssessments(): Promise<{ id: string; title: string }[]> {
+export async function listAssessments(): Promise<
+  { id: string; title: string }[]
+> {
   try {
     // Wrap the InProgressAssessment.fetchAllAssessments method
     const assessments = await InProgressAssessment.fetchAllAssessments();
-    return assessments.map(assessment => ({
+    return assessments.map((assessment) => ({
       id: assessment.id,
-      title: assessment.name || '',
+      title: assessment.name || "",
     }));
   } catch (error) {
     console.error("Error listing assessments:", error);
@@ -813,7 +859,7 @@ export async function listAssessments(): Promise<{ id: string; title: string }[]
 
 // Function to delete an assessment
 export async function deleteAssessment(
-  id: string
+  id: string,
 ): Promise<{ success: boolean; message: string }> {
   try {
     await InProgressAssessment.deleteAssessment(id);
@@ -828,7 +874,7 @@ export async function deleteAssessment(
 
 // Function to create a new assessment
 export async function createAssessment(
-  title: string
+  title: string,
 ): Promise<{ success: boolean; message: string; id?: string }> {
   try {
     const id = await InProgressAssessment.createAssessment(title);
@@ -848,7 +894,7 @@ export async function createAssessment(
 // Function to update an assessment
 export async function updateAssessment(
   id: string,
-  updates: { name?: string }
+  updates: { name?: string },
 ): Promise<{ success: boolean; message: string }> {
   try {
     // Get the current assessment data
@@ -866,7 +912,11 @@ export async function updateAssessment(
     // Save the updated assessment
     const result = await saveAssessment({
       id,
-      name: updates.name || (assessmentData as { name?: string }).name || id || 'Untitled Assessment',
+      name:
+        updates.name ||
+        (assessmentData as { name?: string }).name ||
+        id ||
+        "Untitled Assessment",
       data: updatedData,
     });
 

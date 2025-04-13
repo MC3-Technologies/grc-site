@@ -36,7 +36,8 @@ const AdminUsers = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
-  const [originalEditingUser, setOriginalEditingUser] = useState<UserData | null>(null); // Store original user data for comparison
+  const [originalEditingUser, setOriginalEditingUser] =
+    useState<UserData | null>(null); // Store original user data for comparison
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -332,21 +333,24 @@ const AdminUsers = () => {
         updatedUser.lastName !== originalEditingUser.lastName ||
         updatedUser.companyName !== originalEditingUser.companyName;
 
-      if (profileChanged && !updateError) { // Only proceed if role update didn't fail
+      if (profileChanged && !updateError) {
+        // Only proceed if role update didn't fail
         console.log(
           `Updating profile for ${updatedUser.email} by admin: ${currentAdminEmail || "unknown"}`,
-          `Data: ${updatedUser.firstName}, ${updatedUser.lastName}, ${updatedUser.companyName}`
+          `Data: ${updatedUser.firstName}, ${updatedUser.lastName}, ${updatedUser.companyName}`,
         );
         const profileResponse = await client.mutations.updateUserProfile({
           email: updatedUser.email,
           firstName: updatedUser.firstName || "", // Send empty string if null/undefined
-          lastName: updatedUser.lastName || "",   // Send empty string if null/undefined
+          lastName: updatedUser.lastName || "", // Send empty string if null/undefined
           companyName: updatedUser.companyName || "", // Send empty string if null/undefined
           adminEmail: currentAdminEmail || undefined,
         });
         console.log("Update user profile response:", profileResponse);
         if (!profileResponse || !profileResponse.data) {
-          updateError = (updateError ? updateError + " " : "") + `Failed to update profile for ${updatedUser.email}.`;
+          updateError =
+            (updateError ? updateError + " " : "") +
+            `Failed to update profile for ${updatedUser.email}.`;
         } else {
           profileUpdated = true;
         }
@@ -356,9 +360,13 @@ const AdminUsers = () => {
       if (updateError) {
         setError(updateError);
       } else if (roleUpdated && profileUpdated) {
-        setSuccess(`User ${updatedUser.email}'s role and profile updated successfully.`);
+        setSuccess(
+          `User ${updatedUser.email}'s role and profile updated successfully.`,
+        );
       } else if (roleUpdated) {
-        setSuccess(`User ${updatedUser.email}'s role updated successfully to ${updatedUser.role}.`);
+        setSuccess(
+          `User ${updatedUser.email}'s role updated successfully to ${updatedUser.role}.`,
+        );
       } else if (profileUpdated) {
         setSuccess(`User ${updatedUser.email}'s profile updated successfully.`);
       } else {
@@ -1267,20 +1275,23 @@ const AdminUsers = () => {
                           .toLowerCase()
                           .includes(emailFilter.toLowerCase())
                       : true;
-                    
+
                     // Apply name filter (check both first and last name)
-                    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim().toLowerCase();
+                    const fullName =
+                      `${user.firstName || ""} ${user.lastName || ""}`
+                        .trim()
+                        .toLowerCase();
                     const matchesName = nameFilter
                       ? fullName.includes(nameFilter.toLowerCase())
                       : true;
-                    
+
                     // Apply company filter
                     const matchesCompany = companyFilter
-                      ? (user.companyName || '')
+                      ? (user.companyName || "")
                           .toLowerCase()
                           .includes(companyFilter.toLowerCase())
                       : true;
-                    
+
                     // User must match all active filters
                     return matchesEmail && matchesName && matchesCompany;
                   })
@@ -1298,9 +1309,7 @@ const AdminUsers = () => {
                       <td className="px-6 py-4">
                         {user.firstName} {user.lastName}
                       </td>
-                      <td className="px-6 py-4">
-                        {user.companyName}
-                      </td>
+                      <td className="px-6 py-4">{user.companyName}</td>
                       <td className="px-6 py-4">
                         <StatusBadge status={user.status} />
                       </td>
@@ -1322,7 +1331,7 @@ const AdminUsers = () => {
                               }`}
                             >
                               {actionInProgress === user.email
-                              ? "Processing..."
+                                ? "Processing..."
                                 : "Approve"}
                             </button>
                             <button
@@ -1406,20 +1415,25 @@ const AdminUsers = () => {
             const matchesEmail = emailFilter
               ? user.email.toLowerCase().includes(emailFilter.toLowerCase())
               : true;
-            
-            const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim().toLowerCase();
+
+            const fullName = `${user.firstName || ""} ${user.lastName || ""}`
+              .trim()
+              .toLowerCase();
             const matchesName = nameFilter
               ? fullName.includes(nameFilter.toLowerCase())
               : true;
-            
+
             const matchesCompany = companyFilter
-              ? (user.companyName || '').toLowerCase().includes(companyFilter.toLowerCase())
+              ? (user.companyName || "")
+                  .toLowerCase()
+                  .includes(companyFilter.toLowerCase())
               : true;
-            
+
             return matchesEmail && matchesName && matchesCompany;
           }).length === 0 && (
             <div className="p-4 mt-4 text-sm text-blue-700 bg-blue-100 rounded-lg dark:bg-blue-900 dark:text-blue-300">
-              No users found matching the current filters in the {activeTab} tab.
+              No users found matching the current filters in the {activeTab}{" "}
+              tab.
             </div>
           )}
         </>

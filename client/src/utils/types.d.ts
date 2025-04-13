@@ -26,4 +26,4 @@ interface Window {
   debouncedHandler: (event: CustomEvent) => void;
   emitSingleEvent: (eventType?: string) => string;
   manualRefresh: () => string;
-} 
+}
