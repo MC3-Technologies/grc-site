@@ -30,7 +30,8 @@ const ADMIN_STATS_CACHE_DURATION_MS = 15 * 1000; // 15 seconds (reduced from 60 
 // Define admin events enum for consistent event types
 export const AdminEvents = {
   USER_CREATED: "USER_CREATED",
-  USER_UPDATED: "USER_UPDATED",
+  // USER_UPDATED: "USER_UPDATED", // Removed - Use USER_PROFILE_UPDATED or USER_ROLE_UPDATED
+  USER_PROFILE_UPDATED: "USER_PROFILE_UPDATED", // Ensure this exists if it's the correct action key
   USER_DELETED: "USER_DELETED",
   USER_APPROVED: "USER_APPROVED",
   USER_REJECTED: "USER_REJECTED",
