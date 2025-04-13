@@ -2,6 +2,28 @@
 const mockStorageData = new Map<string, Blob>();
 const mockErrors = new Map<string, Error | null>();
 
+// Pre-populate with default questionnaire data for testing
+const defaultQuestionnaire = {
+  title: "Test Survey",
+  pages: [
+    {
+      title: "Default Page 1",
+      elements: [{ type: "text", name: "q1" }],
+    },
+  ],
+  version: "1.0",
+  lastUpdated: new Date().toISOString(),
+  updatedBy: "admin",
+  changeNotes: "Test version"
+};
+
+// Add default questionnaire to mock storage
+const defaultQuestionnaireBlob = new Blob(
+  [JSON.stringify(defaultQuestionnaire)], 
+  { type: "application/json" }
+);
+mockStorageData.set("questionnaire/current.json", defaultQuestionnaireBlob);
+
 export const uploadData = jest.fn(async ({ path, data }) => {
   const error = mockErrors.get("uploadData");
   if (error) {
