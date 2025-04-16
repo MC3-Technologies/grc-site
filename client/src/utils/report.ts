@@ -2,7 +2,7 @@ type QuestionAnswer = {
   question: string;
   answer: string;
   shortFormQuestion?: string;
-  followUps: string[];
+  followUp: string | null;
 };
 
 type ControlResult = {
@@ -25,14 +25,17 @@ type ReportResult = {
 
 class Report<T extends Record<string, string>> {
   // Assessment data class variable
-  private _assessmentData: T;
+  private _assessmentData: Map<string, string>;
 
   constructor(assessmentData: T) {
     // If assessment data is not an object or is null, throw an error
     if (typeof assessmentData !== "object" || assessmentData === null) {
       throw new Error("Assessment data is not an object or is null!");
     }
-    this._assessmentData = assessmentData;
+    const questionAnswerMap = new Map<string, string>(
+      Object.entries(assessmentData)
+    );
+    this._assessmentData = questionAnswerMap;
   }
 
   public generateReportData = (): ReportResult => {
@@ -56,7 +59,7 @@ class Report<T extends Record<string, string>> {
     //     1. Create new map entry with that question
 
     // Loop through all assessment data
-    for (const key in this._assessmentData) {
+    for (const [key] of this._assessmentData.entries()) {
       // Skip loop iteration if question does not contain '@' which symbolizes a calculatable question
       if (!key.includes("@")) {
         continue;
@@ -69,39 +72,27 @@ class Report<T extends Record<string, string>> {
       // Extract question, answer, control group and control
       const question = key.split("@")[1];
       const shortFormQuestion = key.split("@")[2];
-      const answer = this._assessmentData[key];
+      const answer = this._assessmentData.get(key)!;
       const controlGroup = key.split("@")[0].slice(0, 2);
       const control = key.split("@")[0];
 
       if (ret.controlGroupResults.has(controlGroup)) {
         // Get control group from map
-        const getControlGroup = ret.controlGroupResults.get(controlGroup);
-        // Throw error if control group  data was not fetched
-        if (!getControlGroup) {
-          throw new Error(
-            "Control group exists in control groups map but no data returned from get"
-          );
-        }
+        const getControlGroup = ret.controlGroupResults.get(controlGroup)!;
         // Control group controls map data
         const getControls = getControlGroup.controlResults;
 
         // Control already exists within control group
         if (getControls.has(control)) {
           // Get the control
-          const getControl = getControls.get(control);
-          // Throw error if control data was not fetched
-          if (!getControl) {
-            throw new Error(
-              "Control exists in controls map but no data returned from get"
-            );
-          }
+          const getControl = getControls.get(control)!;
 
           // Create new question answer object to be added to control question answers array
           const newQuestionAnswer: QuestionAnswer = {
             shortFormQuestion,
             question,
             answer,
-            followUps: this._getFollowUps(shortFormQuestion),
+            followUp: this._getFollowUp(shortFormQuestion),
           };
 
           // Push new question answer object to control question answers array
@@ -121,7 +112,7 @@ class Report<T extends Record<string, string>> {
             shortFormQuestion,
             question,
             answer,
-            followUps: this._getFollowUps(shortFormQuestion),
+            followUp: this._getFollowUp(shortFormQuestion),
           };
 
           // Push question answer onto new control question answers array
@@ -135,7 +126,7 @@ class Report<T extends Record<string, string>> {
           shortFormQuestion,
           question,
           answer,
-          followUps: this._getFollowUps(shortFormQuestion),
+          followUp: this._getFollowUp(shortFormQuestion),
         };
 
         // Create new control
@@ -171,24 +162,16 @@ class Report<T extends Record<string, string>> {
   };
 
   // Get follow up answers for a question
-  private _getFollowUps = (shortFormQuestion: string): string[] => {
-    // Return string array
-    const ret: string[] = [];
+  private _getFollowUp = (shortFormQuestion: string): string | null => {
+    // Return follow up : answer string or null
+    let ret: string | null = null;
 
-    // Loop through key and val in assessment data
-    for (const key in this._assessmentData) {
-      // If value doesn't contain followup, skip as its not a followup question
-      if (!key.includes("_followup")) {
-        continue;
-      }
-
-      // Short form question to check against
-      const shortFormQuestionCheck = key.split("_")[0];
-
-      // If short form question given
-      if (shortFormQuestionCheck === shortFormQuestion) {
-        ret.push(this._assessmentData[key]);
-      }
+    // If assessment data has the followup question, grab it and set return to it
+    if (this._assessmentData.has(`${shortFormQuestion}_followup`)) {
+      const followUpAnswer = this._assessmentData.get(
+        `${shortFormQuestion}_followup`
+      )!;
+      ret = followUpAnswer;
     }
 
     // Return ret
