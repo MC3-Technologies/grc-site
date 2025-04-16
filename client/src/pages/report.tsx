@@ -11,7 +11,6 @@ import Footer from "../components/Footer";
 import Spinner from "../components/Spinner";
 
 import { CompletedAssessment } from "../utils/assessment";
-import { fetchUsers } from "../utils/adminUser";
 
 import { ReportResult } from "../utils/report";
 import { Report as Rpt } from "../utils/report";
@@ -63,6 +62,8 @@ export function Report() {
         // Call report generation method
         const reportData = report.generateReportData();
 
+        console.log(reportData);
+
         // Set page state
         setPageData((prev) => ({
           ...prev,
@@ -80,34 +81,16 @@ export function Report() {
     initialize().finally(() => setLoading(false));
   }, []);
 
-  // Add a useEffect to load user email mapping
+  // Add redirection effect when there's an error
   useEffect(() => {
-    const loadUserMap = async () => {
-      try {
-        // Force refresh to ensure we get latest user data
-        const users = await fetchUsers(true);
-        const userMapping: Record<string, string> = {};
+    if (pageData.error) {
+      const timer = setTimeout(() => {
+        window.location.href = "/assessments/";
+      }, 5000);
 
-        users.forEach((user) => {
-          // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
-          const userId = user.attributes?.sub || user.email;
-          // The actual email is in user.attributes.email or user.email if it's already an email
-          const userEmail =
-            user.attributes?.email ||
-            (user.email.includes("@") ? user.email : null);
-
-          if (userId && userEmail) {
-            userMapping[userId] = userEmail;
-            console.log(`Mapped user ID ${userId} to email ${userEmail}`);
-          }
-        });
-      } catch (error) {
-        console.error("Error creating user mapping:", error);
-      }
-    };
-
-    loadUserMap();
-  }, []);
+      return () => clearTimeout(timer);
+    }
+  }, [pageData.error]);
 
   // errorFeedback function to show error feedback and redirect after 5 seconds
   const errorFeedback = (message: string): React.JSX.Element => {
@@ -135,16 +118,51 @@ export function Report() {
     );
   };
 
-  // Add redirection effect when there's an error
-  useEffect(() => {
-    if (pageData.error) {
-      const timer = setTimeout(() => {
-        window.location.href = "/assessments/";
-      }, 5000);
+  const getReportUi = (assessmentReportData: ReportResult): JSX.Element => {
+    return (
+      <>
+        <p>Score: {assessmentReportData.score}</p>
+        <p>Max score: {assessmentReportData.maxScore}</p>
+        <br></br>
+        {[...assessmentReportData.controlGroupResults.entries()].map(
+          ([groupKey, groupVal]) => (
+            <>
+              <div key={groupKey}>
+                <p>
+                  Control group {groupKey} score: {groupVal.score}
+                </p>
+                <p>
+                  Control group {groupKey} max score: {groupVal.maxScore}
+                </p>
 
-      return () => clearTimeout(timer);
-    }
-  }, [pageData.error]);
+                {[...groupVal.controlResults.entries()].map(
+                  ([controlKey, controlVal]) => (
+                    <div key={controlKey}>
+                      <p>
+                        Control {controlKey} score: {controlVal.score}
+                      </p>
+                      <p>
+                        Control {controlKey} max score: {controlVal.maxScore}
+                      </p>
+
+                      {controlVal.questionsAnswered.map((qa, idx) => (
+                        <div key={idx}>
+                          <p>{qa.question}</p>
+                          <p>{qa.answer}</p>
+                          <p>{qa.followUp}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
+              <br></br>
+            </>
+          )
+        )}
+      </>
+    );
+  };
 
   // Get page data -> show assessment if assessment fetch success, if not show error to user
   const getPageData = (): JSX.Element => {
@@ -158,7 +176,7 @@ export function Report() {
     if (pageData.assessmentReportData) {
       const { assessmentReportData } = pageData;
 
-      return <></>;
+      return getReportUi(assessmentReportData);
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(

@@ -27,12 +27,11 @@ class Report {
   // Assessment data class variable
   private _assessmentData: Map<string, string | number>;
 
-  constructor(assessmentData: Record<string, string|number>) {
+  constructor(assessmentData: Record<string, string | number>) {
     // If assessment data is not an object or is null, throw an error
     if (assessmentData === null) {
       throw new Error("Assessment data is null!");
     }
-    console.log(Object.entries(assessmentData))
 
     const questionAnswerMap = new Map<string, string | number>(
       Object.entries(assessmentData)
