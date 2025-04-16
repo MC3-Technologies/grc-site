@@ -1,8 +1,8 @@
 type QuestionAnswer = {
   question: string;
-  answer: string;
+  answer: string | number;
   shortFormQuestion?: string;
-  followUp: string | null;
+  followUp: string | number | null;
 };
 
 type ControlResult = {
@@ -17,22 +17,24 @@ type ControlGroupResult = {
   controlResults: Map<string, ControlResult>;
 };
 
-type ReportResult = {
+export type ReportResult = {
   controlGroupResults: Map<string, ControlGroupResult>;
   score: number;
   maxScore: number;
 };
 
-class Report<T extends Record<string, string>> {
+class Report {
   // Assessment data class variable
-  private _assessmentData: Map<string, string>;
+  private _assessmentData: Map<string, string | number>;
 
-  constructor(assessmentData: T) {
+  constructor(assessmentData: Record<string, string|number>) {
     // If assessment data is not an object or is null, throw an error
-    if (typeof assessmentData !== "object" || assessmentData === null) {
-      throw new Error("Assessment data is not an object or is null!");
+    if (assessmentData === null) {
+      throw new Error("Assessment data is null!");
     }
-    const questionAnswerMap = new Map<string, string>(
+    console.log(Object.entries(assessmentData))
+
+    const questionAnswerMap = new Map<string, string | number>(
       Object.entries(assessmentData)
     );
     this._assessmentData = questionAnswerMap;
@@ -162,9 +164,11 @@ class Report<T extends Record<string, string>> {
   };
 
   // Get follow up answers for a question
-  private _getFollowUp = (shortFormQuestion: string): string | null => {
+  private _getFollowUp = (
+    shortFormQuestion: string
+  ): string | number | null => {
     // Return follow up : answer string or null
-    let ret: string | null = null;
+    let ret: string | number | null = null;
 
     // If assessment data has the followup question, grab it and set return to it
     if (this._assessmentData.has(`${shortFormQuestion}_followup`)) {
@@ -196,7 +200,10 @@ class Report<T extends Record<string, string>> {
           controlGroupResult.maxScore = controlGroupResult.maxScore + 1;
           ret.maxScore = ret.maxScore + 1;
 
-          if (questionAnswer.answer.toLowerCase() === "yes") {
+          if (
+            typeof questionAnswer.answer === "string" &&
+            questionAnswer.answer.toLowerCase() === "yes"
+          ) {
             // If question is yes, incremement individual control, control group and overall score
             controlResult.score = controlResult.score + 1;
             controlGroupResult.score = controlGroupResult.score + 1;
