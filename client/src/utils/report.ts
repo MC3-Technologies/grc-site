@@ -1,6 +1,8 @@
 type QuestionAnswer = {
   question: string;
   answer: string;
+  shortFormQuestion?: string;
+  followUps: string[];
 };
 
 type ControlResult = {
@@ -60,12 +62,13 @@ class Report<T extends Record<string, string>> {
         continue;
       }
       // Follow up questions may contain '@' but are not calculatable so skip
-      if (key.includes("followup")) {
+      if (key.includes("_followup")) {
         continue;
       }
 
       // Extract question, answer, control group and control
       const question = key.split("@")[1];
+      const shortFormQuestion = key.split("@")[2];
       const answer = this._assessmentData[key];
       const controlGroup = key.split("@")[0].slice(0, 2);
       const control = key.split("@")[0];
@@ -76,7 +79,7 @@ class Report<T extends Record<string, string>> {
         // Throw error if control group  data was not fetched
         if (!getControlGroup) {
           throw new Error(
-            "Control group exists in control groups map but no data returned from get",
+            "Control group exists in control groups map but no data returned from get"
           );
         }
         // Control group controls map data
@@ -89,14 +92,16 @@ class Report<T extends Record<string, string>> {
           // Throw error if control data was not fetched
           if (!getControl) {
             throw new Error(
-              "Control exists in controls map but no data returned from get",
+              "Control exists in controls map but no data returned from get"
             );
           }
 
           // Create new question answer object to be added to control question answers array
           const newQuestionAnswer: QuestionAnswer = {
+            shortFormQuestion,
             question,
             answer,
+            followUps: this._getFollowUps(shortFormQuestion),
           };
 
           // Push new question answer object to control question answers array
@@ -113,8 +118,10 @@ class Report<T extends Record<string, string>> {
 
           // Create new question answer object to be added to control question answers array
           const newQuestionAnswer: QuestionAnswer = {
+            shortFormQuestion,
             question,
             answer,
+            followUps: this._getFollowUps(shortFormQuestion),
           };
 
           // Push question answer onto new control question answers array
@@ -125,8 +132,10 @@ class Report<T extends Record<string, string>> {
       } else {
         // Create new question answer
         const newQuestionAnswer: QuestionAnswer = {
+          shortFormQuestion,
           question,
           answer,
+          followUps: this._getFollowUps(shortFormQuestion),
         };
 
         // Create new control
@@ -156,6 +165,31 @@ class Report<T extends Record<string, string>> {
 
     // Call calculate scores helper method
     ret = this._calculateScores(ret);
+
+    // Return ret
+    return ret;
+  };
+
+  // Get follow up answers for a question
+  private _getFollowUps = (shortFormQuestion: string): string[] => {
+    // Return string array
+    const ret: string[] = [];
+
+    // Loop through key and val in assessment data
+    for (const key in this._assessmentData) {
+      // If value doesn't contain followup, skip as its not a followup question
+      if (!key.includes("_followup")) {
+        continue;
+      }
+
+      // Short form question to check against
+      const shortFormQuestionCheck = key.split("_")[0];
+
+      // If short form question given
+      if (shortFormQuestionCheck === shortFormQuestion) {
+        ret.push(this._assessmentData[key]);
+      }
+    }
 
     // Return ret
     return ret;
