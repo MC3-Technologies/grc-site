@@ -2,7 +2,7 @@ type QuestionAnswer = {
   question: string;
   answer: string | number;
   shortFormQuestion?: string;
-  followUp: string | number | null;
+  followUp?: QuestionAnswer;
 };
 
 type ControlResult = {
@@ -52,7 +52,7 @@ class Report {
     };
 
     // Call helper method to mutate onboarding results on return data
-    ret.onboardingResults = this._getOnboardingData(this._assessmentData);
+    ret.onboardingResults = this._getOnboardingData();
 
     // FOR EACH QUESTION ANSWER IN DATA:
     // 1. Parse question for control group/control -- contains '@'
@@ -94,11 +94,12 @@ class Report {
           const getControl = getControls.get(control)!;
 
           // Create new question answer object to be added to control question answers array
+          const maybeFollowUp = this._getFollowUp(shortFormQuestion);
           const newQuestionAnswer: QuestionAnswer = {
             shortFormQuestion,
             question,
             answer,
-            followUp: this._getFollowUp(shortFormQuestion),
+            ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
           };
 
           // Push new question answer object to control question answers array
@@ -114,11 +115,12 @@ class Report {
           };
 
           // Create new question answer object to be added to control question answers array
+          const maybeFollowUp = this._getFollowUp(shortFormQuestion);
           const newQuestionAnswer: QuestionAnswer = {
             shortFormQuestion,
             question,
             answer,
-            followUp: this._getFollowUp(shortFormQuestion),
+            ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
           };
 
           // Push question answer onto new control question answers array
@@ -128,11 +130,12 @@ class Report {
         }
       } else {
         // Create new question answer
+        const maybeFollowUp = this._getFollowUp(shortFormQuestion);
         const newQuestionAnswer: QuestionAnswer = {
           shortFormQuestion,
           question,
           answer,
-          followUp: this._getFollowUp(shortFormQuestion),
+          ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
         };
 
         // Create new control
@@ -168,11 +171,9 @@ class Report {
   };
 
   // Get onboarding question and answer
-  private _getOnboardingData = (
-    data: Map<string, string | number>
-  ): QuestionAnswer[] => {
+  private _getOnboardingData = (): QuestionAnswer[] => {
     const ret: QuestionAnswer[] = [];
-    for (const [key] of data.entries()) {
+    for (const [key] of this._assessmentData.entries()) {
       // Onboarding questions contaion "^" and "onboarding" so check for that
       if (!key.includes("^") || !key.includes("onboarding")) {
         continue;
@@ -180,10 +181,10 @@ class Report {
 
       // Extract onboarding question and answer
       const question = key.split("^")[1];
-      const answer = data.get(key)!;
+      const answer = this._assessmentData.get(key)!;
 
       // Push new question answer object to return array
-      ret.push({ question, answer, followUp: null });
+      ret.push({ question, answer });
     }
 
     // Return ret array
@@ -191,18 +192,16 @@ class Report {
   };
 
   // Get follow up answers for a question
-  private _getFollowUp = (
-    shortFormQuestion: string
-  ): string | number | null => {
+  private _getFollowUp = (shortFormQuestion: string): QuestionAnswer | null => {
     // Return follow up : answer string or null
-    let ret: string | number | null = null;
+    let ret: QuestionAnswer | null = null;
 
     // If assessment data has the followup question, grab it and set return to it
-    if (this._assessmentData.has(`${shortFormQuestion}_followup`)) {
-      const followUpAnswer = this._assessmentData.get(
-        `${shortFormQuestion}_followup`
-      )!;
-      ret = followUpAnswer;
+    for (const [key, val] of this._assessmentData.entries()) {
+      if (key.includes(`${shortFormQuestion}_followup`)) {
+        ret = { question: key.split("**")[0], answer: val };
+        break;
+      }
     }
 
     // Return ret

@@ -137,7 +137,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "individualAccounts_followup",
+          name: "If yes, please list any policies or procedures you may have that enforce this.**individualAccounts_followup",
           title:
             "If yes, please list any policies or procedures you may have that enforce this.",
           isRequired: true,
@@ -154,7 +154,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "limitedAccess_followup",
+          name: "If yes, please list any policies or procedures you may have that outline job roles and access.**limitedAccess_followup",
           title:
             "If yes, please list any policies or procedures you may have that outline job roles and access.",
           isRequired: true,
@@ -171,7 +171,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "externalMonitor_followup",
+          name: "If yes, please describe the controls you have in place.**externalMonitor_followup",
           title: "If yes, please describe the controls you have in place.",
           isRequired: true,
           visibleIf:
@@ -187,7 +187,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "publicReview_followup",
+          name: "If yes, please list any policies or procedures you may have that enforce this.**publicReview_followup",
           title:
             "If yes, please list any policies or procedures you may have that enforce this.",
           isRequired: true,
@@ -210,7 +210,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "uniqueUser_followup",
+          name: "If yes, do you have an inventory of all users and the systems they have access to?**uniqueUser_followup",
           title:
             "If yes, do you have an inventory of all users and the systems they have access to?",
           isRequired: true,
@@ -227,7 +227,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "uniqueDevice_followup",
+          name: "If yes, how is this implemented (Active Directory, Office 365, Duo, etc.)?**uniqueDevice_followup",
           title:
             "If yes, how is this implemented (Active Directory, Office 365, Duo, etc.)?",
           isRequired: true,
@@ -244,7 +244,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "passwordAuth_followup",
+          name: "If yes, do you have a password authentication policy that outlines password requirements?**passwordAuth_followup",
           title:
             "If yes, do you have a password authentication policy that outlines password requirements?",
           isRequired: true,
@@ -260,7 +260,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "mfaEnabled_followup",
+          name: "If yes, how is this implemented and is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?**mfaEnabled_followup",
           title:
             "If yes, how is this implemented and is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?",
           isRequired: true,
@@ -283,7 +283,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "mediaWipe_followup",
+          name: "If yes, what is the process? Is this documented?**mediaWipe_followup",
           title: "If yes, what is the process? Is this documented?",
           isRequired: true,
           visibleIf:
@@ -305,7 +305,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "secureEquip_followup",
+          name: "If yes, describe how these areas are secured and what measures are taken?**secureEquip_followup",
           title:
             "If yes, describe how these areas are secured and what measures are taken?",
           isRequired: true,
@@ -322,7 +322,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "visitorLog_followup",
+          name: "If yes, do you have a policy documenting this and a visitor log?**visitorLog_followup",
           title:
             "If yes, do you have a policy documenting this and a visitor log?",
           isRequired: true,
@@ -345,7 +345,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "secTools_followup",
+          name: "If yes, list these tools and software in use.**secTools_followup",
           title: "If yes, list these tools and software in use.",
           isRequired: true,
           visibleIf:
@@ -361,7 +361,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "publicSite_followup",
+          name: "If yes, do you have a policy in place documenting website management and information approval before posting?**publicSite_followup",
           title:
             "If yes, do you have a policy in place documenting website management and information approval before posting?",
           isRequired: true,
@@ -384,7 +384,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "patchUpdates_followup",
+          name: "If yes, do you enable auto-update for OS updates/patches, install updates for third-party applications, and enable auto-update for all third-party apps?**patchUpdates_followup",
           title:
             "If yes, do you enable auto-update for OS updates/patches, install updates for third-party applications, and enable auto-update for all third-party apps?",
           isRequired: true,
@@ -401,7 +401,7 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "antivirusUsage_followup",
+          name: "If yes, please list all tools utilized.**antivirusUsage_followup",
           title: "If yes, please list all tools utilized.",
           isRequired: true,
           visibleIf:
