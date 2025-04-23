@@ -18,6 +18,7 @@ type ControlGroupResult = {
 };
 
 export type ReportResult = {
+  onboardingResults: QuestionAnswer[];
   controlGroupResults: Map<string, ControlGroupResult>;
   score: number;
   maxScore: number;
@@ -44,10 +45,14 @@ class Report {
     const controlGroupsMap: Map<string, ControlGroupResult> = new Map();
     // Return value placeholder
     let ret: ReportResult = {
+      onboardingResults: [],
       controlGroupResults: controlGroupsMap,
       score: 0,
       maxScore: 0,
     };
+
+    // Call helper method to mutate onboarding results on return data
+    ret.onboardingResults = this._getOnboardingData(this._assessmentData);
 
     // FOR EACH QUESTION ANSWER IN DATA:
     // 1. Parse question for control group/control -- contains '@'
@@ -159,6 +164,29 @@ class Report {
     ret = this._calculateScores(ret);
 
     // Return ret
+    return ret;
+  };
+
+  // Get onboarding question and answer
+  private _getOnboardingData = (
+    data: Map<string, string | number>
+  ): QuestionAnswer[] => {
+    const ret: QuestionAnswer[] = [];
+    for (const [key] of data.entries()) {
+      // Onboarding questions contaion "^" and "onboarding" so check for that
+      if (!key.includes("^") || !key.includes("onboarding")) {
+        continue;
+      }
+
+      // Extract onboarding question and answer
+      const question = key.split("^")[1];
+      const answer = data.get(key)!;
+
+      // Push new question answer object to return array
+      ret.push({ question, answer, followUp: null });
+    }
+
+    // Return ret array
     return ret;
   };
 

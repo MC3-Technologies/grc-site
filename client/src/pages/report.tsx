@@ -196,27 +196,43 @@ export function Report() {
           Back to Assessments
         </button>
 
-        {/* Assessment scoring and adherence percentage section */}
-        <div className="grid grid-cols-2 gap-3  md:mx-0 mx-2">
-          <div className="block  p-4 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
-            <p className="font-normal text-gray-700 dark:text-gray-400">
-              Assessment Score
-            </p>
+        {/* Assessment onboarding data section */}
+        <div className="grid grid-cols-1 gap-5 my-4 md:mx-0 mx-2">
+          <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
             <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              {assessmentReportData.score} / {assessmentReportData.maxScore}
+              Organization Onboarding
             </h5>
-          </div>
-          <div className="block  p-4 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
-            <p className="font-normal text-gray-700 dark:text-gray-400">
-              % Adherent
+            <p className="font-normal mb-4 text-gray-700 dark:text-gray-400">
+              This table details your organization's onboarding information.
             </p>
-            <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              {Math.round(
-                (assessmentReportData.score / assessmentReportData.maxScore) *
-                  100
-              )}
-              %
-            </h5>
+            <div className="relative overflow-x-auto">
+              <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                  <tr>
+                    <th scope="col" className="px-3 py-3">
+                      Question
+                    </th>
+
+                    <th scope="col" className="px-6 py-3">
+                      Answer
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assessmentReportData.onboardingResults.map((val, key) => (
+                    <tr className="bg-white dark:bg-gray-800" key={key}>
+                      <td scope="row" className="px-3 pt-3">
+                        {val.question}
+                      </td>
+
+                      <th className="px-6 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                        {val.answer}
+                      </th>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -232,6 +248,32 @@ export function Report() {
               information provided by you about your organization from your
               assessment.
             </p>
+            {/* Assessment scoring and adherence percentage section */}
+            <div className="grid grid-cols-2 gap-3  md:mx-0 mx-2 pb-5">
+              <div className="block  p-4 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
+                <p className="font-normal text-gray-700 dark:text-gray-400">
+                  Assessment Score
+                </p>
+                <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {assessmentReportData.score} / {assessmentReportData.maxScore}
+                </h5>
+              </div>
+              <div className="block  p-4 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
+                <p className="font-normal text-gray-700 dark:text-gray-400">
+                  % Adherent
+                </p>
+                <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  {Math.round(
+                    (assessmentReportData.score /
+                      assessmentReportData.maxScore) *
+                      100
+                  )}
+                  %
+                </h5>
+              </div>
+            </div>
+
+            {/* List of controls and adherence table data */}
             <div className="relative overflow-x-auto">
               <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                 <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -323,118 +365,120 @@ export function Report() {
           </div>
         </div>
 
-        {/* Divider */}
-        <hr></hr>
-
         {/* List of non adherent controls */}
-        <div className="grid grid-cols-1 gap-5 my-4 md:mx-0 mx-2">
-          <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
-            <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-              Control Action Items
-            </h5>
-            <p className="font-normal mb-4 text-gray-700 dark:text-gray-400">
-              This table details your organization's control action items.
-            </p>
-            <div className="relative overflow-x-auto">
-              <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-                <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                  <tr>
-                    <th scope="col" className="px-3 py-3">
-                      Control Group
-                    </th>
-                    <th scope="col" className="px-3 py-3">
-                      Control
-                    </th>
-                    <th scope="col" className="px-3 py-3">
-                      Control Score
-                    </th>
-                    <th scope="col" className="px-6 py-3">
-                      Control Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...assessmentReportData.controlGroupResults.entries()].map(
-                    ([groupKey, groupVal]) => (
-                      <>
-                        {[...groupVal.controlResults.entries()].map(
-                          ([controlKey, controlVal]) => (
-                            <>
-                              {!isControlCompliant(
-                                controlVal.score,
-                                controlVal.maxScore
-                              ) && (
-                                <>
-                                  <tr
-                                    className="bg-white dark:bg-gray-800"
-                                    key={controlKey}
-                                  >
-                                    <th
-                                      scope="row"
-                                      className="px-3 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+        <>
+          {assessmentReportData.score !== assessmentReportData.maxScore && (
+            <div className="grid grid-cols-1 gap-5 my-4 md:mx-0 mx-2">
+              <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
+                <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  Control Action Items
+                </h5>
+                <p className="font-normal mb-4 text-gray-700 dark:text-gray-400">
+                  This table details your organization's control action items.
+                </p>
+                <div className="relative overflow-x-auto">
+                  <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                      <tr>
+                        <th scope="col" className="px-3 py-3">
+                          Control Group
+                        </th>
+                        <th scope="col" className="px-3 py-3">
+                          Control
+                        </th>
+                        <th scope="col" className="px-3 py-3">
+                          Control Score
+                        </th>
+                        <th scope="col" className="px-6 py-3">
+                          Control Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ...assessmentReportData.controlGroupResults.entries(),
+                      ].map(([groupKey, groupVal]) => (
+                        <>
+                          {[...groupVal.controlResults.entries()].map(
+                            ([controlKey, controlVal]) => (
+                              <>
+                                {!isControlCompliant(
+                                  controlVal.score,
+                                  controlVal.maxScore
+                                ) && (
+                                  <>
+                                    <tr
+                                      className="bg-white dark:bg-gray-800"
+                                      key={controlKey}
                                     >
-                                      {getControlGroupName(groupKey)} (
-                                      {groupKey})
-                                    </th>
-                                    <th
-                                      scope="row"
-                                      className="px-3 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                                    >
-                                      {controlKey}
-                                    </th>
-                                    <th
-                                      scope="row"
-                                      className="px-3 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                                    >
-                                      {controlVal.score} / {controlVal.maxScore}
-                                    </th>
-                                    <td className="px-6 ">
-                                      {getControlComplianceStatus(
-                                        controlVal.score,
-                                        controlVal.maxScore
-                                      )}
-                                    </td>
-                                  </tr>
+                                      <th
+                                        scope="row"
+                                        className="px-3 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                                      >
+                                        {getControlGroupName(groupKey)} (
+                                        {groupKey})
+                                      </th>
+                                      <th
+                                        scope="row"
+                                        className="px-3 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                                      >
+                                        {controlKey}
+                                      </th>
+                                      <th
+                                        scope="row"
+                                        className="px-3 pt-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
+                                      >
+                                        {controlVal.score} /{" "}
+                                        {controlVal.maxScore}
+                                      </th>
+                                      <td className="px-6 ">
+                                        {getControlComplianceStatus(
+                                          controlVal.score,
+                                          controlVal.maxScore
+                                        )}
+                                      </td>
+                                    </tr>
 
-                                  {controlVal.questionsAnswered.map(
-                                    (qa, idx) => (
-                                      <tr key={idx}>
-                                        <td
-                                          colSpan={3}
-                                          key={idx}
-                                          className="pb-2 px-3"
-                                        >
-                                          <p>
-                                            {controlKey}.{idx + 1} Question :{" "}
-                                            {qa.question}
-                                          </p>
-                                          <p>
-                                            {controlKey}.{idx + 1} Answer :{" "}
-                                            {qa.answer}
-                                          </p>
-                                          {qa.followUp && (
+                                    {controlVal.questionsAnswered.map(
+                                      (qa, idx) => (
+                                        <tr key={idx}>
+                                          <td
+                                            colSpan={3}
+                                            key={idx}
+                                            className="pb-2 px-3"
+                                          >
                                             <p>
-                                              {controlKey}.{idx + 1} User
-                                              Comment : {qa.followUp}
+                                              {controlKey}.{idx + 1} Question :{" "}
+                                              {qa.question}
                                             </p>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    )
-                                  )}
-                                </>
-                              )}
-                            </>
-                          )
-                        )}
-                      </>
-                    )
-                  )}
-                </tbody>
-              </table>
+                                            <p>
+                                              {controlKey}.{idx + 1} Answer :{" "}
+                                              {qa.answer}
+                                            </p>
+                                            {qa.followUp && (
+                                              <p>
+                                                {controlKey}.{idx + 1} User
+                                                Comment : {qa.followUp}
+                                              </p>
+                                            )}
+                                          </td>
+                                        </tr>
+                                      )
+                                    )}
+                                  </>
+                                )}
+                              </>
+                            )
+                          )}
+                        </>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       </>
     );
   };

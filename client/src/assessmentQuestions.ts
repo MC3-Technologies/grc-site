@@ -21,43 +21,49 @@ const surveyJson = {
       title: "Onboarding Section",
       elements: [
         {
+          type: "comment",
+          name: "onboarding^What is the name of your organization?^organizationName",
+          title: "What is the name of your organization?",
+          isRequired: true,
+        },
+        {
           type: "text",
           inputType: "number",
-          name: "employeeCount",
+          name: "onboarding^How many employees do you have?^employeeCount",
           title: "How many employees do you have?",
           isRequired: true,
         },
         {
           type: "text",
           inputType: "number",
-          name: "deviceCount",
+          name: "onboarding^How many devices do you have?^deviceCount",
           title: "How many devices do you have?",
           isRequired: true,
         },
         {
           type: "text",
           inputType: "number",
-          name: "workstationLaptops",
-          title: "Workstation/Laptops:",
+          name: "onboarding^How many workstation/Laptops does your organization have?^workstationsLaptops",
+          title: "How many workstation/Laptops does your organization have?",
           isRequired: true,
         },
         {
           type: "text",
           inputType: "number",
-          name: "mobileDevices",
-          title: "Mobile Devices/Tablets:",
+          name: "onboarding^How many mobile devices/tablets does your organization have?^mobileDevicesTablets",
+          title: "How many mobile devices/tablets does your organization have?",
           isRequired: true,
         },
         {
           type: "text",
           inputType: "number",
-          name: "officeLocations",
+          name: "onboarding^How many office locations do you have?^officeLocations",
           title: "How many office locations do you have?",
           isRequired: true,
         },
         {
           type: "radiogroup",
-          name: "remoteEmployees",
+          name: "onboarding^Do you have remote employees?^remoteEmployees",
           title: "Do you have remote employees?",
           choices: ["Yes", "No"],
           isRequired: true,
@@ -65,14 +71,15 @@ const surveyJson = {
         {
           type: "text",
           inputType: "number",
-          name: "remoteEmployees_followup", // remains unchanged since there's no "@" in the name
+          name: "onboarding^If yes, how many remote employees?^remoteEmployees_followup",
           title: "If yes, how many remote employees?",
           isRequired: true,
-          visibleIf: "{remoteEmployees} = 'Yes'",
+          visibleIf:
+            "{onboarding^Do you have remote employees?^remoteEmployees} = 'Yes'",
         },
         {
           type: "radiogroup",
-          name: "personalDeviceUsage",
+          name: "onboarding^Do you allow employees to utilize personal devices to access company data?^personalDeviceUsage",
           title:
             "Do you allow employees to utilize personal devices to access company data?",
           choices: ["Yes", "No"],
@@ -80,7 +87,7 @@ const surveyJson = {
         },
         {
           type: "dropdown",
-          name: "industry",
+          name: "onboarding^What industry does your business belong to?^industry",
           title: "What industry does your business belong to?",
           choices: [
             "Engineering/Architecture",
@@ -92,14 +99,15 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "industry_followup", // remains unchanged
+          name: "onboarding^If 'Other', please list your industry:^industry_followup",
           title: "If 'Other', please list your industry:",
           isRequired: true,
-          visibleIf: "{industry} = 'Other'",
+          visibleIf:
+            "{onboarding^What industry does your business belong to?^industry} = 'Other'",
         },
         {
           type: "radiogroup",
-          name: "itPoliciesQuestion",
+          name: "onboarding^Do you have any policies or procedures that cover IT/Cybersecurity?^itPoliciesQuestion",
           title:
             "Do you have any policies or procedures that cover IT/Cybersecurity?",
           choices: ["Yes", "No"],
@@ -107,10 +115,11 @@ const surveyJson = {
         },
         {
           type: "comment",
-          name: "itPoliciesQuestion_followup", // remains unchanged
-          title: "If yes, please list any policies or procedures you may have.",
+          name: "onboarding^If yes, please list any policies or procedures you may have:^itPoliciesQuestion_followup",
+          title: "If yes, please list any policies or procedures you may have:",
           isRequired: true,
-          visibleIf: "{itPoliciesQuestion} = 'Yes'",
+          visibleIf:
+            "{onboarding^Do you have any policies or procedures that cover IT/Cybersecurity?^itPoliciesQuestion} = 'Yes'",
         },
       ],
     },
@@ -120,8 +129,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name:
-            "AC.L1-b.1.i@Do your employees use individual (not shared) accounts to access company systems and data?@individualAccounts",
+          name: "AC.L1-b.1.i@Do your employees use individual (not shared) accounts to access company systems and data?@individualAccounts",
           title:
             "Do your employees use individual (not shared) accounts to access company systems and data?",
           choices: ["Yes", "No"],
@@ -138,8 +146,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "AC.L1-b.1.ii@Do you limit each employee’s access so they can only perform tasks relevant to their job role?@limitedAccess",
+          name: "AC.L1-b.1.ii@Do you limit each employee’s access so they can only perform tasks relevant to their job role?@limitedAccess",
           title:
             "Do you limit each employee’s access so they can only perform tasks relevant to their job role?",
           choices: ["Yes", "No"],
@@ -156,8 +163,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "AC.L1-b.1.iii@Do you control and monitor all external system connections (e.g., cloud services, remote systems)?@externalMonitor",
+          name: "AC.L1-b.1.iii@Do you control and monitor all external system connections (e.g., cloud services, remote systems)?@externalMonitor",
           title:
             "Do you control and monitor all external system connections (e.g., cloud services, remote systems)?",
           choices: ["Yes", "No"],
@@ -173,8 +179,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "AC.L1-b.1.iv@Do you review and approve what company information can be made public (e.g., on your website)?@publicReview",
+          name: "AC.L1-b.1.iv@Do you review and approve what company information can be made public (e.g., on your website)?@publicReview",
           title:
             "Do you review and approve what company information can be made public (e.g., on your website)?",
           choices: ["Yes", "No"],
@@ -197,8 +202,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name:
-            "IA.L1-b.1.v@Is each person uniquely identified before they can log into your systems?@uniqueUser",
+          name: "IA.L1-b.1.v@Is each person uniquely identified before they can log into your systems?@uniqueUser",
           title:
             "Is each person uniquely identified before they can log into your systems?",
           choices: ["Yes", "No"],
@@ -215,8 +219,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "IA.L1-b.1.v@Is each device uniquely identified before they can log into your systems?@uniqueDevice",
+          name: "IA.L1-b.1.v@Is each device uniquely identified before they can log into your systems?@uniqueDevice",
           title:
             "Is each device uniquely identified before they can log into your systems?",
           choices: ["Yes", "No"],
@@ -233,8 +236,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "IA.L1-b.1.vi@Are users required to enter a password or use another method to verify their identity?@passwordAuth",
+          name: "IA.L1-b.1.vi@Are users required to enter a password or use another method to verify their identity?@passwordAuth",
           title:
             "Are users required to enter a password or use another method to verify their identity?",
           choices: ["Yes", "No"],
@@ -251,8 +253,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?@mfaEnabled",
+          name: "IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?@mfaEnabled",
           title: "Is Multi-Factor Authentication utilized?",
           choices: ["Yes", "No"],
           isRequired: true,
@@ -260,16 +261,8 @@ const surveyJson = {
         {
           type: "comment",
           name: "mfaEnabled_followup",
-          title: "If yes, how is this implemented?",
-          isRequired: true,
-          visibleIf:
-            "{IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?@mfaEnabled} = 'Yes'",
-        },
-        {
-          type: "comment",
-          name: "mfaEnabled_followup",
           title:
-            "If yes, is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?",
+            "If yes, how is this implemented and is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?",
           isRequired: true,
           visibleIf:
             "{IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?@mfaEnabled} = 'Yes'",
@@ -282,8 +275,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name:
-            "MP.L1-b.1.vii@Do you properly destroy or wipe computers, hard drives, or media before disposing of them?@mediaWipe",
+          name: "MP.L1-b.1.vii@Do you properly destroy or wipe computers, hard drives, or media before disposing of them?@mediaWipe",
           title:
             "Do you properly destroy or wipe computers, hard drives, or media before disposing of them?",
           choices: ["Yes", "No"],
@@ -305,8 +297,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name:
-            "PE.L1-b.1.viii@Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?@secureEquip",
+          name: "PE.L1-b.1.viii@Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?@secureEquip",
           title:
             "Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?",
           choices: ["Yes", "No"],
@@ -323,8 +314,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "PE.L1-b.1.ix@Do you log and monitor visitors when they enter secure company areas?@visitorLog",
+          name: "PE.L1-b.1.ix@Do you log and monitor visitors when they enter secure company areas?@visitorLog",
           title:
             "Do you log and monitor visitors when they enter secure company areas?",
           choices: ["Yes", "No"],
@@ -347,8 +337,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name:
-            "SC.L1-b.1.x@Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?@secTools",
+          name: "SC.L1-b.1.x@Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?@secTools",
           title:
             "Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?",
           choices: ["Yes", "No"],
@@ -364,8 +353,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "SC.L1-b.1.xi@If you have a public website, is it kept separate from your internal business systems?@publicSite",
+          name: "SC.L1-b.1.xi@If you have a public website, is it kept separate from your internal business systems?@publicSite",
           title:
             "If you have a public website, is it kept separate from your internal business systems?",
           choices: ["Yes", "No"],
@@ -388,8 +376,7 @@ const surveyJson = {
       elements: [
         {
           type: "radiogroup",
-          name:
-            "SI.L1-b.1.xii@Do you install security patches and updates on your systems as soon as possible?@patchUpdates",
+          name: "SI.L1-b.1.xii@Do you install security patches and updates on your systems as soon as possible?@patchUpdates",
           title:
             "Do you install security patches and updates on your systems as soon as possible?",
           choices: ["Yes", "No"],
@@ -406,8 +393,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "SI.L1-b.1.xiii@Do you use antivirus or endpoint protection on all company devices?@antivirusUsage",
+          name: "SI.L1-b.1.xiii@Do you use antivirus or endpoint protection on all company devices?@antivirusUsage",
           title:
             "Do you use antivirus or endpoint protection on all company devices?",
           choices: ["Yes", "No"],
@@ -423,8 +409,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "SI.L1-b.1.xiv@Do you regularly update your antivirus software to ensure it can detect new threats?@antivirusUpdate",
+          name: "SI.L1-b.1.xiv@Do you regularly update your antivirus software to ensure it can detect new threats?@antivirusUpdate",
           title:
             "Do you regularly update your antivirus software to ensure it can detect new threats?",
           choices: ["Yes", "No"],
@@ -432,8 +417,7 @@ const surveyJson = {
         },
         {
           type: "radiogroup",
-          name:
-            "SI.L1-b.1.xv@Do you scan files, emails, or programs before they’re used to make sure they’re safe?@fileScan",
+          name: "SI.L1-b.1.xv@Do you scan files, emails, or programs before they’re used to make sure they’re safe?@fileScan",
           title:
             "Do you scan files, emails, or programs before they’re used to make sure they’re safe?",
           choices: ["Yes", "No"],
