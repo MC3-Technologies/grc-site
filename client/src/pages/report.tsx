@@ -51,11 +51,37 @@ export function Report() {
       }
 
       try {
-        // Grab assessment storage json
-        const assessmentJsonData =
-          await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam
+        // In order to grab assessment data the following happens
+        // 1. Check cache for the data and if its there, grab it and use it
+        // 2. If cache miss, fetch data from storage and use it for report class instance then set it in cache to use later
+        let assessmentJsonData: unknown;
+
+        if (
+          localStorage.getItem(`${assessmentIdParam}_assessmentData`) !== null
+        ) {
+          // If assessment data is cached in local storage, use it
+          assessmentJsonData = localStorage.getItem(
+            `${assessmentIdParam}_assessmentData`
           );
+          console.log("Assessment data in cache.");
+        } else {
+          console.log(
+            "Assessment data not found in cache, fetching from storage."
+          );
+          // If assessment data is not cached in local storage, fetch from storage and use it, then cache it
+          const data =
+            await CompletedAssessment.fetchAssessmentStorageData(
+              assessmentIdParam
+            );
+          assessmentJsonData = data;
+
+          // Cache it
+          localStorage.setItem(
+            `${assessmentIdParam}_assessmentData`,
+            data as string
+          );
+          console.log("Assessment data cached for next time.");
+        }
 
         // New report isntance
         const report = new Rpt(
@@ -67,8 +93,6 @@ export function Report() {
 
         // Call report generation method
         const reportData = report.generateReportData();
-
-        // console.log(reportData);
 
         // Set page state
         setPageData((prev) => ({
@@ -590,7 +614,7 @@ export function Report() {
               <button
                 onClick={() => reactToPrintFn()}
                 type="button"
-                className="inline-flex items-center justify-center focus:outline-none text-white bg-primary-500  hover:bg-primary-800 focus:ring-4 font-semibold rounded-lg text-md  py-2.5 mb-3 dark:bg-primary-600 dark:hover:bg-primary-700  w-full"
+                className="inline-flex items-center justify-center focus:outline-none text-white bg-primary-500  hover:bg-primary-800 focus:ring-4 font-semibold rounded-lg text-md  py-2.5 mb-4 dark:bg-primary-600 dark:hover:bg-primary-700  w-full"
               >
                 <svg
                   className="w-5 h-5 mr-2"
