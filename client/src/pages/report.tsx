@@ -1,7 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import "../index.css";
 
@@ -15,6 +15,8 @@ import { CompletedAssessment } from "../utils/assessment";
 import { ReportResult } from "../utils/report";
 import { Report as Rpt } from "../utils/report";
 import { redirectToAssessments } from "../utils/routing";
+
+import { useReactToPrint } from "react-to-print";
 
 type PageData = {
   assessmentReportData: ReportResult | null;
@@ -30,6 +32,9 @@ export function Report() {
 
   // Page ready or not
   const [loading, setLoading] = useState<boolean>(true);
+
+  const contentRef = useRef<HTMLDivElement>(null);
+  const reactToPrintFn = useReactToPrint({ contentRef });
 
   useEffect(() => {
     initFlowbite();
@@ -177,30 +182,8 @@ export function Report() {
   const getReportUi = (assessmentReportData: ReportResult): JSX.Element => {
     return (
       <>
-        {/* Button to go back to assessments */}
-        <button
-          onClick={() => redirectToAssessments()}
-          className="flex items-center text-primary-600 hover:text-primary-800 transition-colors pb-4"
-        >
-          <svg
-            className="w-5 h-5 mr-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M15 19l-7-7 7-7"
-            ></path>
-          </svg>
-          Back to Assessments
-        </button>
-
         {/* Assessment onboarding data section */}
-        <div className="grid grid-cols-1 gap-5 my-4 md:mx-0 mx-2">
+        <div className="grid grid-cols-1 gap-5">
           <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
             <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               Organization Onboarding
@@ -246,7 +229,7 @@ export function Report() {
         </div>
 
         {/* List of controls and adherence table data section */}
-        <div className="grid grid-cols-1 gap-5 my-4 md:mx-0 mx-2">
+        <div className="grid grid-cols-1 gap-5 my-4">
           <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
             <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
               Detailed Report
@@ -401,7 +384,7 @@ export function Report() {
 
         {/* List of non adherent controls */}
         {assessmentReportData.score !== assessmentReportData.maxScore && (
-          <div className="grid grid-cols-1 gap-5 my-4 md:mx-0 mx-2">
+          <div className="grid grid-cols-1 gap-5 my-4">
             <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
               <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                 Control Action Items
@@ -574,14 +557,63 @@ export function Report() {
       <Navbar />
 
       <section className="mt-20 bg-white dark:bg-gray-900">
-        <div className="py-4 md:px-4 mx-auto max-w-screen-xl text-center  ">
+        <div className="py-4 md:px-4 mx-auto max-w-screen-xl text-center ">
           {loading ? (
             <div className="flex justify-center py-10">
               <Spinner />
             </div>
           ) : (
-            <div className="container mx-auto md:px-4 px-1">
-              {getPageData()}
+            <div className="container mx-auto  md:px-0 px-2">
+              {/* Button to go back to assessments */}
+              <button
+                onClick={() => redirectToAssessments()}
+                className="flex items-center text-primary-600 hover:text-primary-800 transition-colors pb-4"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  ></path>
+                </svg>
+                Back to Assessments
+              </button>
+
+              {/* Print report button section */}
+              <button
+                onClick={() => reactToPrintFn()}
+                type="button"
+                className="inline-flex items-center justify-center focus:outline-none text-white bg-primary-500  hover:bg-primary-800 focus:ring-4 font-semibold rounded-lg text-md  py-2.5 mb-3 dark:bg-primary-600 dark:hover:bg-primary-700  w-full"
+              >
+                <svg
+                  className="w-5 h-5 mr-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"
+                  />
+                </svg>
+                Print Report
+              </button>
+
+              {/* Report section div */}
+              <div ref={contentRef}>{getPageData()}</div>
             </div>
           )}
         </div>
