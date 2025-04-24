@@ -584,30 +584,32 @@ export function Report() {
               </button>
 
               {/* Print report button section */}
-              <button
-                onClick={() => reactToPrintFn()}
-                type="button"
-                className="inline-flex items-center justify-center focus:outline-none text-white bg-primary-500  hover:bg-primary-800 focus:ring-4 font-semibold rounded-lg text-md  py-2.5 mb-4 dark:bg-primary-600 dark:hover:bg-primary-700  w-full"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="none"
-                  viewBox="0 0 24 24"
+              {!pageData.error && (
+                <button
+                  onClick={() => reactToPrintFn()}
+                  type="button"
+                  className="inline-flex items-center justify-center focus:outline-none text-white bg-primary-500  hover:bg-primary-800 focus:ring-4 font-semibold rounded-lg text-md  py-2.5 mb-4 dark:bg-primary-600 dark:hover:bg-primary-700  w-full"
                 >
-                  <path
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"
-                  />
-                </svg>
-                Print Report
-              </button>
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke="currentColor"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"
+                    />
+                  </svg>
+                  Print Report
+                </button>
+              )}
 
               {/* Report section div */}
               <div ref={contentRef}>{getPageData()}</div>
