@@ -40,7 +40,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
 
   if (days > 0) {
@@ -57,7 +57,7 @@ const getTimeAgo = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -171,7 +171,7 @@ export function Assessments() {
         dismissToast(id);
       }, 5000);
     },
-    [], // Empty dependency array ensures this function is memoized and doesn't change on each render.
+    [] // Empty dependency array ensures this function is memoized and doesn't change on each render.
   );
 
   // Dismiss a toast notification
@@ -270,7 +270,7 @@ export function Assessments() {
       await InProgressAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setInProgressAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id),
+        prevAssessments.filter((assessment) => assessment.id !== id)
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -283,9 +283,14 @@ export function Assessments() {
   const handleDeleteCompleteAssessment = async (id: string) => {
     try {
       await CompletedAssessment.deleteAssessment(id);
+      // Remove assessment data from cache if it exists
+      if (localStorage.getItem(`${id}_assessmentData`) !== null) {
+        localStorage.removeItem(`${id}_assessmentData`);
+      }
+
       // Update state to remove the deleted assessment
       setCompletedAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id),
+        prevAssessments.filter((assessment) => assessment.id !== id)
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -591,7 +596,7 @@ export function Assessments() {
                                 Duration:{" "}
                                 {calculateDuration(
                                   assessment.createdAt,
-                                  assessment.completedAt,
+                                  assessment.completedAt
                                 )}
                               </p>
 
@@ -692,9 +697,7 @@ export function Assessments() {
                                 View
                               </button>
                               <button
-                                onClick={() =>
-                                  redirectToReport(assessment.id)
-                                }
+                                onClick={() => redirectToReport(assessment.id)}
                                 className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
                                 Report
@@ -724,5 +727,5 @@ export function Assessments() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessments />
-  </StrictMode>,
+  </StrictMode>
 );
