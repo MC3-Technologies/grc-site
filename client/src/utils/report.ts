@@ -1,3 +1,5 @@
+import { CompletedAssessment } from "./assessment";
+
 type QuestionAnswer = {
   question: string;
   answer: string | number;
@@ -243,4 +245,27 @@ class Report {
   };
 }
 
-export { Report };
+const fetchAssessmentDataWithCache = async (
+  assessmentId: string
+): Promise<unknown> => {
+  if (localStorage.getItem(`${assessmentId}_assessmentData`) !== null) {
+    // If assessment data is cached in local storage, use it
+    console.log("Assessment data in cache.");
+    return localStorage.getItem(`${assessmentId}_assessmentData`);
+  } else {
+    console.log("Assessment data not found in cache, fetching from storage.");
+    // If assessment data is not cached in local storage, fetch from storage to use it and cache it
+
+    // Fetch from storage
+    const data =
+      await CompletedAssessment.fetchAssessmentStorageData(assessmentId);
+
+    // Cache it
+    localStorage.setItem(`${assessmentId}_assessmentData`, data as string);
+    console.log("Assessment data cached for next time.");
+
+    return data;
+  }
+};
+
+export { Report, fetchAssessmentDataWithCache };

@@ -10,9 +10,7 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import Spinner from "../components/Spinner";
 
-import { CompletedAssessment } from "../utils/assessment";
-
-import { ReportResult } from "../utils/report";
+import { fetchAssessmentDataWithCache, ReportResult } from "../utils/report";
 import { Report as Rpt } from "../utils/report";
 import { redirectToAssessments } from "../utils/routing";
 
@@ -54,36 +52,11 @@ export function Report() {
         // In order to grab assessment data the following happens
         // 1. Check cache for the data and if its there, grab it and use it
         // 2. If cache miss, fetch data from storage and use it for report class instance then set it in cache to use later
-        let assessmentJsonData: unknown;
+        // Function to handle the above
+        const assessmentJsonData =
+          await fetchAssessmentDataWithCache(assessmentIdParam);
 
-        if (
-          localStorage.getItem(`${assessmentIdParam}_assessmentData`) !== null
-        ) {
-          // If assessment data is cached in local storage, use it
-          assessmentJsonData = localStorage.getItem(
-            `${assessmentIdParam}_assessmentData`
-          );
-          console.log("Assessment data in cache.");
-        } else {
-          console.log(
-            "Assessment data not found in cache, fetching from storage."
-          );
-          // If assessment data is not cached in local storage, fetch from storage and use it, then cache it
-          const data =
-            await CompletedAssessment.fetchAssessmentStorageData(
-              assessmentIdParam
-            );
-          assessmentJsonData = data;
-
-          // Cache it
-          localStorage.setItem(
-            `${assessmentIdParam}_assessmentData`,
-            data as string
-          );
-          console.log("Assessment data cached for next time.");
-        }
-
-        // New report isntance
+        // New report instance
         const report = new Rpt(
           JSON.parse(assessmentJsonData as string) as Record<
             string,
