@@ -694,13 +694,13 @@ export function Assessments() {
                                 }
                                 className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
-                                View
+                                View Assessment
                               </button>
                               <button
                                 onClick={() => redirectToReport(assessment.id)}
-                                className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                className="bg-green-600 hover:bg-greeb-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
-                                Report
+                                View Report
                               </button>
                               <DeleteAssessmentButton
                                 handler={handleDeleteCompleteAssessment}
