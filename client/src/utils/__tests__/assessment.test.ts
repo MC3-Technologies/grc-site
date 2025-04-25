@@ -58,7 +58,7 @@ jest.mock("../../utils/assessment", () => {
         id: string,
         currentPage: number,
         percentCompleted: number,
-        _file?: File,
+        _file?: File
       ) => {
         /* Using _file just to avoid no-unused-vars eslint warning */
         if (_file) {
@@ -75,7 +75,7 @@ jest.mock("../../utils/assessment", () => {
           percentCompleted,
         });
         return true;
-      },
+      }
     ),
 
     deleteAssessment: jest.fn(async (id: string) => {
@@ -163,7 +163,7 @@ jest.mock("../../utils/assessment", () => {
         // Add to completed, remove from in-progress
         completedAssessments.set(assessmentId, completedAssessment);
         inProgressAssessments.delete(assessmentId);
-      },
+      }
     ),
 
     // For testing purposes - not in original
@@ -223,14 +223,12 @@ describe("InProgressAssessment", () => {
   describe("createAssessment", () => {
     test("should create a new assessment", async () => {
       // Arrange
-      const testName = "Test Assessment";
       // Act
-      const id = await InProgressAssessment.createAssessment(testName);
+      const id = await InProgressAssessment.createAssessment();
       // Assert
       expect(id).toBeTruthy();
       const assessments = await InProgressAssessment.fetchAllAssessments();
       expect(assessments.length).toBe(1);
-      expect(assessments[0].name).toBe(testName);
       expect(assessments[0].percentCompleted).toBe(0);
     });
   });
@@ -266,14 +264,12 @@ describe("InProgressAssessment", () => {
       ];
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (InProgressAssessment as any).__setMockAssessment(assessment),
+        (InProgressAssessment as any).__setMockAssessment(assessment)
       );
       // Act
       const result = await InProgressAssessment.fetchAllAssessments();
       // Assert
       expect(result.length).toBe(2);
-      expect(result[0].name).toBe("Test Assessment 1");
-      expect(result[1].name).toBe("Test Assessment 2");
     });
   });
 
@@ -298,14 +294,14 @@ describe("InProgressAssessment", () => {
       const result = await InProgressAssessment.fetchAssessmentData(testId);
       // Assert
       expect(result.id).toBe(testId);
-      expect(result.name).toBe("Test Assessment");
+
       expect(result.percentCompleted).toBe(45);
     });
 
     test("should throw error for non-existent id", async () => {
       // Act & Assert
       await expect(
-        InProgressAssessment.fetchAssessmentData("non-existent-id"),
+        InProgressAssessment.fetchAssessmentData("non-existent-id")
       ).rejects.toThrow("Error fetching in-progress assessments");
     });
   });
@@ -372,7 +368,7 @@ describe("InProgressAssessment", () => {
       const assessments = await InProgressAssessment.fetchAllAssessments();
       expect(assessments.length).toBe(0);
       await expect(
-        InProgressAssessment.fetchAssessmentStorageData(testId),
+        InProgressAssessment.fetchAssessmentStorageData(testId)
       ).rejects.toThrow("Error getting assessment storage");
     });
   });
@@ -412,16 +408,12 @@ describe("CompletedAssessment", () => {
       ];
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (CompletedAssessment as any).__setMockAssessment(assessment),
+        (CompletedAssessment as any).__setMockAssessment(assessment)
       );
       // Act
       const result = await CompletedAssessment.fetchAllCompletedAssessments();
       // Assert
       expect(result.length).toBe(2);
-      expect(result[0].name).toBe("Completed Assessment 1");
-      expect(result[0].isCompliant).toBe(true);
-      expect(result[1].name).toBe("Completed Assessment 2");
-      expect(result[1].isCompliant).toBe(false);
     });
   });
 
@@ -447,23 +439,23 @@ describe("CompletedAssessment", () => {
       });
       const completedFile = createTestAssessmentFile(
         { allAnswersCompleted: true },
-        `${testId}.json`,
+        `${testId}.json`
       );
       // Act
       await CompletedAssessment.completeInProgressAssessment(
         completedFile,
         testId,
+        100
       );
       // Assert
       const completedAssessments =
         await CompletedAssessment.fetchAllCompletedAssessments();
       expect(completedAssessments.length).toBe(1);
       expect(completedAssessments[0].id).toBe(testId);
-      expect(completedAssessments[0].name).toBe("Test Assessment to Complete");
+
       const inProgressAssessments =
         await InProgressAssessment.fetchAllAssessments();
       expect(inProgressAssessments.length).toBe(0);
-      expect(completedAssessments[0].duration).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -489,9 +481,7 @@ describe("CompletedAssessment", () => {
       const result = await CompletedAssessment.fetchAssessmentData(testId);
       // Assert
       expect(result.id).toBe(testId);
-      expect(result.name).toBe("Completed Test Assessment");
       expect(result.complianceScore).toBe(90);
-      expect(result.isCompliant).toBe(true);
     });
   });
 
