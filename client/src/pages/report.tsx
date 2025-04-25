@@ -383,11 +383,24 @@ export function Report() {
         {assessmentReportData.score !== assessmentReportData.maxScore && (
           <div className="grid grid-cols-1 gap-5 my-4">
             <div className="block w-full p-6 bg-white border border-gray-200 rounded-lg shadow-sm  dark:bg-gray-800 dark:border-gray-700 ">
-              <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+              <h5 className=" text-2xl font-bold tracking-tight text-gray-900 dark:text-white mb-1">
                 Control Action Items
               </h5>
-              <p className="font-normal mb-4 text-gray-700 dark:text-gray-400">
-                This table details your organization's control action items.
+              <p className="font-normal mb-1 text-gray-700 dark:text-gray-400">
+                This table details your organization's focus areas to become
+                fully adherent to CMMC level 1.
+              </p>
+
+              <p className="font-large mb-4 text-gray-700 dark:text-gray-400 font-bold">
+                Click{" "}
+                <a
+                  target="_blank"
+                  href="/security-models/?model=cmmclevel1"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  here
+                </a>{" "}
+                to view how to implement CMMC controls.
               </p>
               <div className="relative overflow-x-auto">
                 <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
