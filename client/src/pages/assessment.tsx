@@ -16,6 +16,7 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
+import { Report as Rpt } from "../utils/report";
 
 type PageData = {
   assessment: Model | null;
@@ -452,10 +453,21 @@ export function Assessment() {
               file
             );
 
+            // Create temporary report isntance to calculate adherence score
+            const tempReport = new Rpt(
+              finalAssessmentData as Record<string, string | number>
+            );
+            const score = Math.round(
+              (tempReport.generateReportData().score /
+                tempReport.generateReportData().maxScore) *
+                100
+            );
+
             // Now create a completed assessment record and remove from in-progress
             await CompletedAssessment.completeInProgressAssessment(
               file,
-              currentAssessmentId
+              currentAssessmentId,
+              score
             );
 
             handleCompletionSuccess();
