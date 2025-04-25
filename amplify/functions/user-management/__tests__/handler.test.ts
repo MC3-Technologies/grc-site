@@ -296,7 +296,7 @@ describe("User Management Handler", () => {
         "admin@example.com",
         undefined, // firstName
         undefined, // lastName
-        undefined  // companyName
+        undefined, // companyName
       );
       expect(result).toBe(true);
     });

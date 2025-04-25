@@ -95,10 +95,12 @@ describe("Questionnaire Utilities", () => {
   describe("getLatestQuestionnaireData", () => {
     test("returns default surveyJson when no saved data exists", async () => {
       const result = await getLatestQuestionnaireData();
-      expect(result).toEqual(expect.objectContaining({
-        title: expect.any(String),
-        pages: expect.any(Array)
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          title: expect.any(String),
+          pages: expect.any(Array),
+        }),
+      );
       expect(localStorageMock.getItem).toHaveBeenCalledWith(
         QUESTIONNAIRE_STORAGE_KEY,
       );
@@ -121,10 +123,12 @@ describe("Questionnaire Utilities", () => {
       const result = await getLatestQuestionnaireData();
 
       // Check the structure
-      expect(result).toEqual(expect.objectContaining({
-        title: expect.any(String),
-        pages: expect.any(Array),
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          title: expect.any(String),
+          pages: expect.any(Array),
+        }),
+      );
 
       // Check page content - might be from localStorage or S3 mock
       expect(result.pages.length).toBeGreaterThan(0);
@@ -137,10 +141,12 @@ describe("Questionnaire Utilities", () => {
       });
 
       const result = await getLatestQuestionnaireData();
-      expect(result).toEqual(expect.objectContaining({
-        title: expect.any(String),
-        pages: expect.any(Array)
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          title: expect.any(String),
+          pages: expect.any(Array),
+        }),
+      );
     });
   });
 });

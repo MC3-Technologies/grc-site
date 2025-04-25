@@ -14,13 +14,13 @@ const defaultQuestionnaire = {
   version: "1.0",
   lastUpdated: new Date().toISOString(),
   updatedBy: "admin",
-  changeNotes: "Test version"
+  changeNotes: "Test version",
 };
 
 // Add default questionnaire to mock storage
 const defaultQuestionnaireBlob = new Blob(
-  [JSON.stringify(defaultQuestionnaire)], 
-  { type: "application/json" }
+  [JSON.stringify(defaultQuestionnaire)],
+  { type: "application/json" },
 );
 mockStorageData.set("questionnaire/current.json", defaultQuestionnaireBlob);
 
