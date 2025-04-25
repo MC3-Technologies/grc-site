@@ -649,7 +649,7 @@ export function Assessments() {
                               </button>
                               <button
                                 onClick={() => redirectToReport(assessment.id)}
-                                className="bg-green-600 hover:bg-greeb-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
                                 View Report
                               </button>
