@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"; // Add useCallback
+import { useEffect, useState } from "react";
 import {
   CompletedAssessment,
   InProgressAssessment,
@@ -23,7 +23,6 @@ interface AssessmentData {
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
-  version?: string; // Added version field
 }
 
 // User info for the dropdown
@@ -45,15 +44,6 @@ const AdminAssessments = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [showUserDropdown, setShowUserDropdown] = useState<boolean>(false);
-
-  // State for delete confirmation
-  const [showDeleteModal, setShowDeleteModal] = useState<boolean>(false);
-  const [assessmentToDelete, setAssessmentToDelete] =
-    useState<AssessmentData | null>(null);
-
-  // State for alert banner
-  const [alertMessage, setAlertMessage] = useState<string | null>(null);
-  const [alertType, setAlertType] = useState<"success" | "error" | null>(null);
 
   // Read the tab from URL and set activeTab accordingly
   useEffect(() => {
@@ -81,18 +71,6 @@ const AdminAssessments = () => {
       window.removeEventListener("popstate", updateTabFromUrl);
     };
   }, []);
-
-  // Auto-dismiss messages after timeout
-  useEffect(() => {
-    if (alertMessage) {
-      const timer = setTimeout(() => {
-        setAlertMessage(null);
-        setAlertType(null);
-      }, 5000); // Auto-dismiss after 5 seconds
-
-      return () => clearTimeout(timer);
-    }
-  }, [alertMessage]);
 
   // Fetch users and create a mapping of user IDs to emails
   useEffect(() => {
@@ -195,7 +173,6 @@ const AdminAssessments = () => {
               progress: assessment.percentCompleted,
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
-              version: assessment.version,
             };
           },
         );
@@ -216,7 +193,6 @@ const AdminAssessments = () => {
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
               completedAt: assessment.completedAt,
-              version: assessment.version,
             };
           },
         );
@@ -287,53 +263,6 @@ const AdminAssessments = () => {
     }
   };
 
-  // --- Delete Functionality ---
-
-  // Opens the delete confirmation modal
-  const handleOpenDeleteModal = useCallback((assessment: AssessmentData) => {
-    setAssessmentToDelete(assessment);
-    setShowDeleteModal(true);
-  }, []);
-
-  // Handles the actual deletion after confirmation
-  const handleConfirmDelete = useCallback(async () => {
-    if (!assessmentToDelete) return;
-
-    const { id, status, name } = assessmentToDelete;
-    console.log(
-      `Attempting to delete ${status} assessment: ${name} (ID: ${id})`,
-    );
-
-    try {
-      if (status === "in-progress") {
-        await InProgressAssessment.deleteAssessment(id);
-      } else if (status === "completed") {
-        await CompletedAssessment.deleteAssessment(id);
-      }
-
-      // Remove the assessment from the local state immediately
-      setAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id),
-      );
-
-      console.log(`Successfully deleted assessment: ${name} (ID: ${id})`);
-      setAlertMessage(`Assessment "${name}" has been permanently deleted.`);
-      setAlertType("success");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      console.error(`Error deleting assessment ${id}:`, errorMessage);
-      setAlertMessage(`Failed to delete assessment "${name}": ${errorMessage}`);
-      setAlertType("error");
-    } finally {
-      // Close the modal and clear the assessment to delete
-      setShowDeleteModal(false);
-      setAssessmentToDelete(null);
-    }
-  }, [assessmentToDelete]); // Dependency: assessmentToDelete
-
-  // --- End Delete Functionality ---
-
   if (loading) {
     return (
       <div className="flex justify-center py-8">
@@ -342,114 +271,8 @@ const AdminAssessments = () => {
     );
   }
 
-  // Custom success alert to match the style in AdminUsers
-  const SuccessAlert = () => {
-    if (!alertMessage || alertType !== "success") return null;
-
-    return (
-      <div
-        className="p-4 mb-4 text-sm text-green-700 bg-green-100 rounded-lg dark:bg-green-900 dark:text-green-300 shadow-md animate-fadeIn"
-        role="alert"
-      >
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              ></path>
-            </svg>
-            <span>{alertMessage}</span>
-          </div>
-          <button
-            className="text-green-700 dark:text-green-300 hover:text-green-900 dark:hover:text-green-100"
-            onClick={() => {
-              setAlertMessage(null);
-              setAlertType(null);
-            }}
-            aria-label="Close"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              ></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  // Custom error alert to match the style in AdminUsers
-  const ErrorAlert = () => {
-    if (!alertMessage || alertType !== "error") return null;
-
-    return (
-      <div
-        className="p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-300 shadow-md animate-fadeIn"
-        role="alert"
-      >
-        <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              ></path>
-            </svg>
-            <span>{alertMessage}</span>
-          </div>
-          <button
-            className="text-red-700 dark:text-red-300 hover:text-red-900 dark:hover:text-red-100"
-            onClick={() => {
-              setAlertMessage(null);
-              setAlertType(null);
-            }}
-            aria-label="Close"
-          >
-            <svg
-              className="w-5 h-5"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clipRule="evenodd"
-              ></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div>
-      {/* Custom Alert Banners */}
-      <SuccessAlert />
-      <ErrorAlert />
-
       <div className="mb-4 border-b border-gray-200 dark:border-gray-700">
         <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
           <li className="mr-2">
@@ -537,7 +360,7 @@ const AdminAssessments = () => {
             </svg>
             {selectedUser
               ? `Filtered by: ${userMap[selectedUser] || "Unknown"}`
-              : "Filter by Owner"}
+              : "Filter by User"}
             <svg
               className="w-4 h-4 ml-2"
               fill="currentColor"
@@ -684,9 +507,6 @@ const AdminAssessments = () => {
               <th scope="col" className="px-6 py-3 hidden lg:table-cell">
                 Compliance Score
               </th>
-              <th scope="col" className="px-6 py-3 hidden lg:table-cell">
-                Version
-              </th>
               <th scope="col" className="px-6 py-3">
                 Actions
               </th>
@@ -739,21 +559,6 @@ const AdminAssessments = () => {
                         ? formatDate(assessment.completedAt || "")
                         : formatDate(assessment.updatedAt)}
                     </div>
-                    <div className="flex items-center">
-                      <svg
-                        className="w-3.5 h-3.5 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                      Version: {assessment.version || "N/A"}
-                    </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700 mt-2">
                       <div
                         className={`h-2 rounded-full ${
@@ -802,39 +607,53 @@ const AdminAssessments = () => {
                   {formatDate(assessment.createdAt)}
                 </td>
                 <td className="px-6 py-4 hidden lg:table-cell">
-                  {assessment.completedAt
-                    ? formatDate(assessment.completedAt)
-                    : "-"}
+                  {assessment.status === "completed"
+                    ? formatDate(assessment.completedAt || "")
+                    : formatDate(assessment.updatedAt)}
                 </td>
                 <td className="px-6 py-4 hidden lg:table-cell">
-                  {assessment.score !== undefined
-                    ? `${assessment.score}%`
-                    : "-"}
-                </td>
-                <td className="px-6 py-4 hidden lg:table-cell">
-                  {assessment.version || "N/A"}
+                  {assessment.status === "completed" ? (
+                    <div className="flex items-center">
+                      <span
+                        className={`font-medium ${assessment.isCompliant ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {assessment.score}%
+                      </span>
+                      <span
+                        className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
+                          assessment.isCompliant
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                        }`}
+                      >
+                        {assessment.isCompliant ? "Compliant" : "Non-Compliant"}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">-</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 space-x-2 flex flex-wrap gap-1">
                   <button
-                    className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     onClick={() => handleViewAssessment(assessment)}
+                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+                    aria-label="View assessment"
+                    title="View assessment"
                   >
-                    <span className="flex items-center">
-                      <svg
-                        className="w-3.5 h-3.5 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                        <path
-                          fillRule="evenodd"
-                          d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
-                          clipRule="evenodd"
-                        ></path>
-                      </svg>
-                      View
-                    </span>
+                    <svg
+                      className="w-3.5 h-3.5 mr-1"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                      <path
+                        fillRule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clipRule="evenodd"
+                      ></path>
+                    </svg>
+                    View
                   </button>
                   <button
                     className="flex items-center px-3 py-1 text-xs font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -854,27 +673,6 @@ const AdminAssessments = () => {
                       ></path>
                     </svg>
                     Export
-                  </button>
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => handleOpenDeleteModal(assessment)}
-                    className="flex items-center px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-                    aria-label="Delete assessment"
-                    title="Delete assessment"
-                  >
-                    <svg
-                      className="w-3.5 h-3.5 mr-1"
-                      fill="currentColor"
-                      viewBox="0 0 20 20"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                      ></path>
-                    </svg>
-                    Delete
                   </button>
                 </td>
               </tr>
@@ -897,82 +695,6 @@ const AdminAssessments = () => {
           <li>Assessment export functionality</li>
         </ul>
       </div>
-
-      {/* Delete Confirmation Modal (copied from AdminUsers.tsx and adapted) */}
-      {showDeleteModal && assessmentToDelete && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-600 bg-opacity-50 flex items-center justify-center">
-          <div className="relative p-4 w-full max-w-md max-h-full">
-            {/* Modal content */}
-            <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
-              {/* Modal header */}
-              <div className="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Confirm Assessment Deletion
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setAssessmentToDelete(null);
-                  }}
-                  className="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                >
-                  <span className="sr-only">Close modal</span>✕
-                </button>
-              </div>
-              {/* Modal body */}
-              <div className="p-4 md:p-5">
-                <div className="mb-4 text-center">
-                  {/* Warning Icon */}
-                  <svg
-                    className="w-12 h-12 mx-auto text-red-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                    ></path>
-                  </svg>
-                  <h3 className="mt-4 mb-2 text-lg font-medium text-gray-800 dark:text-gray-300">
-                    Are you sure you want to delete this assessment?
-                  </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    You are about to delete the assessment{" "}
-                    <span className="font-bold">{assessmentToDelete.name}</span>
-                    . This action cannot be undone and will permanently remove
-                    the assessment and all associated data.
-                  </p>
-                </div>
-                {/* Modal footer */}
-                <div className="flex justify-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowDeleteModal(false);
-                      setAssessmentToDelete(null);
-                    }}
-                    className="text-gray-500 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600"
-                  >
-                    No, Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirmDelete} // Use the existing handler
-                    className="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800"
-                  >
-                    Yes, Delete Assessment
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

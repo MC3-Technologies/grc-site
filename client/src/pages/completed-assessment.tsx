@@ -141,23 +141,9 @@ export function CompletedAssessmentView() {
             assessmentIdParam,
           );
 
-        // Parse the assessment JSON data
-        const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
-
-        // Use the questionnaire stored with the assessment if available
-        // Otherwise fall back to the latest questionnaire data (for backward compatibility)
-        let questionnaireData;
-        if (parsedAssessmentData && parsedAssessmentData.questionnaire) {
-          console.log("Using questionnaire stored with assessment");
-          questionnaireData = parsedAssessmentData.questionnaire;
-        } else {
-          console.log("Using latest questionnaire (compatibility mode)");
-          questionnaireData = await getLatestQuestionnaireData();
-        }
-
-        // Create assessment survey model with the data
-        const assessment = new Model(questionnaireData);
-        assessment.data = parsedAssessmentData.data || parsedAssessmentData;
+        // Create assessment and give assessment data
+        const assessment = new Model(getLatestQuestionnaireData());
+        assessment.data = JSON.parse(assessmentJsonData as string);
 
         // Set survey to display mode (read-only)
         assessment.mode = "display";

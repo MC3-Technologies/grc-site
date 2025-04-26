@@ -24,18 +24,6 @@ export const auth = defineAuth({
       dataType: "String",
       mutable: true,
     },
-    "custom:firstName": {
-      dataType: "String",
-      mutable: true,
-    },
-    "custom:lastName": {
-      dataType: "String",
-      mutable: true,
-    },
-    "custom:companyName": {
-      dataType: "String",
-      mutable: true,
-    },
   },
 
   groups: ["GRC-Admin", "Approved-Users"],
