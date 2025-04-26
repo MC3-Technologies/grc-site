@@ -18,15 +18,10 @@ const redirectToCompletedAssessment = (assessmentId: string): void => {
   window.location.href = `/completed-assessment/?assessment-id=${encodeURIComponent(assessmentId)}`;
 };
 
-const redirectToReport = (assessmentId:string) :void =>{
-  window.location.href = `/report/?assessment-id=${assessmentId}`;
-}
-
 export {
   redirectHome,
   redirectToSignIn,
   redirectToAssessments,
   redirectToInProgressAssessment,
   redirectToCompletedAssessment,
-  redirectToReport
 };

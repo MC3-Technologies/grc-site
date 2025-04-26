@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.8.1",
-    "@aws-sdk/client-cognito-identity-provider": "^3.772.0",
     "@aws-sdk/credential-providers": "^3.772.0",
     "@heroicons/react": "^2.2.0",
     "@types/react-router-dom": "^5.3.3",
@@ -22,7 +21,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.4.0",
-    "react-to-print": "^3.0.6",
     "survey-core": "^1.11.11",
     "survey-react-ui": "^1.11.11"
   },
@@ -55,6 +53,6 @@
     "ts-jest": "^29.2.5",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.18.2",
-    "vite": "^6.2.6"
+    "vite": "^6.2.0"
   }
 }
