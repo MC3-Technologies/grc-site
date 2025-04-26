@@ -16,6 +16,7 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
+import { Report as Rpt } from "../utils/report";
 
 type PageData = {
   assessment: Model | null;
@@ -54,7 +55,7 @@ const sanitizeAssessmentData = (data: unknown): unknown => {
     for (const key in data) {
       if (Object.prototype.hasOwnProperty.call(data, key)) {
         sanitized[key] = sanitizeAssessmentData(
-          (data as Record<string, unknown>)[key],
+          (data as Record<string, unknown>)[key]
         );
       }
     }
@@ -106,7 +107,7 @@ const safeNavigate = (path: string): void => {
     window.location.href = path;
   } else {
     console.warn(
-      `Ignoring navigation attempt to ${path} (already on this page or unsafe)`,
+      `Ignoring navigation attempt to ${path} (already on this page or unsafe)`
     );
   }
 };
@@ -154,7 +155,7 @@ export function Assessment() {
       if (!modalRef.current) return;
 
       const focusableElements = modalRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
       );
 
       if (focusableElements.length === 0) return;
@@ -174,7 +175,7 @@ export function Assessment() {
         }
       }
     },
-    [],
+    []
   );
 
   // Initialize Flowbite only once
@@ -193,7 +194,7 @@ export function Assessment() {
 
     // Set initial focus on first focusable element
     const focusableElements = modalRef.current.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
 
     if (focusableElements.length > 0) {
@@ -333,7 +334,7 @@ export function Assessment() {
         // Grab assessment storage json
         const assessmentJsonData =
           await InProgressAssessment.fetchAssessmentStorageData(
-            assessmentIdParam,
+            assessmentIdParam
           );
 
         // Parse the assessment JSON data
@@ -354,6 +355,11 @@ export function Assessment() {
         const assessment = new Model(questionnaireData);
         assessment.data = parsedAssessmentData.data || parsedAssessmentData;
         assessment.currentPageNo = assessmentEntryData.currentPage;
+        assessment.completedHtml = `
+        <div style="text-align:center">
+          <h2>🎉 Your assessment has been submitted!</h2>
+          <p>You will be redirected to the assessments page in 5 seconds where you can view your results. </a>
+        </div>`;
 
         // Setup save debounce timer variable
         let saveTimeout: NodeJS.Timeout | null = null;
@@ -381,7 +387,7 @@ export function Assessment() {
               const jsonString = JSON.stringify(
                 sanitizeAssessmentData(updatedAssessment.getData()),
                 null,
-                2,
+                2
               );
               const blob = new Blob([jsonString], { type: "application/json" });
               const file = new File(
@@ -389,14 +395,14 @@ export function Assessment() {
                 `${sanitizeAssessmentId(currentAssessmentId)}.json`,
                 {
                   type: "application/json",
-                },
+                }
               );
 
               await InProgressAssessment.updateAssessment(
                 currentAssessmentId,
                 updatedAssessment.currentPageNo,
                 updatedAssessment.progressValue,
-                file,
+                file
               );
 
               console.info("Successfully saved assessment!");
@@ -412,7 +418,7 @@ export function Assessment() {
         const handleCompletionError = (error: unknown): void => {
           console.error(`Error completing assessment: ${error}`);
           setErrorMessage(
-            "There was an error completing your assessment. Please try again.",
+            "There was an error completing your assessment. Please try again."
           );
           setShowErrorModal(true);
           setSaving(false);
@@ -421,8 +427,11 @@ export function Assessment() {
         // Success handler function
         const handleCompletionSuccess = (): void => {
           console.info("Assessment completed successfully!");
-          setShowCompletionModal(true);
+          // setShowCompletionModal(true);
           setSaving(false);
+          setTimeout(() => {
+            window.location.href = "/assessments/";
+          }, 5000);
         };
 
         // In the onComplete handler - add reference to CompletedAssessment
@@ -430,7 +439,7 @@ export function Assessment() {
           // Mark assessment as complete and submit final data
           if (!currentAssessmentId) {
             console.error(
-              "Cannot complete assessment, no assessment ID found!",
+              "Cannot complete assessment, no assessment ID found!"
             );
             return;
           }
@@ -438,7 +447,7 @@ export function Assessment() {
           try {
             // Get final assessment data
             const finalAssessmentData = sanitizeAssessmentData(
-              assessment.getData(),
+              assessment.getData()
             );
             const jsonString = JSON.stringify(finalAssessmentData, null, 2);
             const blob = new Blob([jsonString], { type: "application/json" });
@@ -447,7 +456,7 @@ export function Assessment() {
               `${sanitizeAssessmentId(currentAssessmentId)}.json`,
               {
                 type: "application/json",
-              },
+              }
             );
 
             // First update with 100% progress
@@ -455,13 +464,24 @@ export function Assessment() {
               currentAssessmentId,
               assessment.currentPageNo,
               100, // Set to 100% complete
-              file,
+              file
+            );
+
+            // Create temporary report isntance to calculate adherence score
+            const tempReport = new Rpt(
+              finalAssessmentData as Record<string, string | number>
+            );
+            const score = Math.round(
+              (tempReport.generateReportData().score /
+                tempReport.generateReportData().maxScore) *
+                100
             );
 
             // Now create a completed assessment record and remove from in-progress
             await CompletedAssessment.completeInProgressAssessment(
               file,
               currentAssessmentId,
+              score
             );
 
             handleCompletionSuccess();
@@ -795,5 +815,5 @@ export function Assessment() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessment />
-  </StrictMode>,
+  </StrictMode>
 );
