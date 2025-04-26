@@ -266,6 +266,7 @@ const updateUserStatus = async (
   email: string,
   newStatus: UserStatus["status"],
   updatedBy: string = "system",
+  reason?: string, // Add optional reason parameter
   ttl?: number,
 ): Promise<void> => {
   const tableName =
@@ -284,6 +285,15 @@ const updateUserStatus = async (
     lastStatusChange: timestamp,
     lastStatusChangeBy: updatedBy,
   };
+
+  // Add reason if provided and status is relevant
+  if (reason) {
+    if (normalizedStatus === "rejected") {
+      item.rejectionReason = reason;
+    } else if (normalizedStatus === "suspended") {
+      item.suspensionReason = reason;
+    }
+  }
 
   // Add TTL if provided (for deleted items)
   if (ttl) {
@@ -417,7 +427,9 @@ export const userOperations = {
           try {
             const dbResponse = await dynamodb.send(
               new GetItemCommand({
-                TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus",
+                TableName:
+                  process.env.USER_STATUS_TABLE_NAME ||
+                  "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE", // Use env var
                 Key: marshall({ id: email }),
               }),
             );
@@ -432,15 +444,25 @@ export const userOperations = {
             );
           }
 
+          // Combine data from Cognito and DynamoDB, ensuring profile attributes are included
+          // Prioritize custom attributes, fall back to standard attributes
           return {
             email,
-            status: dbStatus.status || customStatus || user.UserStatus,
-            role: dbStatus.role || attributes["custom:role"] || "user",
-            registrationDate: dbStatus.registrationDate || user.UserCreateDate,
+            status: dbStatus.status || customStatus || user.UserStatus, // Prioritize DB status
+            role: dbStatus.role || attributes["custom:role"] || "user", // Prioritize DB role
+            created:
+              dbStatus.registrationDate || user.UserCreateDate?.toISOString(), // Use registrationDate or UserCreateDate
             lastModified:
-              dbStatus.lastStatusChange || user.UserLastModifiedDate,
+              dbStatus.lastStatusChange ||
+              user.UserLastModifiedDate?.toISOString(), // Use lastStatusChange or UserLastModifiedDate
             enabled: user.Enabled,
-            attributes,
+            attributes, // Include all Cognito attributes
+            // Add profile attributes directly for easier frontend access
+            firstName:
+              attributes["custom:firstName"] || attributes["given_name"], // Prioritize custom
+            lastName:
+              attributes["custom:lastName"] || attributes["family_name"], // Prioritize custom
+            companyName: attributes["custom:companyName"], // Use custom attribute
           };
         }),
       );
@@ -487,6 +509,8 @@ export const userOperations = {
         const parsed = unmarshall(item) as UserStatus;
 
         // Transform to match listUsers() format that the UI expects
+        // Fetch additional Cognito details if needed (like name/company)
+        // For now, just return what's in DynamoDB
         return {
           email: parsed.email,
           status: parsed.status,
@@ -495,6 +519,7 @@ export const userOperations = {
           created: parsed.registrationDate,
           lastModified: parsed.lastStatusChange,
           enabled: true, // Assume enabled since we're returning active records
+          // We might need to fetch Cognito attributes here if needed
         };
       });
 
@@ -667,8 +692,8 @@ export const userOperations = {
 
       await cognito.send(updateUserAttributesCommand);
 
-      // Update user status in DynamoDB
-      await updateUserStatus(email, "rejected", adminEmail);
+      // Update user status in DynamoDB, passing the reason
+      await updateUserStatus(email, "rejected", adminEmail, reason);
 
       // Create audit log entry for rejection
       await createAuditLogEntry({
@@ -737,8 +762,8 @@ export const userOperations = {
 
       await cognito.send(updateUserAttributesCommand);
 
-      // Update user status in DynamoDB
-      await updateUserStatus(email, "suspended", adminEmail);
+      // Update user status in DynamoDB, passing the reason
+      await updateUserStatus(email, "suspended", adminEmail, reason);
 
       // Create audit log entry for suspension
       await createAuditLogEntry({
@@ -829,6 +854,7 @@ export const userOperations = {
       await cognito.send(updateUserAttributesCommand);
 
       // Update user status in DynamoDB
+      // Update user status in DynamoDB (no reason needed for reactivation)
       await updateUserStatus(email, "active", adminEmail);
 
       // Create audit log entry for reactivation with enhanced details
@@ -877,6 +903,9 @@ export const userOperations = {
     role: string,
     shouldSendEmail: boolean = true,
     performedBy?: string,
+    firstName?: string, // Add firstName parameter
+    lastName?: string, // Add lastName parameter
+    companyName?: string, // Add companyName parameter
   ): Promise<{ success: boolean; user?: any; error?: string }> => {
     try {
       const userPoolId = getUserPoolId();
@@ -885,6 +914,7 @@ export const userOperations = {
       console.log("Creating user with user pool ID:", userPoolId);
       console.log(
         `Creating user ${email} with role ${role} by admin: ${performedBy}`,
+        `Profile: ${firstName} ${lastName} @ ${companyName}`, // Log profile info
       );
 
       if (!userPoolId || !cognito) {
@@ -894,28 +924,32 @@ export const userOperations = {
       // Use our secure password generator
       const tempPassword = generateSecurePassword();
 
+      // Prepare user attributes, including profile info if provided
+      const userAttributes: AttributeType[] = [
+        { Name: "email", Value: email },
+        { Name: "email_verified", Value: "true" },
+        { Name: "custom:role", Value: role },
+        { Name: "custom:status", Value: "PENDING" },
+      ];
+
+      // Attempt to add both standard and custom attributes for names
+      if (firstName) {
+        userAttributes.push({ Name: "given_name", Value: firstName });
+        userAttributes.push({ Name: "custom:firstName", Value: firstName });
+      }
+      if (lastName) {
+        userAttributes.push({ Name: "family_name", Value: lastName });
+        userAttributes.push({ Name: "custom:lastName", Value: lastName });
+      }
+      if (companyName) {
+        userAttributes.push({ Name: "custom:companyName", Value: companyName });
+      }
+
       // Create user in Cognito
       const createCommand = new AdminCreateUserCommand({
         UserPoolId: userPoolId,
         Username: email,
-        UserAttributes: [
-          {
-            Name: "email",
-            Value: email,
-          },
-          {
-            Name: "email_verified",
-            Value: "true",
-          },
-          {
-            Name: "custom:role",
-            Value: role,
-          },
-          {
-            Name: "custom:status",
-            Value: "PENDING",
-          },
-        ],
+        UserAttributes: userAttributes, // Use the constructed array
         TemporaryPassword: tempPassword,
         // Set message action based on shouldSendEmail flag
         MessageAction: shouldSendEmail
@@ -942,7 +976,7 @@ export const userOperations = {
         email,
         status: "pending",
         role: role === "admin" ? "admin" : "user",
-        registrationDate: new Date().toISOString(),
+        registrationDate: new Date().toISOString(), // Use current time for registration
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: performedBy || "system",
       };
@@ -978,6 +1012,9 @@ export const userOperations = {
           role: role,
           sendEmail: shouldSendEmail,
           createdAt: new Date().toISOString(),
+          firstName, // Include profile info in audit log
+          lastName,
+          companyName,
         },
       });
 
@@ -1137,6 +1174,78 @@ export const userOperations = {
       return true;
     } catch (error) {
       console.error(`Error updating role for ${email}:`, error);
+      return false;
+    }
+  },
+
+  // New function to update user profile attributes
+  updateUserProfile: async (
+    email: string,
+    firstName?: string,
+    lastName?: string,
+    companyName?: string,
+    adminEmail: string = "admin@example.com",
+  ): Promise<boolean> => {
+    try {
+      const userPoolId = getUserPoolId();
+      if (!userPoolId || !cognito) {
+        throw new Error("Missing UserPoolId or Cognito client not initialized");
+      }
+
+      console.log(
+        `Updating profile for user ${email} by admin: ${adminEmail}`,
+        `Data: ${firstName} ${lastName} @ ${companyName}`,
+      );
+
+      // Prepare attributes to update
+      const attributesToUpdate: AttributeType[] = [];
+      if (firstName !== undefined) {
+        attributesToUpdate.push({ Name: "custom:firstName", Value: firstName });
+        attributesToUpdate.push({ Name: "given_name", Value: firstName }); // Also update standard attribute
+      }
+      if (lastName !== undefined) {
+        attributesToUpdate.push({ Name: "custom:lastName", Value: lastName });
+        attributesToUpdate.push({ Name: "family_name", Value: lastName }); // Also update standard attribute
+      }
+      if (companyName !== undefined) {
+        attributesToUpdate.push({
+          Name: "custom:companyName",
+          Value: companyName,
+        });
+      }
+
+      // Only proceed if there are attributes to update
+      if (attributesToUpdate.length === 0) {
+        console.log("No profile attributes provided to update.");
+        return true; // Nothing to do, consider it a success
+      }
+
+      // Update attributes in Cognito
+      const updateAttributesCommand = new AdminUpdateUserAttributesCommand({
+        UserPoolId: userPoolId,
+        Username: email,
+        UserAttributes: attributesToUpdate,
+      });
+      await cognito.send(updateAttributesCommand);
+      console.log(`User profile attributes updated for ${email}`);
+
+      // Create audit log entry for profile update
+      await createAuditLogEntry({
+        timestamp: new Date().toISOString(),
+        action: "USER_PROFILE_UPDATED",
+        performedBy: adminEmail,
+        affectedResource: "user",
+        resourceId: email,
+        details: {
+          email: email,
+          updatedFields: attributesToUpdate.map((attr) => attr.Name),
+          updatedAt: new Date().toISOString(),
+        },
+      });
+
+      return true;
+    } catch (error) {
+      console.error(`Error updating profile for ${email}:`, error);
       return false;
     }
   },
@@ -1682,7 +1791,12 @@ export const userOperations = {
         };
       }
 
-      // Step 1: Create audit log entry for the deletion with improved details
+      // Step 1: Update user status in DynamoDB to "deleted" with TTL (30 days from now)
+      const thirtyDaysInSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
+      const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds; // Current time + 30 days in Unix timestamp
+      await updateUserStatus(email, "deleted", adminEmail, undefined, ttl); // Pass undefined for reason
+
+      // Step 2: Create audit log entry for the deletion AFTER updating status
       const auditLogEntry = {
         timestamp: new Date().toISOString(),
         action: "USER_DELETED",
@@ -1709,12 +1823,7 @@ export const userOperations = {
         console.error("Failed to create audit log for user deletion");
       }
 
-      // Update user status in DynamoDB to "deleted" with TTL (30 days from now)
-      const thirtyDaysInSeconds = 30 * 24 * 60 * 60; // 30 days in seconds
-      const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds; // Current time + 30 days in Unix timestamp
-      await updateUserStatus(email, "deleted", adminEmail, ttl);
-
-      // Step 2: Delete user's assessments
+      // Step 3: Delete user's assessments
       // This would require finding any assessments owned by this user and deleting them
       // We'll need to scan the InProgressAssessment and CompletedAssessment tables
       try {
@@ -1891,13 +2000,16 @@ export const userOperations = {
         );
 
         try {
-          // Create UserStatus entry
+          // Create/Update UserStatus entry (no reason for migration)
           await updateUserStatus(email, status, "system-migration");
 
-          // Update role if needed
+          // Update role if needed (this PutItem might be redundant if updateUserStatus handles role)
+          // Consider refactoring updateUserStatus to handle role updates as well
           await dynamodb.send(
             new PutItemCommand({
-              TableName: process.env.USER_STATUS_TABLE_NAME || "UserStatus",
+              TableName:
+                process.env.USER_STATUS_TABLE_NAME ||
+                "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
               Item: marshall(
                 {
                   id: email,

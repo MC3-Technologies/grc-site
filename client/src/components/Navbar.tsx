@@ -49,13 +49,25 @@ const Navbar = () => {
 
     checkUser();
 
-    // Initialize Flowbite after a small delay to ensure DOM is ready
-    setTimeout(() => {
-      initFlowbite();
-      setLoading(false);
-    }, 100);
+    // Initialize Flowbite immediately and also reinitialize when DOM changes
+    initFlowbite();
 
+    // Set up a mutation observer to reinitialize Flowbite when dropdown elements change
+    const observer = new MutationObserver(() => {
+      initFlowbite();
+    });
+
+    // Start observing the document body for DOM changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    setLoading(false);
+
+    // Clean up the observer when component unmounts
     return () => {
+      observer.disconnect();
       hubListener();
     };
   }, [authEvents]);
@@ -132,7 +144,7 @@ const Navbar = () => {
                   </li>
                   <li>
                     <a
-                      href="#"
+                      href="/assessments/"
                       className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                     >
                       My Assessments

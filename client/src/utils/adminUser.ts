@@ -2,6 +2,14 @@
 import { getClientSchema } from "../amplify/schema";
 //import { useState, useEffect } from "react";
 
+// Define AdminUser interface to match the one in types.d.ts
+interface AdminUser {
+  emitAdminEvent: (type: string, data?: unknown) => boolean;
+  AdminEvents: Record<string, string>;
+  clearAdminStatsCache: () => void;
+  clearUserCache: () => void;
+}
+
 // Export the getClientSchema for use in components
 export { getClientSchema };
 
@@ -22,7 +30,8 @@ const ADMIN_STATS_CACHE_DURATION_MS = 15 * 1000; // 15 seconds (reduced from 60 
 // Define admin events enum for consistent event types
 export const AdminEvents = {
   USER_CREATED: "USER_CREATED",
-  USER_UPDATED: "USER_UPDATED",
+  // USER_UPDATED: "USER_UPDATED", // Removed - Use USER_PROFILE_UPDATED or USER_ROLE_UPDATED
+  USER_PROFILE_UPDATED: "USER_PROFILE_UPDATED", // Ensure this exists if it's the correct action key
   USER_DELETED: "USER_DELETED",
   USER_APPROVED: "USER_APPROVED",
   USER_REJECTED: "USER_REJECTED",
@@ -56,6 +65,23 @@ export const emitAdminEvent = (eventType: string): boolean => {
 
       // Dispatch the event
       document.dispatchEvent(event);
+    }
+
+    // Initialize window.adminUser if it doesn't exist, then add functions
+    if (typeof window !== "undefined") {
+      // Use type assertion to satisfy TypeScript
+      const typedWindow = window as Window & { adminUser?: AdminUser };
+      if (!typedWindow.adminUser) {
+        typedWindow.adminUser = {
+          emitAdminEvent,
+          AdminEvents,
+          clearAdminStatsCache: clearAdminStatsCache,
+          clearUserCache: clearUserCache,
+        };
+      } else {
+        typedWindow.adminUser.emitAdminEvent = emitAdminEvent;
+        typedWindow.adminUser.AdminEvents = AdminEvents;
+      }
     }
 
     return true;
@@ -115,9 +141,16 @@ export interface User {
   lastModified: string;
   firstName?: string;
   lastName?: string;
+  companyName?: string;
   role?: string;
   attributes?: Record<string, string>;
   customStatus?: string | null;
+  profile?: {
+    firstName?: string;
+    lastName?: string;
+    companyName?: string;
+    [key: string]: unknown;
+  };
 }
 
 // Add type-safe enum for statuses
@@ -127,6 +160,20 @@ export type UserStatusType =
   | "suspended"
   | "rejected"
   | "deleted";
+
+// Define UserData interface for transformed user data (moved up to be defined before it's used)
+export interface UserData {
+  email: string;
+  status: UserStatusType;
+  role: "user" | "admin";
+  created: string;
+  lastLogin?: string;
+  enabled: boolean;
+  customStatus?: string | null;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+}
 
 // Generate mock users for development when API fails
 export const getMockUsers = (): User[] => {
@@ -228,54 +275,54 @@ export const getUserStatus = (
 
   // First check for exact match on customStatus or status (to handle DynamoDB format)
   if (customStatus === "REJECTED" || status === "rejected") {
-    console.log(`getUserStatus: returning 'rejected' (explicit match)`);
+    console.log("getUserStatus: returning 'rejected' (explicit match)");
     return "rejected";
   }
 
   if (customStatus === "SUSPENDED" || status === "suspended") {
-    console.log(`getUserStatus: returning 'suspended' (explicit match)`);
+    console.log("getUserStatus: returning 'suspended' (explicit match)");
     return "suspended";
   }
 
   // If user is disabled but no custom status, treat as pending
   if (!enabled && !customStatus) {
-    console.log(`getUserStatus: returning 'pending' (disabled user)`);
+    console.log("getUserStatus: returning 'pending' (disabled user)");
     return "pending";
   }
 
   // Check for active status from customStatus
   if (customStatus === "ACTIVE") {
-    console.log(`getUserStatus: returning 'active' (explicit custom status)`);
+    console.log("getUserStatus: returning 'active' (explicit custom status)");
     return "active";
   }
 
   // Map Cognito status to our UI status
   if (status === "CONFIRMED" && enabled) {
-    console.log(`getUserStatus: returning 'active' (confirmed and enabled)`);
+    console.log("getUserStatus: returning 'active' (confirmed and enabled)");
     return "active";
   } else if (
     ["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)
   ) {
     console.log(
-      `getUserStatus: returning 'pending' (password change/unconfirmed)`,
+      "getUserStatus: returning 'pending' (password change/unconfirmed)",
     );
     return "pending";
   }
 
   // Check for active status from DynamoDB
   if (status === "active") {
-    console.log(`getUserStatus: returning 'active' (explicit DynamoDB match)`);
+    console.log("getUserStatus: returning 'active' (explicit DynamoDB match)");
     return "active";
   }
 
   // Check for pending status from DynamoDB
   if (status === "pending") {
-    console.log(`getUserStatus: returning 'pending' (explicit DynamoDB match)`);
+    console.log("getUserStatus: returning 'pending' (explicit DynamoDB match)");
     return "pending";
   }
 
   // Default to pending for any other status
-  console.log(`getUserStatus: returning 'pending' (default fallback)`);
+  console.log("getUserStatus: returning 'pending' (default fallback)");
   return "pending";
 };
 
@@ -493,7 +540,10 @@ export const getUserDetails = async (email: string): Promise<User> => {
     }
 
     const client = getClientSchema();
+    console.log(`Fetching user details for ${email}`);
     const response = await client.queries.getUserDetails({ email });
+
+    console.log(`User details response for ${email}:`, response);
 
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
@@ -574,7 +624,7 @@ export const rejectUser = async (
       adminEmail: adminEmail || "admin@example.com",
     });
 
-    console.log(`Reject user API response:`, response);
+    console.log("Reject user API response:", response);
 
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
@@ -732,9 +782,13 @@ export const deleteUser = async (
 // Add this interface for createTestUser
 export interface CreateUserParams {
   email: string;
-  password: string;
+  password?: string;
   role: "user" | "admin";
   adminEmail?: string;
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  sendEmail?: boolean;
 }
 
 export interface CreateUserResult {
@@ -753,13 +807,26 @@ export async function createTestUser(
 ): Promise<CreateUserResult> {
   try {
     const client = getClientSchema();
-    const response = await client.mutations.createUser({
+    console.log("Creating user with params:", params);
+
+    // Create mutation parameters including profile information
+    const mutationParams = {
       email: params.email,
       role: params.role,
       adminEmail: params.adminEmail,
       // Only set sendEmail to false for test users, regular users should get emails
-      sendEmail: false, // For test users, don't send verification emails
-    });
+      sendEmail: params.sendEmail !== undefined ? params.sendEmail : false,
+      firstName: params.firstName,
+      lastName: params.lastName,
+      companyName: params.companyName,
+    };
+
+    // Log the API call for debugging
+    console.log("Calling createUser mutation with:", mutationParams);
+
+    const response = await client.mutations.createUser(mutationParams);
+
+    console.log("User creation API response:", response);
 
     if (response && response.data) {
       // Clear caches to ensure fresh data
@@ -769,9 +836,23 @@ export async function createTestUser(
       // Emit the event for listeners
       emitAdminEvent(AdminEvents.USER_CREATED);
 
+      // Generate current timestamp for created/modified dates
+      const now = new Date().toISOString();
+
       return {
         success: true,
-        message: `Test user ${params.email} created successfully with auto-generated password. User will need password reset.`,
+        message: `User ${params.email} created successfully with auto-generated password. User will need password reset.`,
+        user: {
+          email: params.email,
+          status: "FORCE_CHANGE_PASSWORD", // Add required status field
+          role: params.role,
+          firstName: params.firstName,
+          lastName: params.lastName,
+          companyName: params.companyName,
+          created: now,
+          lastModified: now,
+          enabled: true,
+        },
       };
     } else {
       return {
@@ -787,6 +868,91 @@ export async function createTestUser(
     };
   }
 }
+
+// Add the createUser function that wraps createTestUser
+export const createUser = async (
+  email: string,
+  role: string,
+  sendEmail: boolean = true,
+  skipEmailVerification: boolean = false,
+  adminEmail?: string,
+  firstName?: string,
+  lastName?: string,
+  companyName?: string,
+): Promise<CreateUserResult> => {
+  try {
+    // If we're in mock mode for testing
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      console.log(`Mock creating user: ${email} with role: ${role}`);
+      const status = skipEmailVerification
+        ? "CONFIRMED"
+        : "FORCE_CHANGE_PASSWORD";
+      return {
+        success: true,
+        user: {
+          email,
+          status,
+          role,
+          enabled: true,
+          created: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+          sendEmail,
+          firstName,
+          lastName,
+          companyName,
+        },
+      };
+    }
+
+    console.log(`Creating user with profile info:`, {
+      email,
+      role,
+      firstName,
+      lastName,
+      companyName,
+    });
+
+    // For real implementation, use createTestUser with parameters including profile info
+    const result = await createTestUser({
+      email,
+      password: "", // Password will be auto-generated
+      role: role as "user" | "admin",
+      adminEmail,
+      firstName,
+      lastName,
+      companyName,
+      sendEmail,
+    });
+
+    // Return the result in the format expected by the test
+    if (result.success) {
+      const now = new Date().toISOString();
+      return {
+        success: true,
+        user: {
+          email,
+          status: skipEmailVerification ? "CONFIRMED" : "FORCE_CHANGE_PASSWORD",
+          sendEmail,
+          role,
+          enabled: true,
+          created: now,
+          lastModified: now,
+          firstName,
+          lastName,
+          companyName,
+        },
+      };
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error in createUser:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+};
 
 // Define an interface for activity items
 export interface ActivityItem {
@@ -921,13 +1087,9 @@ export const fetchAdminStats = async (
           if (Array.isArray(adminStats.recentActivity)) {
             // Clone the array to avoid mutating the original response
             adminStats.recentActivity = [...adminStats.recentActivity].sort(
-              (a, b) => {
-                // Sort by timestamp (newest first)
-                return (
-                  new Date(b.timestamp).getTime() -
-                  new Date(a.timestamp).getTime()
-                );
-              },
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime(),
             );
           }
 
@@ -946,17 +1108,13 @@ export const fetchAdminStats = async (
             console.error("Error caching admin stats:", error);
           }
 
-          // Define a type for the activity structure
-          interface ActivityItem {
-            action: string;
-            timestamp: string;
-          }
-
-          // After parsing data, add the debugging log
-          if (parsedData && typeof parsedData === "object") {
-            // Type assertion to access recentActivity safely
+          // Debug log for audit logs from the API response
+          {
+            interface ActivityItem {
+              action: string;
+              timestamp: string;
+            }
             const statsData = parsedData as { recentActivity?: ActivityItem[] };
-
             console.log(
               "Full unfiltered API response for audit logs:",
               statsData.recentActivity
@@ -1011,16 +1169,8 @@ export const fetchAdminStats = async (
 
     // If we reach here, something went wrong
     console.error("Failed to get admin statistics");
-
-    // Return default values
     return {
-      users: {
-        total: 0,
-        active: 0,
-        pending: 0,
-        rejected: 0,
-        suspended: 0,
-      },
+      users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
       assessments: {
         total: 0,
         inProgress: 0,
@@ -1033,16 +1183,8 @@ export const fetchAdminStats = async (
     };
   } catch (error) {
     console.error("Error fetching admin stats:", error);
-
-    // Return default values on error
     return {
-      users: {
-        total: 0,
-        active: 0,
-        pending: 0,
-        rejected: 0,
-        suspended: 0,
-      },
+      users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
       assessments: {
         total: 0,
         inProgress: 0,
@@ -1085,8 +1227,6 @@ export const fetchAuditLogs = async (
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Using mock audit log data");
-
-      // Create mock audit logs
       const now = new Date();
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -1123,22 +1263,16 @@ export const fetchAuditLogs = async (
 
     // Get the authenticated client
     const client = getClientSchema();
-
-    // Call the API
     const response = await client.queries.getAuditLogs({
       dateRange: dateRange || undefined,
       filters: filters || undefined,
     });
-
     console.log("API response for getAuditLogs:", response);
 
-    // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
       console.log("Parsed audit logs data:", parsedData);
-
       if (Array.isArray(parsedData)) {
-        // Ensure logs are sorted by timestamp (newest first)
         return parsedData.sort((a, b) => {
           const timeA = new Date(a.timestamp).getTime();
           const timeB = new Date(b.timestamp).getTime();
@@ -1147,7 +1281,6 @@ export const fetchAuditLogs = async (
       }
     }
 
-    // If we reach here, something went wrong
     console.error("Failed to get audit logs");
     return [];
   } catch (error) {
@@ -1195,12 +1328,8 @@ export const updateSystemSettings = async (
 }> => {
   try {
     console.log("Updating system settings:", settings);
-
-    // Only simulate in mock mode
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       console.log("Simulating system settings update in mock mode");
-
-      // Return mock result
       return {
         success: true,
         updatedCount: Array.isArray(settings) ? settings.length : 1,
@@ -1208,23 +1337,16 @@ export const updateSystemSettings = async (
       };
     }
 
-    // Get the authenticated client
     const client = getClientSchema();
-
-    // Call the API
     const response = await client.mutations.updateSystemSettingsConfig({
       settings,
       updatedBy: updatedBy || "",
     });
-
     console.log("API response for updateSystemSettingsConfig:", response);
 
-    // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
       console.log("Parsed update settings response:", parsedData);
-
-      // Return the data or a fallback if it doesn't match expected format
       if (
         parsedData &&
         typeof parsedData === "object" &&
@@ -1234,16 +1356,10 @@ export const updateSystemSettings = async (
       }
     }
 
-    // If we reach here, something went wrong
     console.error("Failed to update system settings");
-
-    return {
-      success: false,
-      error: "Failed to update system settings",
-    };
+    return { success: false, error: "Failed to update system settings" };
   } catch (error) {
     console.error("Error updating system settings:", error);
-
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -1260,35 +1376,21 @@ export interface SystemSettingsResponse {
 export const fetchSystemSettings =
   async (): Promise<SystemSettingsResponse> => {
     try {
-      // Get the authenticated client
       const client = getClientSchema();
-
-      // Call the API
       const response = await client.queries.getAllSystemSettings();
       console.log("API response for getAllSystemSettings:", response);
 
-      // Process the response
       if (response.data) {
         const parsedData = safelyParseApiResponse(response.data);
         console.log("Parsed system settings data:", parsedData);
-
-        // Ensure we return the proper structure even if data is null or not an array
         if (parsedData && typeof parsedData === "object") {
           return parsedData as SystemSettingsResponse;
         }
       }
-
-      // Always return a valid default structure
-      return {
-        settings: [],
-        settingsByCategory: {},
-      };
+      return { settings: [], settingsByCategory: {} };
     } catch (error) {
       console.error("Error fetching system settings:", error);
-      return {
-        settings: [],
-        settingsByCategory: {},
-      };
+      return { settings: [], settingsByCategory: {} };
     }
   };
 
@@ -1297,12 +1399,8 @@ const getCachedUsers = (): User[] | null => {
   try {
     const cachedData = localStorage.getItem(USER_CACHE_KEY);
     const timestamp = localStorage.getItem(USER_CACHE_TIMESTAMP_KEY);
+    if (!cachedData || !timestamp) return null;
 
-    if (!cachedData || !timestamp) {
-      return null;
-    }
-
-    // Check if cache is expired
     const cacheTime = parseInt(timestamp, 10);
     const now = Date.now();
     if (now - cacheTime > CACHE_DURATION_MS) {
@@ -1310,7 +1408,6 @@ const getCachedUsers = (): User[] | null => {
       return null;
     }
 
-    // Parse and return the cached data
     const users = JSON.parse(cachedData) as User[];
     console.log(`Retrieved ${users.length} users from cache`);
     return users;
@@ -1325,21 +1422,15 @@ const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
     const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
     const cachedData = localStorage.getItem(key);
     const cacheTimestamp = localStorage.getItem(`${key}_timestamp`);
+    if (!cachedData || !cacheTimestamp) return null;
 
-    if (!cachedData || !cacheTimestamp) {
-      return null;
-    }
-
-    // Check if cache is still valid
     const timestamp = parseInt(cacheTimestamp, 10);
     const now = Date.now();
-
     if (now - timestamp > CACHE_DURATION_MS) {
       console.log(`Cache for status ${status} has expired`);
       return null;
     }
 
-    // Parse and return the cached data
     const parsedData = JSON.parse(cachedData);
     if (Array.isArray(parsedData)) {
       console.log(
@@ -1347,7 +1438,6 @@ const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
       );
       return parsedData;
     }
-
     return null;
   } catch (error) {
     console.error(`Error reading cache for status ${status}:`, error);
@@ -1367,7 +1457,6 @@ const cacheUsers = (users: User[]): void => {
 
 const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
   try {
-    // Cache in localStorage for simple persistence
     const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
     localStorage.setItem(key, JSON.stringify(users));
     localStorage.setItem(`${key}_timestamp`, Date.now().toString());
@@ -1377,32 +1466,94 @@ const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
   }
 };
 
-export const createUser = async (
-  email: string,
-  role: "user" | "admin",
-  skipEmailVerification = false,
-): Promise<CreateUserResult> => {
-  try {
-    // Mock implementation for tests
-    const status = skipEmailVerification
-      ? "CONFIRMED"
-      : "FORCE_CHANGE_PASSWORD";
-    return {
-      success: true,
-      user: {
-        email,
-        status,
-        role,
-        enabled: true,
-        created: new Date().toISOString(),
-        lastModified: new Date().toISOString(),
-      },
-    };
-  } catch (error) {
-    console.error("Error creating user:", error);
-    return {
-      success: false,
-      message: "Failed to create user",
-    };
+// Define the transformUserData function (proper export)
+export function transformUserData(fetchedUsers: User[]): UserData[] {
+  if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
+    console.error("Invalid user data received:", fetchedUsers);
+    return [];
   }
-};
+
+  console.log("transformUserData called with:", fetchedUsers);
+
+  // Helper function to determine user role
+  const determineUserRole = (user: User): "user" | "admin" => {
+    if (user.attributes?.["cognito:groups"]) {
+      try {
+        const groups = JSON.parse(user.attributes["cognito:groups"]);
+        if (Array.isArray(groups) && groups.includes("GRC-Admin")) {
+          return "admin";
+        }
+      } catch {
+        console.warn("Failed to parse groups from user attributes");
+      }
+    }
+
+    return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
+  };
+  // Simplified helper function to extract user profile data
+  const extractUserProfileData = (user: User) => {
+    // Directly use the properties expected from the updated listUsers backend function
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+    const companyName = user.companyName || "";
+
+    console.log(`User ${user.email} extracted profile:`, {
+      firstName,
+      lastName,
+      companyName,
+    });
+    return { firstName, lastName, companyName };
+  };
+
+  // Transform the API data
+  const transformedUsers = fetchedUsers
+    .map((user) => {
+      if (!user || !user.email) {
+        console.warn("Invalid user object in response:", user);
+        return null;
+      }
+
+      // Log the raw user object received from fetchUsers before transformation
+      console.log(
+        `[transformUserData] Raw user data for ${user.email}:`,
+        JSON.stringify(user, null, 2),
+      );
+
+      // Debug raw user status values before transformation
+      console.log(`User ${user.email} raw data:`, {
+        status: user.status,
+        enabled: user.enabled,
+        customStatus: user.customStatus,
+        attributes: user.attributes,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        companyName: user.companyName,
+      });
+
+      const transformedStatus = getUserStatus(
+        user.status || "",
+        Boolean(user.enabled),
+        user.customStatus || undefined,
+      );
+
+      // Extract user profile information
+      const profileData = extractUserProfileData(user);
+
+      return {
+        email: user.attributes?.email || user.email,
+        status: transformedStatus,
+        role: determineUserRole(user),
+        created: user.created,
+        lastLogin: user.lastModified,
+        enabled: user.enabled,
+        customStatus: user.customStatus,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        companyName: profileData.companyName,
+      };
+    })
+    .filter(Boolean) as UserData[]; // Remove any null entries
+
+  console.log("transformUserData result:", transformedUsers);
+  return transformedUsers;
+}

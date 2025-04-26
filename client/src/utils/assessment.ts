@@ -1,19 +1,34 @@
 import { uploadData, downloadData } from "aws-amplify/storage";
 import { fetchAuthSession } from "aws-amplify/auth";
-import { getLatestQuestionnaireData } from "./questionnaireUtils";
+import {
+  getCurrentVersionInfo,
+  getLatestQuestionnaireData,
+} from "./questionnaireUtils";
 import { Model } from "survey-core";
 import { getClientSchema } from "../amplify/schema";
 import { remove } from "aws-amplify/storage";
+import { isCurrentUserAdmin } from "../amplify/auth";
 
 // Assessment class with one global variable and one global in common method : upload assessment data to storage
 class Assessment {
   // Client schema attribute
   protected static client = getClientSchema();
 
+  // Check if current user is an admin
+  protected static isAdmin = async (): Promise<boolean> => {
+    try {
+      // Use the existing isCurrentUserAdmin function from auth.ts
+      return await isCurrentUserAdmin();
+    } catch (error) {
+      console.error("Error checking admin status:", error);
+      return false;
+    }
+  };
+
   // Upload assessment data file to storage
   protected static _uploadAssessmentToStorage = async (
     assessment: File,
-    path: string
+    path: string,
   ): Promise<string> => {
     // If no assessment found from param, throw error
     if (!assessment) {
@@ -22,10 +37,14 @@ class Assessment {
 
     try {
       // Upload data to bucket
+
       const res = await uploadData({
         path,
         data: assessment,
-        options: { bucket: "assessmentStorage" },
+        options: {
+          bucket: "assessmentStorage",
+        },
+        //accessLevel: 'protected' // Specify access level here for identity-based rules
       }).result;
       console.log("Assessment uploaded successfully", res);
       // Return path of uploaded blob
@@ -37,7 +56,7 @@ class Assessment {
 
   // Delete assessment from storage given the path
   protected static _deleteAssessmentFromStorage = async (
-    path: string
+    path: string,
   ): Promise<void> => {
     try {
       // Delete from storage
@@ -47,7 +66,7 @@ class Assessment {
       });
     } catch (error) {
       throw new Error(
-        `Error deleting assessment JSON blob from storage: ${error}`
+        `Error deleting assessment JSON blob from storage: ${error}`,
       );
     }
   };
@@ -62,53 +81,121 @@ class InProgressAssessment extends Assessment {
     id: string,
     currentPage: number,
     percentCompleted: number,
-    newAssessmentData: File
+    newAssessmentData: File,
   ): Promise<void> => {
     // Get storage path of assessment data blob
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
         throw new Error(`Error fetching assessment storage path: ${err}`);
-      }
+      },
     );
 
     // Replace storage path with new assessment data
     await this._uploadAssessmentToStorage(newAssessmentData, storagePath).catch(
       (err) => {
         throw new Error(`Error uploading storage to storage: ${err}`);
-      }
+      },
     );
 
     // Update database entry with new current page and percent
     await this._updateAssessmentEntry(id, currentPage, percentCompleted).catch(
       (err) => {
         throw new Error(`Error updating assessment database entry: ${err}`);
-      }
+      },
     );
   };
 
   // Delete assessment by id -> delete database entry and storage data
   public static deleteAssessment = async (id: string): Promise<void> => {
-    // Temp copy of assessment storage path before we delete the entry
-    const path = await this._fetchAssessmentStoragePath(id);
+    try {
+      console.log(`Starting deletion process for assessment ID: ${id}`);
 
-    // Delete assessment entry from database
-    await this._deleteAssessmentEntry(id).catch((err) => {
-      throw new Error(`Error deleting assessment from database: ${err}`);
-    });
+      // Get assessment data first to check ownership
+      const assessmentData = await this.fetchAssessmentData(id);
+      console.log(
+        "Found assessment data:",
+        assessmentData.id,
+        "Owner:",
+        assessmentData.owner,
+      );
 
-    // Delete assessment JSON from storage
-    await this._deleteAssessmentFromStorage(path).catch((err) => {
-      throw new Error(`Error deleting assessment JSON from storage: ${err}`);
-    });
+      // Get current session identity and user sub
+      const session = await fetchAuthSession();
+      const currentUserSub = session.userSub; // <-- Use User Pool Sub for owner comparison
 
-    console.info("Successfully deleted assessment");
+      // Check if user is admin
+      const isAdmin = await this.isAdmin();
+      console.log("User has admin privileges:", isAdmin);
+
+      // Check ownership - only allow delete if user is admin or assessment owner
+      if (!isAdmin && assessmentData.owner !== currentUserSub) {
+        // <-- Compare owner with User Pool Sub
+        throw new Error(
+          "Permission denied: You can only delete your own assessments unless you are an admin",
+        );
+      }
+
+      // First delete the database entry
+      try {
+        console.log("Deleting database entry for assessment:", id);
+        const toBeDeletedAssessment = { id };
+        const deleteResult =
+          await this.client.models.InProgressAssessment.delete(
+            toBeDeletedAssessment,
+          );
+
+        if (deleteResult.errors) {
+          // Format errors properly
+          const errorMessages = deleteResult.errors
+            .map((e) => e.message || JSON.stringify(e))
+            .join(", ");
+          throw new Error(`Database deletion errors: ${errorMessages}`);
+        }
+
+        console.log("Successfully deleted assessment database entry");
+
+        // Only after database entry is deleted, delete the storage
+        try {
+          console.log(
+            "Now deleting assessment from storage:",
+            assessmentData.storagePath,
+          );
+          await remove({
+            path: assessmentData.storagePath,
+            options: { bucket: "assessmentStorage" },
+          });
+          console.log("Successfully deleted assessment storage file");
+        } catch (storageError) {
+          console.error("Storage deletion error:", storageError);
+          // Even if storage deletion fails, we've already deleted the database entry
+          // Log the error but don't throw, as the database record is gone
+          console.warn(
+            "Database entry was deleted but storage file may remain orphaned",
+          );
+        }
+      } catch (dbError) {
+        console.error("Database deletion error:", dbError);
+        throw new Error(
+          `Failed to delete assessment from database: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        );
+      }
+
+      console.log("Assessment deletion completed successfully");
+    } catch (error) {
+      console.error("Assessment deletion failed:", error);
+      // Format the error message for better readability
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Error deleting assessment: ${errorMessage}`);
+    }
   };
 
   // Fetch assessment data using assessment id (hash)
   public static fetchAssessmentData = async (
-    id: string
+    id: string,
   ): Promise<{
     id: string;
+    name: string;
     currentPage: number;
     percentCompleted: number;
     storagePath: string;
@@ -138,18 +225,18 @@ class InProgressAssessment extends Assessment {
 
   // Fetch JSON assessment data from storage
   public static fetchAssessmentStorageData = async <T = unknown>(
-    id: string
+    id: string,
   ): Promise<T> => {
     // Fetch assessment storage path fromd database using id
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
         throw new Error(`Error getting storage path from database: ${err}`);
-      }
+      },
     );
 
     // Use storage path from above to call storage download
     const assessmentJson = await this._fetchAssessmentStorageJson(
-      storagePath
+      storagePath,
     ).catch((err) => {
       throw new Error(`Error getting assessment storage: ${err}`);
     });
@@ -162,7 +249,7 @@ class InProgressAssessment extends Assessment {
   public static fetchAllAssessments = async (): Promise<
     {
       id: string;
-
+      name: string;
       percentCompleted: number;
       storagePath: string;
       version: string;
@@ -185,7 +272,7 @@ class InProgressAssessment extends Assessment {
     }
   };
 
-  public static createAssessment = async (): Promise<string> => {
+  public static createAssessment = async (name: string): Promise<string> => {
     // Fetch session to use session id in storage path
     const session = await fetchAuthSession();
     if (!session.identityId) {
@@ -195,12 +282,22 @@ class InProgressAssessment extends Assessment {
     // Create hash to use for id
     const idHash = this._generateUrlSafeHash();
 
-    // Create new assessment JSON to upload
-    const jsonString = JSON.stringify(
-      new Model(getLatestQuestionnaireData()).data,
-      null,
-      2
-    );
+    // Fetch the latest questionnaire data from S3 (falling back to local if needed)
+    const questionnaireData = await getLatestQuestionnaireData();
+
+    // Get current version info to store with assessment
+    const versionInfo = await getCurrentVersionInfo();
+    const versionNumber = versionInfo?.version || "1.0";
+
+    // Create new assessment JSON to upload - STORE COMPLETE QUESTIONNAIRE DATA
+    const assessmentData = {
+      data: new Model(questionnaireData).data,
+      questionnaire: questionnaireData, // Store the complete questionnaire
+      questionnaireVersion: versionNumber, // Store version number
+      createdAt: new Date().toISOString(),
+    };
+
+    const jsonString = JSON.stringify(assessmentData, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const file = new File([blob], `${idHash}.json`, {
       type: "application/json",
@@ -209,15 +306,17 @@ class InProgressAssessment extends Assessment {
     // Upload new assessment JSON and get back path
     const storageUploadPath = await this._uploadAssessmentToStorage(
       file,
-      `assessments/${session.identityId}/in-progress/${file.name}`
+      `assessments/${session.identityId}/in-progress/${file.name}`,
     ).catch((err) => {
       throw new Error(`Error uploading new assessment to storage: ${err}`);
     });
 
-    // Create new assessment database entry using storage upload path
+    // Create new assessment database entry using storage upload path and version
     const newAssessmentId = await this._createAssessmentEntry(
       idHash,
-      storageUploadPath
+      name,
+      storageUploadPath,
+      versionNumber, // Pass the fetched version number
     ).catch((err) => {
       throw new Error(`Error creating new assessment entry: ${err}`);
     });
@@ -232,21 +331,29 @@ class InProgressAssessment extends Assessment {
   private static _updateAssessmentEntry = async (
     id: string,
     currentPage: number,
-    percentCompleted: number
+    percentCompleted: number,
   ): Promise<void> => {
-    // Assessment to be updated
-    const updatedAssessment = {
+    // Assessment to be updated with proper schema format
+    // Use a type expected by the API to avoid 'any' type
+    type AssessmentUpdateParams = {
+      id: string;
+      currentPage: number;
+      percentCompleted: number;
+    };
+
+    const updatedAssessment: AssessmentUpdateParams = {
       id,
       currentPage,
       percentCompleted,
     };
+
     // Updated database entry
     const { data, errors } =
       await this.client.models.InProgressAssessment.update(updatedAssessment);
     // Throw errors if update failed
     if (!data || errors) {
       throw new Error(
-        `Error updating assessment with id ${id} : ${errors?.at(0)?.message}`
+        `Error updating assessment with id ${id} : ${errors?.at(0)?.message}`,
       );
     }
   };
@@ -254,16 +361,19 @@ class InProgressAssessment extends Assessment {
   // Create assessment database entry
   private static _createAssessmentEntry = async (
     hash: string,
-    path: string
+    name: string,
+    path: string,
+    version: string, // Add version parameter
   ): Promise<string> => {
     // New assessment entry object
     try {
       const newAssessment = {
         id: hash,
+        name,
         currentPage: 0,
         percentCompleted: 0,
         storagePath: path,
-        version: "1",
+        version: version, // Use the passed version
         startedAt: new Date().toISOString(),
       };
 
@@ -275,7 +385,7 @@ class InProgressAssessment extends Assessment {
       }
       if (!data) {
         throw new Error(
-          `No data recieved from creating new assessment entry: ${errors}`
+          `No data recieved from creating new assessment entry: ${errors}`,
         );
       }
       console.log(`Successfully created new assessment: ${data}`);
@@ -285,27 +395,9 @@ class InProgressAssessment extends Assessment {
     }
   };
 
-  // Delete assessment entry from database by id
-  public static _deleteAssessmentEntry = async (id: string): Promise<void> => {
-    const toBeDeletedAssessment = { id };
-
-    try {
-      // Delete database entry
-      const deleteResult = await this.client.models.InProgressAssessment.delete(
-        toBeDeletedAssessment
-      );
-      // Handle errors
-      if (deleteResult.errors) {
-        throw new Error(`Error deleting assessment: ${deleteResult.errors}`);
-      }
-    } catch (err) {
-      throw new Error(`Error deleting assessment: ${err}`);
-    }
-  };
-
   // Return JSON assessment data from storage give storage path
   private static _fetchAssessmentStorageJson = async (
-    path: string
+    path: string,
   ): Promise<unknown> => {
     try {
       // Fetch assessment json and parse into texty
@@ -324,7 +416,7 @@ class InProgressAssessment extends Assessment {
 
   // Get assessment storage path from database entry
   private static _fetchAssessmentStoragePath = async (
-    id: string
+    id: string,
   ): Promise<string> => {
     try {
       const { data, errors } =
@@ -367,7 +459,6 @@ class CompletedAssessment extends Assessment {
   public static completeInProgressAssessment = async (
     file: File,
     assessmentId: string,
-    complianceScore: number
   ): Promise<void> => {
     // Fetch session to use session id in storage path
     const session = await fetchAuthSession();
@@ -375,18 +466,43 @@ class CompletedAssessment extends Assessment {
       throw new Error(`No session identity found!`);
     }
 
+    // Get in progress assessment data, including its version
+    const assessmentToComplete =
+      await InProgressAssessment.fetchAssessmentData(assessmentId);
+    const { name, startedAt, version } = assessmentToComplete; // Extract version
+
+    // Get current time for completedAt
+    const completedAt = new Date().toISOString();
+
+    // Calculate duration in minutes
+    let duration = -1;
+    if (startedAt) {
+      const startTime = new Date(startedAt).getTime();
+      const endTime = new Date(completedAt).getTime();
+      duration = Math.max(0, Math.floor((endTime - startTime) / (1000 * 60)));
+    }
+
+    // CALL SCORE CALCULATION METHOD HERE (NOT YET IMPLEMENTED) -- WILL USE TEMPORARY VARIABLES FOR NOW
+    const complianceScore: number = 0;
+    const isCompliant: boolean = false;
+
     // Upload new Completed assessment to storage
     const completedAssessmentStoragePath =
       await this._uploadAssessmentToStorage(
         file,
-        `assessments/${session.identityId}/completed/${file.name}`
+        `assessments/${session.identityId}/completed/${file.name}`,
       );
 
     // Create new completedAssessment database entry
     await this._createAssessmentEntry(
       assessmentId,
+      name,
       completedAssessmentStoragePath,
-      complianceScore
+      complianceScore,
+      isCompliant,
+      version, // Pass the fetched version (Corrected Order)
+      duration,
+      completedAt,
     ).catch((err) => {
       throw new Error(`Error creating completed assessment entry : ${err}`);
     });
@@ -399,39 +515,111 @@ class CompletedAssessment extends Assessment {
 
   // Delete assessment by id -> delete database entry and storage data
   public static deleteAssessment = async (id: string): Promise<void> => {
-    // Temp copy of assessment storage path before we delete the entry
-    const path = await this._fetchAssessmentStoragePath(id);
+    try {
+      console.log(
+        `Starting deletion process for completed assessment ID: ${id}`,
+      );
 
-    // Delete assessment entry from database
-    await this._deleteAssessmentEntry(id).catch((err) => {
-      throw new Error(`Error deleting assessment from database: ${err}`);
-    });
+      // Get assessment data first to check ownership
+      const assessmentData = await this.fetchAssessmentData(id);
+      console.log(
+        "Found completed assessment data:",
+        assessmentData.id,
+        "Owner:",
+        assessmentData.owner,
+      );
 
-    // Delete assessment JSON from storage
-    await this._deleteAssessmentFromStorage(path).catch((err) => {
-      throw new Error(`Error deleting assessment JSON from storage: ${err}`);
-    });
+      // Get current session identity and user sub
+      const session = await fetchAuthSession();
+      const currentUserSub = session.userSub; // <-- Use User Pool Sub for owner comparison
 
-    console.info("Successfully deleted assessment");
+      // Check if user is admin
+      const isAdmin = await this.isAdmin();
+      console.log("User has admin privileges:", isAdmin);
+
+      // Check ownership - only allow delete if user is admin or assessment owner
+      if (!isAdmin && assessmentData.owner !== currentUserSub) {
+        // <-- Compare owner with User Pool Sub
+        throw new Error(
+          "Permission denied: You can only delete your own assessments unless you are an admin",
+        );
+      }
+
+      // First delete the database entry
+      try {
+        console.log("Deleting database entry for completed assessment:", id);
+        const toBeDeletedAssessment = { id };
+        const deleteResult =
+          await this.client.models.CompletedAssessment.delete(
+            toBeDeletedAssessment,
+          );
+
+        if (deleteResult.errors) {
+          // Format errors properly
+          const errorMessages = deleteResult.errors
+            .map((e) => e.message || JSON.stringify(e))
+            .join(", ");
+          throw new Error(`Database deletion errors: ${errorMessages}`);
+        }
+
+        console.log("Successfully deleted completed assessment database entry");
+
+        // Only after database entry is deleted, delete the storage
+        try {
+          console.log(
+            "Now deleting completed assessment from storage:",
+            assessmentData.storagePath,
+          );
+          await remove({
+            path: assessmentData.storagePath,
+            options: { bucket: "assessmentStorage" },
+          });
+          console.log("Successfully deleted completed assessment storage file");
+        } catch (storageError) {
+          console.error("Storage deletion error:", storageError);
+          // Even if storage deletion fails, we've already deleted the database entry
+          // Log the error but don't throw, as the database record is gone
+          console.warn(
+            "Database entry was deleted but storage file may remain orphaned",
+          );
+        }
+      } catch (dbError) {
+        console.error("Database deletion error:", dbError);
+        throw new Error(
+          `Failed to delete completed assessment from database: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        );
+      }
+
+      console.log("Completed assessment deletion completed successfully");
+    } catch (error) {
+      console.error("Completed assessment deletion failed:", error);
+      // Format the error message for better readability
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      throw new Error(`Error deleting completed assessment: ${errorMessage}`);
+    }
   };
 
   // Fetch assessment data using assessment id (hash)
   public static fetchAssessmentData = async (
-    id: string
+    id: string,
   ): Promise<{
     id: string;
+    name: string;
     completedAt: string;
     complianceScore: number;
+    isCompliant: boolean;
     storagePath: string;
     version: string;
     owner: string | null;
     readonly createdAt: string;
     readonly updatedAt: string;
+    duration: number;
   }> => {
     try {
       // Fetch data
       const { data, errors } = await this.client.models.CompletedAssessment.get(
-        { id }
+        { id },
       );
 
       // If errors or data fromf fetching, throw errors
@@ -449,18 +637,18 @@ class CompletedAssessment extends Assessment {
 
   // Fetch JSON assessment data from storage
   public static fetchAssessmentStorageData = async <T = unknown>(
-    id: string
+    id: string,
   ): Promise<T> => {
     // Fetch assessment storage path fromd database using id
     const storagePath = await this._fetchAssessmentStoragePath(id).catch(
       (err) => {
         throw new Error(`Error getting storage path from database: ${err}`);
-      }
+      },
     );
 
     // Use storage path from above to call storage download
     const assessmentJson = await this._fetchAssessmentStorageJson(
-      storagePath
+      storagePath,
     ).catch((err) => {
       throw new Error(`Error getting assessment storage: ${err}`);
     });
@@ -473,13 +661,16 @@ class CompletedAssessment extends Assessment {
   public static fetchAllCompletedAssessments = async (): Promise<
     {
       id: string;
+      name: string;
       completedAt: string;
       complianceScore: number;
+      isCompliant: boolean;
       storagePath: string;
       version: string;
       owner: string | null;
       readonly createdAt: string;
       readonly updatedAt: string;
+      duration: number;
     }[]
   > => {
     try {
@@ -502,9 +693,13 @@ class CompletedAssessment extends Assessment {
   // Create assessment database entry
   private static _createAssessmentEntry = async (
     id: string,
+    name: string,
     path: string,
     complianceScore: number,
-    completedAtTime?: string
+    isCompliant: boolean,
+    version: string, // Moved version parameter before optional ones
+    duration: number = -1,
+    completedAtTime?: string,
   ): Promise<void> => {
     try {
       // Get completed at date
@@ -516,10 +711,13 @@ class CompletedAssessment extends Assessment {
       const { errors, data } =
         await this.client.models.CompletedAssessment.create({
           id,
+          name,
           completedAt: getCurrentDateTime(),
           complianceScore,
+          isCompliant,
           storagePath: path,
-          version: "1",
+          version: version, // Use the passed version
+          duration,
         });
       // If errors, handle
       if (errors) {
@@ -531,27 +729,9 @@ class CompletedAssessment extends Assessment {
     }
   };
 
-  // Delete assessment entry from database by id
-  private static _deleteAssessmentEntry = async (id: string): Promise<void> => {
-    const toBeDeletedAssessment = { id };
-
-    try {
-      // Delete database entry
-      const deleteResult = await this.client.models.CompletedAssessment.delete(
-        toBeDeletedAssessment
-      );
-      // Handle errors
-      if (deleteResult.errors) {
-        throw new Error(`Error deleting assessment: ${deleteResult.errors}`);
-      }
-    } catch (err) {
-      throw new Error(`Error deleting assessment: ${err}`);
-    }
-  };
-
   // Return JSON assessment data from storage give storage path
   private static _fetchAssessmentStorageJson = async (
-    path: string
+    path: string,
   ): Promise<unknown> => {
     try {
       // Fetch assessment json and parse into texty
@@ -570,7 +750,7 @@ class CompletedAssessment extends Assessment {
 
   // Get assessment storage path from database entry
   private static _fetchAssessmentStoragePath = async (
-    id: string
+    id: string,
   ): Promise<string> => {
     try {
       const { data, errors } =
@@ -592,3 +772,159 @@ class CompletedAssessment extends Assessment {
 }
 
 export { InProgressAssessment, CompletedAssessment };
+
+// Function to save an assessment
+export async function saveAssessment({
+  id,
+  name,
+  data,
+}: {
+  id: string;
+  name: string;
+  data: unknown;
+}): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get identity for storage path
+    const session = await fetchAuthSession();
+    if (!session.identityId) {
+      return {
+        success: false,
+        message: "Could not determine user identity for storage",
+      };
+    }
+
+    // Convert data to JSON and create a file
+    const dataToSave =
+      typeof data === "object" && data !== null ? { ...data, name } : { name };
+    const jsonString = JSON.stringify(dataToSave, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const file = new File([blob], `${id}.json`, { type: "application/json" });
+
+    // Upload to storage
+    await uploadData({
+      path: `assessments/${session.identityId}/in-progress/${file.name}`,
+      data: file,
+      options: { bucket: "assessmentStorage" },
+    });
+
+    return { success: true, message: "Assessment saved successfully" };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error saving assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Function to get an assessment
+export async function getAssessment(id: string): Promise<unknown | null> {
+  try {
+    // Get identity for storage path
+    const session = await fetchAuthSession();
+    if (!session.identityId) {
+      throw new Error("Could not determine user identity");
+    }
+
+    // Download from storage
+    const path = `assessments/${session.identityId}/in-progress/${id}.json`;
+    const result = await downloadData({
+      path,
+      options: { bucket: "assessmentStorage" },
+    }).result;
+
+    const jsonString = await result.body.text();
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error("Error downloading assessment:", error);
+    return null;
+  }
+}
+
+// Function to list all assessments
+export async function listAssessments(): Promise<
+  { id: string; title: string }[]
+> {
+  try {
+    // Wrap the InProgressAssessment.fetchAllAssessments method
+    const assessments = await InProgressAssessment.fetchAllAssessments();
+    return assessments.map((assessment) => ({
+      id: assessment.id,
+      title: assessment.name || "",
+    }));
+  } catch (error) {
+    console.error("Error listing assessments:", error);
+    return [];
+  }
+}
+
+// Function to delete an assessment
+export async function deleteAssessment(
+  id: string,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    await InProgressAssessment.deleteAssessment(id);
+    return { success: true, message: "Assessment deleted successfully" };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error deleting assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Function to create a new assessment
+export async function createAssessment(
+  title: string,
+): Promise<{ success: boolean; message: string; id?: string }> {
+  try {
+    const id = await InProgressAssessment.createAssessment(title);
+    return {
+      success: true,
+      message: "Assessment created successfully",
+      id,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error creating assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Function to update an assessment
+export async function updateAssessment(
+  id: string,
+  updates: { name?: string },
+): Promise<{ success: boolean; message: string }> {
+  try {
+    // Get the current assessment data
+    const assessmentData = await getAssessment(id);
+    if (!assessmentData) {
+      throw new Error("Assessment not found");
+    }
+
+    // Apply updates
+    const updatedData = {
+      ...assessmentData,
+      ...(updates.name ? { name: updates.name } : {}),
+    };
+
+    // Save the updated assessment
+    const result = await saveAssessment({
+      id,
+      name:
+        updates.name ||
+        (assessmentData as { name?: string }).name ||
+        id ||
+        "Untitled Assessment",
+      data: updatedData,
+    });
+
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error updating assessment: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
