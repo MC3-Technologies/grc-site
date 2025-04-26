@@ -7,7 +7,7 @@ export const userManagementFunction = defineFunction({
   entry: "./handler.ts",
   environment: {
     EMAIL_SENDER:
-      process.env.EMAIL_SENDER || "cmmc.support@mc3technologies.com",
+      process.env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
     LOGO_URL:
       process.env.LOGO_URL ||
       "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png",
@@ -22,7 +22,7 @@ export const userManagementFunction = defineFunction({
     IN_PROGRESS_ASSESSMENT_TABLE_NAME:
       "InProgressAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
     USER_STATUS_TABLE_NAME: "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
-    FROM_EMAIL: process.env.FROM_EMAIL || "cmmc.support@mc3technologies.com",
+    FROM_EMAIL: process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com",
   },
   timeoutSeconds: 60,
 });
