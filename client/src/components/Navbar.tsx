@@ -49,11 +49,9 @@ const Navbar = () => {
 
     checkUser();
 
-    // Initialize Flowbite after a small delay to ensure DOM is ready
-    setTimeout(() => {
-      initFlowbite();
-      setLoading(false);
-    }, 100);
+    // Initialize Flowbite
+    initFlowbite();
+    setLoading(false);
 
     return () => {
       hubListener();
