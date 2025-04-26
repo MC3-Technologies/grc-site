@@ -55,10 +55,10 @@ export function Index() {
             compliant.
           </p>
 
-          <div className="grid md:grid-cols-1 gap-5 my-5 md:mx-0 ">
+          <div className="grid md:grid-cols-2 gap-5 my-10 md:mx-0 mx-2">
             <a
               href="/assessments/"
-              className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row  hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+              className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
               <div className="flex flex-col justify-between p-4 leading-normal">
                 <h5 className="inline-flex justify-center items-center mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
@@ -90,7 +90,7 @@ export function Index() {
               </div>
             </a>
 
-            {/* <a
+            <a
               href="/osint/"
               className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow md:flex-row md:max-w-xl hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
@@ -122,7 +122,7 @@ export function Index() {
                   vulnerabilities and analyze potential risks.
                 </p>
               </div>
-            </a> */}
+            </a>
           </div>
           <div className="flex flex-col items-center bg-white border border-gray-200 rounded-lg shadow p-5   dark:border-gray-700 dark:bg-gray-800 ">
             <div className="flex flex-col justify-between  leading-normal">
@@ -406,5 +406,5 @@ export function Index() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Index />
-  </StrictMode>
+  </StrictMode>,
 );

@@ -13,7 +13,6 @@ import {
   redirectToInProgressAssessment,
   redirectToSignIn,
   redirectToCompletedAssessment,
-  redirectToReport,
 } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
@@ -33,22 +32,22 @@ const formatDate = (dateString: string): string => {
 };
 
 // Helper function to calculate duration between two dates
-// const calculateDuration = (startDate: string, endDate: string): string => {
-//   const start = new Date(startDate);
-//   const end = new Date(endDate);
-//   const durationMs = end.getTime() - start.getTime();
+const calculateDuration = (startDate: string, endDate: string): string => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const durationMs = end.getTime() - start.getTime();
 
-//   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
-//   const hours = Math.floor(
-//     (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
-//   );
+  const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor(
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+  );
 
-//   if (days > 0) {
-//     return `${days}d ${hours}h`;
-//   } else {
-//     return `${hours}h`;
-//   }
-// };
+  if (days > 0) {
+    return `${days}d ${hours}h`;
+  } else {
+    return `${hours}h`;
+  }
+};
 
 // Helper function to calculate time elapsed since a given date
 const getTimeAgo = (dateString: string): string => {
@@ -57,7 +56,7 @@ const getTimeAgo = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -122,7 +121,9 @@ export function Assessments() {
   const [completedAssessments, setCompletedAssessments] = useState<
     {
       id: string;
+      name: string;
       completedAt: string;
+      isCompliant: boolean;
       storagePath: string;
       complianceScore: number;
       version: string;
@@ -135,6 +136,7 @@ export function Assessments() {
   const [inProgressAssessments, setInProgressAssessments] = useState<
     {
       id: string;
+      name: string;
       percentCompleted: number;
       storagePath: string;
       owner: string | null;
@@ -144,6 +146,11 @@ export function Assessments() {
     }[]
   >([]);
 
+  // Whether to show new assessment form
+  const [showNewAssessmentForm, setShowNewAssessmentForm] =
+    useState<boolean>(false);
+  // New assessment name state
+  const [newAssessmentName, setNewAssessmentName] = useState<string>("");
   // Toast notifications
   const [toasts, setToasts] = useState<Toast[]>([]);
   // Is loading
@@ -163,7 +170,7 @@ export function Assessments() {
         dismissToast(id);
       }, 5000);
     },
-    [] // Empty dependency array ensures this function is memoized and doesn't change on each render.
+    [], // Empty dependency array ensures this function is memoized and doesn't change on each render.
   );
 
   // Dismiss a toast notification
@@ -246,9 +253,9 @@ export function Assessments() {
   }, [addToast]);
 
   // Creating new assessments handler
-  const handleCreateNewAssessment = async () => {
+  const handleCreateNewAssessment = async (name: string) => {
     try {
-      const id = await InProgressAssessment.createAssessment();
+      const id = await InProgressAssessment.createAssessment(name);
       redirectToInProgressAssessment(id);
     } catch (error) {
       console.error("Error creating assessment:", error);
@@ -262,7 +269,7 @@ export function Assessments() {
       await InProgressAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setInProgressAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -275,14 +282,9 @@ export function Assessments() {
   const handleDeleteCompleteAssessment = async (id: string) => {
     try {
       await CompletedAssessment.deleteAssessment(id);
-      // Remove assessment data from cache if it exists
-      if (localStorage.getItem(`${id}_assessmentData`) !== null) {
-        localStorage.removeItem(`${id}_assessmentData`);
-      }
-
       // Update state to remove the deleted assessment
       setCompletedAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -388,15 +390,56 @@ export function Assessments() {
                     CMMC Level 1 Assessments
                   </h1>
                   <button
-                    onClick={() => {
-                      handleCreateNewAssessment();
-                      setLoading(true);
-                    }}
+                    onClick={() => setShowNewAssessmentForm(true)}
                     className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
                   >
                     New Assessment
                   </button>
                 </div>
+
+                {showNewAssessmentForm && (
+                  <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg mb-6">
+                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                      Create New Assessment
+                    </h2>
+                    <div className="mb-4">
+                      <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                        Assessment name
+                      </label>
+                      <input
+                        type="text"
+                        value={newAssessmentName}
+                        onChange={(e) => setNewAssessmentName(e.target.value)}
+                        className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
+                        placeholder="Enter a name for your assessment"
+                      />
+                    </div>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          handleCreateNewAssessment(newAssessmentName);
+                        }}
+                        disabled={!newAssessmentName.trim()}
+                        className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
+                          !newAssessmentName.trim()
+                            ? "opacity-50 cursor-not-allowed"
+                            : ""
+                        }`}
+                      >
+                        Create
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowNewAssessmentForm(false);
+                          setNewAssessmentName("");
+                        }}
+                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-8">
                   {/* In Progress Assessments */}
@@ -418,7 +461,7 @@ export function Assessments() {
                           >
                             <div className="flex justify-between">
                               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {formatDate(assessment.createdAt)}
+                                {assessment.name}
                               </h3>
                               <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                                 In Progress
@@ -523,7 +566,7 @@ export function Assessments() {
                           >
                             <div className="flex justify-between">
                               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                {formatDate(assessment.createdAt)}
+                                {assessment.name}
                               </h3>
                               <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
                                 Completed
@@ -543,13 +586,13 @@ export function Assessments() {
                               </p>
 
                               {/* Duration Metrics */}
-                              {/* <p>
+                              <p>
                                 Duration:{" "}
                                 {calculateDuration(
                                   assessment.createdAt,
-                                  assessment.completedAt
+                                  assessment.completedAt,
                                 )}
-                              </p> */}
+                              </p>
 
                               {/* Owner Details */}
                               {assessment.owner && (
@@ -577,7 +620,7 @@ export function Assessments() {
                               <p>Score: {assessment.complianceScore}%</p>
 
                               {/* Visual Compliance Indicator */}
-                              {/* <div className="mt-3">
+                              <div className="mt-3">
                                 <div
                                   className={`flex items-center p-2 rounded-md ${
                                     assessment.isCompliant
@@ -636,7 +679,7 @@ export function Assessments() {
                                       : "Not Compliant with CMMC Level 1"}
                                   </span>
                                 </div>
-                              </div> */}
+                              </div>
                             </div>
                             <div className="mt-4 flex space-x-2">
                               <button
@@ -645,13 +688,7 @@ export function Assessments() {
                                 }
                                 className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
-                                View Assessment
-                              </button>
-                              <button
-                                onClick={() => redirectToReport(assessment.id)}
-                                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
-                              >
-                                View Report
+                                View
                               </button>
                               <DeleteAssessmentButton
                                 handler={handleDeleteCompleteAssessment}
@@ -678,5 +715,5 @@ export function Assessments() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessments />
-  </StrictMode>
+  </StrictMode>,
 );
