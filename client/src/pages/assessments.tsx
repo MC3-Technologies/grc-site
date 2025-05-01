@@ -57,7 +57,7 @@ const getTimeAgo = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -163,7 +163,7 @@ export function Assessments() {
         dismissToast(id);
       }, 5000);
     },
-    [] // Empty dependency array ensures this function is memoized and doesn't change on each render.
+    [], // Empty dependency array ensures this function is memoized and doesn't change on each render.
   );
 
   // Dismiss a toast notification
@@ -262,7 +262,7 @@ export function Assessments() {
       await InProgressAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setInProgressAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -282,7 +282,7 @@ export function Assessments() {
 
       // Update state to remove the deleted assessment
       setCompletedAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -678,5 +678,5 @@ export function Assessments() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessments />
-  </StrictMode>
+  </StrictMode>,
 );

@@ -171,7 +171,7 @@ const AdminAssessments = () => {
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
             };
-          }
+          },
         );
 
         const completedData: AssessmentData[] = completedAssessments.map(
@@ -189,15 +189,15 @@ const AdminAssessments = () => {
               updatedAt: assessment.updatedAt,
               completedAt: assessment.completedAt,
             };
-          }
+          },
         );
 
         // Combine and sort by most recent first
         setAssessments(
           [...inProgressData, ...completedData].sort(
             (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-          )
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+          ),
         );
       } catch (error) {
         console.error("Error fetching assessments:", error);
@@ -222,7 +222,7 @@ const AdminAssessments = () => {
 
   // Get filtered users for dropdown based on search query
   const filteredUsers = users.filter((user) =>
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    user.email.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Handle user selection

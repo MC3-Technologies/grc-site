@@ -58,7 +58,7 @@ jest.mock("../../utils/assessment", () => {
         id: string,
         currentPage: number,
         percentCompleted: number,
-        _file?: File
+        _file?: File,
       ) => {
         /* Using _file just to avoid no-unused-vars eslint warning */
         if (_file) {
@@ -75,7 +75,7 @@ jest.mock("../../utils/assessment", () => {
           percentCompleted,
         });
         return true;
-      }
+      },
     ),
 
     deleteAssessment: jest.fn(async (id: string) => {
@@ -163,7 +163,7 @@ jest.mock("../../utils/assessment", () => {
         // Add to completed, remove from in-progress
         completedAssessments.set(assessmentId, completedAssessment);
         inProgressAssessments.delete(assessmentId);
-      }
+      },
     ),
 
     // For testing purposes - not in original
@@ -264,7 +264,7 @@ describe("InProgressAssessment", () => {
       ];
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (InProgressAssessment as any).__setMockAssessment(assessment)
+        (InProgressAssessment as any).__setMockAssessment(assessment),
       );
       // Act
       const result = await InProgressAssessment.fetchAllAssessments();
@@ -301,7 +301,7 @@ describe("InProgressAssessment", () => {
     test("should throw error for non-existent id", async () => {
       // Act & Assert
       await expect(
-        InProgressAssessment.fetchAssessmentData("non-existent-id")
+        InProgressAssessment.fetchAssessmentData("non-existent-id"),
       ).rejects.toThrow("Error fetching in-progress assessments");
     });
   });
@@ -368,7 +368,7 @@ describe("InProgressAssessment", () => {
       const assessments = await InProgressAssessment.fetchAllAssessments();
       expect(assessments.length).toBe(0);
       await expect(
-        InProgressAssessment.fetchAssessmentStorageData(testId)
+        InProgressAssessment.fetchAssessmentStorageData(testId),
       ).rejects.toThrow("Error getting assessment storage");
     });
   });
@@ -408,7 +408,7 @@ describe("CompletedAssessment", () => {
       ];
       // Add test data to mock database
       testData.forEach((assessment) =>
-        (CompletedAssessment as any).__setMockAssessment(assessment)
+        (CompletedAssessment as any).__setMockAssessment(assessment),
       );
       // Act
       const result = await CompletedAssessment.fetchAllCompletedAssessments();
@@ -439,13 +439,13 @@ describe("CompletedAssessment", () => {
       });
       const completedFile = createTestAssessmentFile(
         { allAnswersCompleted: true },
-        `${testId}.json`
+        `${testId}.json`,
       );
       // Act
       await CompletedAssessment.completeInProgressAssessment(
         completedFile,
         testId,
-        100
+        100,
       );
       // Assert
       const completedAssessments =

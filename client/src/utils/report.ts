@@ -37,7 +37,7 @@ class Report {
     }
 
     const questionAnswerMap = new Map<string, string | number>(
-      Object.entries(assessmentData)
+      Object.entries(assessmentData),
     );
     this._assessmentData = questionAnswerMap;
   }
@@ -246,7 +246,7 @@ class Report {
 }
 
 const fetchAssessmentDataWithCache = async (
-  assessmentId: string
+  assessmentId: string,
 ): Promise<unknown> => {
   if (localStorage.getItem(`${assessmentId}_assessmentData`) !== null) {
     // If assessment data is cached in local storage, use it

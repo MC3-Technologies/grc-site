@@ -20,7 +20,7 @@ export default defineConfig({
         signUp: resolve(__dirname, "signup/index.html"),
         completedAssessment: resolve(
           __dirname,
-          "completed-assessment/index.html"
+          "completed-assessment/index.html",
         ),
         admin: resolve(__dirname, "admin/index.html"),
         report: resolve(__dirname, "report/index.html"),

@@ -113,7 +113,7 @@ export default function AdminHome() {
 
       if (stats) {
         logDebug(
-          `Raw recent activity count: ${stats.recentActivity?.length || 0}`
+          `Raw recent activity count: ${stats.recentActivity?.length || 0}`,
         );
 
         // Log ALL activities without filtering to debug what's actually coming from the API
@@ -124,12 +124,12 @@ export default function AdminHome() {
           logDebug("ALL activities from API response:");
           stats.recentActivity.forEach((activity, idx) => {
             logDebug(
-              `[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || "no-id"} - ID: ${activity.id?.substring(0, 8) || "no-id"}`
+              `[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || "no-id"} - ID: ${activity.id?.substring(0, 8) || "no-id"}`,
             );
           });
         } else {
           logDebug(
-            "⚠️ No activities received from API - this could indicate a backend issue"
+            "⚠️ No activities received from API - this could indicate a backend issue",
           );
         }
 
@@ -143,7 +143,7 @@ export default function AdminHome() {
 
               // Always log what we're processing
               logDebug(
-                `Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || "unknown"}`
+                `Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || "unknown"}`,
               );
 
               // Include all valid activities - USER_STATUS_UPDATED no longer exists
@@ -171,7 +171,7 @@ export default function AdminHome() {
                   (activity.details.email as string) ||
                   (activity.details.userId as string);
                 logDebug(
-                  `Fixed USER_DELETED resourceId to: ${activity.resourceId}`
+                  `Fixed USER_DELETED resourceId to: ${activity.resourceId}`,
                 );
               }
 
@@ -185,14 +185,14 @@ export default function AdminHome() {
             });
 
           logDebug(
-            `After filtering and sorting: ${stats.recentActivity.length} activities`
+            `After filtering and sorting: ${stats.recentActivity.length} activities`,
           );
 
           // Log the first 3 activities for debugging
           if (stats.recentActivity.length > 0) {
             stats.recentActivity.slice(0, 3).forEach((activity, index) => {
               logDebug(
-                `Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`
+                `Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
               );
             });
           }
@@ -201,11 +201,11 @@ export default function AdminHome() {
         // After filtering and sorting, log the final set of activities
         if (stats.recentActivity && stats.recentActivity.length > 0) {
           logDebug(
-            `After filtering and sorting: ${stats.recentActivity.length} activities`
+            `After filtering and sorting: ${stats.recentActivity.length} activities`,
           );
           stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
             logDebug(
-              `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`
+              `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
             );
           });
         } else {
@@ -214,7 +214,7 @@ export default function AdminHome() {
           // If we have no activities, schedule a retry with delay
           if (forceRefresh) {
             logDebug(
-              "Scheduling retry in 5 seconds due to missing activities..."
+              "Scheduling retry in 5 seconds due to missing activities...",
             );
             setTimeout(() => {
               logDebug("Retrying stat fetch due to missing activities");
@@ -227,7 +227,7 @@ export default function AdminHome() {
                     retryStats.recentActivity.length > 0
                   ) {
                     logDebug(
-                      `Retry successful, got ${retryStats.recentActivity.length} activities`
+                      `Retry successful, got ${retryStats.recentActivity.length} activities`,
                     );
                     setAdminStats(retryStats as unknown as AdminStats);
                   } else {
@@ -257,7 +257,7 @@ export default function AdminHome() {
     } catch (error) {
       console.error("Error fetching admin stats:", error);
       logDebug(
-        `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`
+        `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`,
       );
     } finally {
       setIsLoading(false);
@@ -313,7 +313,7 @@ export default function AdminHome() {
         if (timeSinceLastRefresh > 30000) {
           // 30 seconds since last refresh
           logDebug(
-            "Tab became visible after 30+ seconds, checking for updates..."
+            "Tab became visible after 30+ seconds, checking for updates...",
           );
           // Remove the data change detected code - instead just refresh silently
           fetchStats(true);
@@ -900,14 +900,14 @@ export default function AdminHome() {
                         // Apply pagination to display only a subset of activities
                         .slice(
                           (currentPage - 1) * activitiesPerPage,
-                          currentPage * activitiesPerPage
+                          currentPage * activitiesPerPage,
                         )
                         .map((activity, index) => {
                           // Skip invalid activities to prevent rendering errors
                           if (!activity || !activity.action) {
                             console.warn(
                               "Skipping invalid activity:",
-                              activity
+                              activity,
                             );
                             return null;
                           }
@@ -950,7 +950,7 @@ export default function AdminHome() {
                             console.error(
                               "Error rendering activity:",
                               error,
-                              activity
+                              activity,
                             );
                             return null;
                           }
@@ -984,7 +984,7 @@ export default function AdminHome() {
                       return email
                         .toLowerCase()
                         .includes(userFilter.toLowerCase());
-                    }
+                    },
                   );
 
                   // Only show pagination if we have more than one page
@@ -1016,8 +1016,8 @@ export default function AdminHome() {
                                   5,
                                   Math.ceil(
                                     filteredActivities.length /
-                                      activitiesPerPage
-                                  )
+                                      activitiesPerPage,
+                                  ),
                                 ),
                               },
                               (_, i) => {
@@ -1029,7 +1029,7 @@ export default function AdminHome() {
                                   pageNum <=
                                   Math.ceil(
                                     filteredActivities.length /
-                                      activitiesPerPage
+                                      activitiesPerPage,
                                   )
                                 ) {
                                   return (
@@ -1048,7 +1048,7 @@ export default function AdminHome() {
                                   );
                                 }
                                 return null;
-                              }
+                              },
                             )}
 
                             <li>
@@ -1058,24 +1058,24 @@ export default function AdminHome() {
                                     Math.min(
                                       Math.ceil(
                                         filteredActivities.length /
-                                          activitiesPerPage
+                                          activitiesPerPage,
                                       ),
-                                      currentPage + 1
-                                    )
+                                      currentPage + 1,
+                                    ),
                                   )
                                 }
                                 disabled={
                                   currentPage >=
                                   Math.ceil(
                                     filteredActivities.length /
-                                      activitiesPerPage
+                                      activitiesPerPage,
                                   )
                                 }
                                 className={`px-3 py-2 leading-tight ${
                                   currentPage >=
                                   Math.ceil(
                                     filteredActivities.length /
-                                      activitiesPerPage
+                                      activitiesPerPage,
                                   )
                                     ? "text-gray-400 bg-gray-100 cursor-not-allowed"
                                     : "text-gray-700 bg-white hover:bg-gray-100 hover:text-gray-700"
@@ -1172,7 +1172,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
   // Find the first available time value to display
   const getTimeValue = (
     details: Record<string, unknown>,
-    defaultTime: string
+    defaultTime: string,
   ): string => {
     const timeKey = timeKeys.find((key) => details[key]);
     return timeKey && details[timeKey]
@@ -1228,7 +1228,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {safeTimeDisplay(
-                (activity.details.updatedAt as string) || activity.timestamp
+                (activity.details.updatedAt as string) || activity.timestamp,
               )}
             </span>
           </span>
@@ -1243,7 +1243,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {safeTimeDisplay(
-                (activity.details.deletedAt as string) || activity.timestamp
+                (activity.details.deletedAt as string) || activity.timestamp,
               )}
             </span>
           </span>
@@ -1266,7 +1266,8 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {safeTimeDisplay(
-                (activity.details.reactivatedAt as string) || activity.timestamp
+                (activity.details.reactivatedAt as string) ||
+                  activity.timestamp,
               )}
             </span>
           </span>
@@ -1283,7 +1284,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {safeTimeDisplay(
-                (activity.details.approvedAt as string) || activity.timestamp
+                (activity.details.approvedAt as string) || activity.timestamp,
               )}
             </span>
           </span>
@@ -1298,7 +1299,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {safeTimeDisplay(
-                (activity.details.rejectedAt as string) || activity.timestamp
+                (activity.details.rejectedAt as string) || activity.timestamp,
               )}
             </span>
             {activity.details.reason && (
@@ -1333,7 +1334,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               on{" "}
               {safeTimeDisplay(
-                (activity.details.suspendedAt as string) || activity.timestamp
+                (activity.details.suspendedAt as string) || activity.timestamp,
               )}
             </span>
             <span className="block text-xs italic mt-1 relative group">
@@ -1361,7 +1362,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               Created on{" "}
               {safeTimeDisplay(
-                (activity.details.createdAt as string) || activity.timestamp
+                (activity.details.createdAt as string) || activity.timestamp,
               )}
             </span>
           </span>
@@ -1382,7 +1383,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
                       .replace(/^./, (str) => str.toUpperCase())}
                     :<strong> {String(value)}</strong>
                   </span>
-                )
+                ),
               )}
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}

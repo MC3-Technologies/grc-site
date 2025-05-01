@@ -103,5 +103,5 @@ export function SecurityModels() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <SecurityModels />
-  </StrictMode>
+  </StrictMode>,
 );
