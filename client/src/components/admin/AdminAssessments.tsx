@@ -13,13 +13,11 @@ import {
 // Combined assessment type for the UI
 interface AssessmentData {
   id: string;
-  name: string;
   owner: string | null;
   ownerEmail?: string | null; // Added for displaying email instead of ID
   status: "in-progress" | "completed";
   progress: number;
   score?: number;
-  isCompliant?: boolean;
   createdAt: string;
   updatedAt: string;
   completedAt?: string;
@@ -166,7 +164,6 @@ const AdminAssessments = () => {
 
             return {
               id: assessment.id,
-              name: assessment.name,
               owner: assessment.owner,
               ownerEmail: ownerEmail,
               status: "in-progress",
@@ -174,7 +171,7 @@ const AdminAssessments = () => {
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
             };
-          },
+          }
         );
 
         const completedData: AssessmentData[] = completedAssessments.map(
@@ -183,26 +180,24 @@ const AdminAssessments = () => {
 
             return {
               id: assessment.id,
-              name: assessment.name,
               owner: assessment.owner,
               ownerEmail: ownerEmail,
               status: "completed",
               progress: 100,
               score: assessment.complianceScore,
-              isCompliant: assessment.isCompliant,
               createdAt: assessment.createdAt,
               updatedAt: assessment.updatedAt,
               completedAt: assessment.completedAt,
             };
-          },
+          }
         );
 
         // Combine and sort by most recent first
         setAssessments(
           [...inProgressData, ...completedData].sort(
             (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-          ),
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          )
         );
       } catch (error) {
         console.error("Error fetching assessments:", error);
@@ -227,7 +222,7 @@ const AdminAssessments = () => {
 
   // Get filtered users for dropdown based on search query
   const filteredUsers = users.filter((user) =>
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Handle user selection
@@ -522,7 +517,7 @@ const AdminAssessments = () => {
                   scope="row"
                   className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                 >
-                  {assessment.name}
+                  {assessment.id}
                   {/* Mobile summary - only visible on small screens */}
                   <div className="md:hidden mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-400">
                     {assessment.ownerEmail && (
@@ -615,18 +610,9 @@ const AdminAssessments = () => {
                   {assessment.status === "completed" ? (
                     <div className="flex items-center">
                       <span
-                        className={`font-medium ${assessment.isCompliant ? "text-green-600" : "text-red-600"}`}
+                        className={`font-medium ${assessment.score! > 85 ? "text-green-600" : "text-red-600"}`}
                       >
                         {assessment.score}%
-                      </span>
-                      <span
-                        className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${
-                          assessment.isCompliant
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                            : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                        }`}
-                      >
-                        {assessment.isCompliant ? "Compliant" : "Non-Compliant"}
                       </span>
                     </div>
                   ) : (
