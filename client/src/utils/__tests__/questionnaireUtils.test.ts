@@ -4,7 +4,7 @@ import {
   QUESTIONNAIRE_STORAGE_KEY,
   QuestionPage,
 } from "../questionnaireUtils";
-import { surveyJson } from "../../assessmentQuestions";
+
 
 // Mock surveyJson for testing
 jest.mock("../../assessmentQuestions", () => ({
@@ -13,7 +13,7 @@ jest.mock("../../assessmentQuestions", () => ({
     pages: [
       {
         title: "Default Page 1",
-        elements: [{ type: "text", name: "q1" }],
+        elements: [{ type: "text", name: "q1", title: "Question 1" }],
       },
     ],
   },
@@ -64,7 +64,7 @@ describe("Questionnaire Utilities", () => {
       const testPages: QuestionPage[] = [
         {
           title: "Test Page",
-          elements: [{ type: "text", name: "q1" }],
+          elements: [{ type: "text", name: "q1", title: "Question 1" }],
           id: "test1",
         },
       ];
@@ -110,7 +110,7 @@ describe("Questionnaire Utilities", () => {
       const testPages: QuestionPage[] = [
         {
           title: "Custom Page",
-          elements: [{ type: "checkbox", name: "q2" }],
+          elements: [{ type: "checkbox", name: "q2", title: "Question 2" }],
           id: "custom1",
         },
       ];
