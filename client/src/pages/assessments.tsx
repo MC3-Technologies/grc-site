@@ -1,7 +1,6 @@
 import { StrictMode, useEffect, useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
-import { fetchUserAttributes } from "aws-amplify/auth"; // Import fetchUserAttributes
 
 import "../index.css";
 import "survey-core/defaultV2.min.css";
@@ -9,7 +8,7 @@ import "survey-core/defaultV2.min.css";
 import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
-import { isLoggedIn } from "../amplify/auth"; // Remove isCurrentUserAdmin import
+import { isLoggedIn } from "../amplify/auth";
 import {
   redirectToInProgressAssessment,
   redirectToSignIn,
@@ -157,12 +156,8 @@ export function Assessments() {
   // Is loading
   const [loading, setLoading] = useState<boolean>(true);
 
-  // New state for user ID to email mapping (for admins)
+  // New state for user ID to email mapping
   const [userMap, setUserMap] = useState<Record<string, string>>({});
-  // State for current user info
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const [currentUserSub, setCurrentUserSub] = useState<string | null>(null);
-  // Removed unused isAdmin state
 
   // Add a toast notification
   const addToast = useCallback(
@@ -236,37 +231,15 @@ export function Assessments() {
       }
 
       try {
-        // Fetch current user's attributes
-        const userAttributes = await fetchUserAttributes();
-        const userEmail = userAttributes.email || null;
-        const userSub = userAttributes.sub || null;
-        setCurrentUserEmail(userEmail);
-        setCurrentUserSub(userSub);
-        console.log("Current user info:", { email: userEmail, sub: userSub });
-
-        // Removed admin check
-
-        // Fetch ALL assessments first
-        const allInProgressAssessments =
+        // Fetch users in progress assessments
+        const inProgressAssessments =
           await InProgressAssessment.fetchAllAssessments();
-        const allCompletedAssessments =
-          await CompletedAssessment.fetchAllCompletedAssessments();
+        setInProgressAssessments(inProgressAssessments);
 
-        // Filter assessments to show only those owned by the current user for this page
-        if (userSub) {
-          const myInProgress = allInProgressAssessments.filter(
-            (assessment) => assessment.owner === userSub,
-          );
-          const myCompleted = allCompletedAssessments.filter(
-            (assessment) => assessment.owner === userSub,
-          );
-          setInProgressAssessments(myInProgress);
-          setCompletedAssessments(myCompleted);
-        } else {
-          // Should not happen if logged in, but handle defensively
-          setInProgressAssessments([]);
-          setCompletedAssessments([]);
-        }
+        // Fetch users completed assessments
+        const completedAssessments =
+          await CompletedAssessment.fetchAllCompletedAssessments();
+        setCompletedAssessments(completedAssessments);
       } catch (e) {
         console.error(e);
         addToast(`Error loading assessments: ${e}`);
@@ -530,13 +503,10 @@ export function Assessments() {
                                     ></path>
                                   </svg>
                                   Owner:{" "}
-                                  {assessment.owner === currentUserSub
-                                    ? currentUserEmail // Display current user's email if they are the owner
-                                    : userMap[assessment.owner] || // Otherwise, use the map (for admins)
-                                      (assessment.owner?.includes("@") // Fallback 1: If owner is already email
-                                        ? assessment.owner
-                                        : assessment.owner)}{" "}
-                                  {/* Fallback 2: Raw owner ID/UUID */}
+                                  {userMap[assessment.owner] ||
+                                    (assessment.owner?.includes("@")
+                                      ? assessment.owner
+                                      : assessment.owner)}
                                 </p>
                               )}
 
@@ -640,13 +610,10 @@ export function Assessments() {
                                     ></path>
                                   </svg>
                                   Owner:{" "}
-                                  {assessment.owner === currentUserSub
-                                    ? currentUserEmail // Display current user's email if they are the owner
-                                    : userMap[assessment.owner] || // Otherwise, use the map (for admins)
-                                      (assessment.owner?.includes("@") // Fallback 1: If owner is already email
-                                        ? assessment.owner
-                                        : assessment.owner)}{" "}
-                                  {/* Fallback 2: Raw owner ID/UUID */}
+                                  {userMap[assessment.owner] ||
+                                    (assessment.owner?.includes("@")
+                                      ? assessment.owner
+                                      : assessment.owner)}
                                 </p>
                               )}
 

@@ -49,31 +49,17 @@ function getAmplifyConfig(): Partial<CognitoConfig> {
 
 // Get configuration from environment variables (Vite/React)
 function getEnvConfig(): Partial<CognitoConfig> {
-  // Get Vite environment variables if they exist
-  let viteUserPoolId = "";
-  let viteRegion = "";
-  let viteClientId = "";
-
-  // Check for Vite env vars in a browser-safe way
-  if (typeof window !== "undefined") {
-    try {
-      // Access window.__VITE_INJECT_ENV in a safer way
-      const viteEnv = window.__VITE_INJECT_ENV;
-      if (viteEnv) {
-        viteUserPoolId = viteEnv.VITE_USER_POOL_ID || "";
-        viteRegion = viteEnv.VITE_AWS_REGION || "";
-        viteClientId = viteEnv.VITE_CLIENT_ID || "";
-      }
-    } catch (error) {
-      // No action needed - we'll fall back to process.env
-      console.error("Error accessing Vite environment variables:", error);
-    }
-  }
-
   return {
-    userPoolId: viteUserPoolId || process.env.REACT_APP_USER_POOL_ID || "",
-    region: viteRegion || process.env.REACT_APP_AWS_REGION || "",
-    clientId: viteClientId || process.env.REACT_APP_CLIENT_ID || "",
+    userPoolId:
+      import.meta.env?.VITE_USER_POOL_ID ||
+      process.env.REACT_APP_USER_POOL_ID ||
+      "",
+    region:
+      import.meta.env?.VITE_AWS_REGION ||
+      process.env.REACT_APP_AWS_REGION ||
+      "",
+    clientId:
+      import.meta.env?.VITE_CLIENT_ID || process.env.REACT_APP_CLIENT_ID || "",
   };
 }
 
