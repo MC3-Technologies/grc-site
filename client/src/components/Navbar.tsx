@@ -47,18 +47,20 @@ const Navbar = () => {
       }
     };
 
-    checkUser();
-
-    // Initialize Flowbite after a small delay to ensure DOM is ready
-    setTimeout(() => {
-      initFlowbite();
+    checkUser().then(() => {
       setLoading(false);
-    }, 100);
+    });
 
     return () => {
       hubListener();
     };
   }, [authEvents]);
+
+  useEffect(() => {
+    if (!loading) {
+      initFlowbite();
+    }
+  }, [loading, currentUser]);
 
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-950 fixed z-20 top-0 start-0 w-full">
