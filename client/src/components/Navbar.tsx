@@ -57,7 +57,6 @@ const Navbar = () => {
 
     // Clean up the observer when component unmounts
     return () => {
-      observer.disconnect();
       hubListener();
     };
   }, [authEvents]);
