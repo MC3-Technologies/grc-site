@@ -16,7 +16,6 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
-import { Report as Rpt } from "../utils/report";
 
 type PageData = {
   assessment: Model | null;
@@ -302,11 +301,11 @@ export function Assessment() {
   useEffect(() => {
     // Initialization function
     const initialize = async (): Promise<void> => {
-      // Grab assessment id from parameter
-      const params = new URLSearchParams(window.location.search);
-      const assessmentIdParam = params.get("assessment-id");
-
-      // If no assessment id url param, set error state
+      // Sanitize assessment ID from URL
+      const assessmentIdParam = new URLSearchParams(window.location.search).get(
+        "assessment-id",
+      );
+      // Make sure assessment id exists
       if (!assessmentIdParam) {
         setPageData((prev) => ({ ...prev, error: "No assessment ID found!" }));
         setLoading(false); // Make sure to set loading to false to show the error
@@ -337,15 +336,24 @@ export function Assessment() {
             assessmentIdParam,
           );
 
+        // Parse the assessment JSON data
+        const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
+
+        // Use the questionnaire stored with the assessment if available
+        // Otherwise fall back to the latest questionnaire data (for backward compatibility)
+        let questionnaireData;
+        if (parsedAssessmentData && parsedAssessmentData.questionnaire) {
+          console.log("Using questionnaire stored with assessment");
+          questionnaireData = parsedAssessmentData.questionnaire;
+        } else {
+          console.log("Using latest questionnaire (compatibility mode)");
+          questionnaireData = await getLatestQuestionnaireData();
+        }
+
         // Create assessment and give assessment data and current page
-        const assessment = new Model(getLatestQuestionnaireData());
-        assessment.data = JSON.parse(assessmentJsonData as string);
+        const assessment = new Model(questionnaireData);
+        assessment.data = parsedAssessmentData.data || parsedAssessmentData;
         assessment.currentPageNo = assessmentEntryData.currentPage;
-        assessment.completedHtml = `
-        <div style="text-align:center">
-          <h2>🎉 Your assessment has been submitted!</h2>
-          <p>You will be redirected to the assessments page in 5 seconds where you can view your results. </a>
-        </div>`;
 
         // Setup save debounce timer variable
         let saveTimeout: NodeJS.Timeout | null = null;
@@ -413,11 +421,8 @@ export function Assessment() {
         // Success handler function
         const handleCompletionSuccess = (): void => {
           console.info("Assessment completed successfully!");
-          // setShowCompletionModal(true);
+          setShowCompletionModal(true);
           setSaving(false);
-          setTimeout(() => {
-            window.location.href = "/assessments/";
-          }, 5000);
         };
 
         // In the onComplete handler - add reference to CompletedAssessment
@@ -453,21 +458,10 @@ export function Assessment() {
               file,
             );
 
-            // Create temporary report isntance to calculate adherence score
-            const tempReport = new Rpt(
-              finalAssessmentData as Record<string, string | number>,
-            );
-            const score = Math.round(
-              (tempReport.generateReportData().score /
-                tempReport.generateReportData().maxScore) *
-                100,
-            );
-
             // Now create a completed assessment record and remove from in-progress
             await CompletedAssessment.completeInProgressAssessment(
               file,
               currentAssessmentId,
-              score,
             );
 
             handleCompletionSuccess();
