@@ -453,6 +453,7 @@ describe("CompletedAssessment", () => {
       await CompletedAssessment.completeInProgressAssessment(
         completedFile,
         testId,
+        100,
       );
       // Assert
       const completedAssessments =

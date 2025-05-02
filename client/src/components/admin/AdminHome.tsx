@@ -4,6 +4,7 @@ import {
   fetchAdminStats,
   type AuditLog as BackendAuditLog,
   AdminEvents,
+  emitAdminEvent,
   clearAdminStatsCache,
 } from "../../utils/adminUser";
 import Spinner from "../Spinner";
@@ -69,8 +70,8 @@ declare global {
     adminUser: {
       clearAdminStatsCache: () => void;
       clearUserCache: () => void;
-      emitAdminEvent: (type: string) => boolean;
-      AdminEvents: Record<string, string>;
+      emitAdminEvent: typeof emitAdminEvent;
+      AdminEvents: typeof AdminEvents;
     };
   }
 }

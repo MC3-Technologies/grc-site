@@ -49,21 +49,11 @@ const Navbar = () => {
 
     checkUser();
 
-    // Initialize Flowbite immediately and also reinitialize when DOM changes
-    initFlowbite();
-
-    // Set up a mutation observer to reinitialize Flowbite when dropdown elements change
-    const observer = new MutationObserver(() => {
+    // Initialize Flowbite after a small delay to ensure DOM is ready
+    setTimeout(() => {
       initFlowbite();
-    });
-
-    // Start observing the document body for DOM changes
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
-
-    setLoading(false);
+      setLoading(false);
+    }, 100);
 
     // Clean up the observer when component unmounts
     return () => {
@@ -71,6 +61,12 @@ const Navbar = () => {
       hubListener();
     };
   }, [authEvents]);
+
+  useEffect(() => {
+    if (!loading) {
+      initFlowbite();
+    }
+  }, [loading, currentUser]);
 
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-950 fixed z-20 top-0 start-0 w-full">
