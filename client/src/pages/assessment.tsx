@@ -16,6 +16,7 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
+import { Report as Rpt } from "../utils/report";
 
 type PageData = {
   assessment: Model | null;
@@ -340,6 +341,11 @@ export function Assessment() {
         const assessment = new Model(getLatestQuestionnaireData());
         assessment.data = JSON.parse(assessmentJsonData as string);
         assessment.currentPageNo = assessmentEntryData.currentPage;
+        assessment.completedHtml = `
+        <div style="text-align:center">
+          <h2>🎉 Your assessment has been submitted!</h2>
+          <p>You will be redirected to the assessments page in 5 seconds where you can view your results. </a>
+        </div>`;
 
         // Setup save debounce timer variable
         let saveTimeout: NodeJS.Timeout | null = null;
@@ -407,8 +413,11 @@ export function Assessment() {
         // Success handler function
         const handleCompletionSuccess = (): void => {
           console.info("Assessment completed successfully!");
-          setShowCompletionModal(true);
+          // setShowCompletionModal(true);
           setSaving(false);
+          setTimeout(() => {
+            window.location.href = "/assessments/";
+          }, 5000);
         };
 
         // In the onComplete handler - add reference to CompletedAssessment
