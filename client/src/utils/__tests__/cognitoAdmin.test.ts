@@ -8,58 +8,60 @@
  * without adding significant complexity.
  */
 
-import {
-  describe,
-  it,
-  expect,
-  jest,
-  beforeEach,
-  afterEach,
-} from "@jest/globals";
+import { describe, it, expect, jest, beforeEach } from "@jest/globals";
 
-// Define mock users to use in tests
-const mockUsers = [
-  {
-    Username: "user1@example.com",
-    Attributes: [
-      { Name: "email", Value: "user1@example.com" },
-      { Name: "given_name", Value: "Test" },
-      { Name: "family_name", Value: "User" },
-      { Name: "custom:role", Value: "admin" },
-    ],
-    UserStatus: "CONFIRMED",
-    Enabled: true,
-  },
-  {
-    Username: "user2@example.com",
-    Attributes: [
-      { Name: "email", Value: "user2@example.com" },
-      { Name: "given_name", Value: "Another" },
-      { Name: "family_name", Value: "User" },
-      { Name: "custom:role", Value: "user" },
-    ],
-    UserStatus: "FORCE_CHANGE_PASSWORD",
-    Enabled: true,
-  },
-];
+// The actual implementations used by the module we're testing
+let mockListUsersCommandImpl;
+let mockAdminGetUserCommandImpl;
+let mockAdminConfirmSignUpCommandImpl;
+let mockAdminEnableUserCommandImpl;
+let mockAdminUpdateUserAttributesCommandImpl;
+let mockAdminAddUserToGroupCommandImpl;
+let mockSendImpl;
 
-// Mock send function that will be used by the client
-const mockSend = jest.fn();
-
-// Mock the AWS SDK and cognito client
+// Mock the AWS SDK client - must be done before imports
 jest.mock("@aws-sdk/client-cognito-identity-provider", () => {
+  // Create the mock command classes
+  mockListUsersCommandImpl = jest
+    .fn()
+    .mockImplementation((params) => ({ params }));
+  mockAdminGetUserCommandImpl = jest
+    .fn()
+    .mockImplementation((params) => ({ params }));
+  mockAdminConfirmSignUpCommandImpl = jest
+    .fn()
+    .mockImplementation((params) => ({ params }));
+  mockAdminEnableUserCommandImpl = jest
+    .fn()
+    .mockImplementation((params) => ({ params }));
+  mockAdminUpdateUserAttributesCommandImpl = jest
+    .fn()
+    .mockImplementation((params) => ({ params }));
+  mockAdminAddUserToGroupCommandImpl = jest
+    .fn()
+    .mockImplementation((params) => ({ params }));
+
+  // Create the mock send function
+  mockSendImpl = jest.fn();
+
+  // Return mock implementations
   return {
-    CognitoIdentityProviderClient: jest.fn(() => ({
-      send: mockSend,
+    // These must be constructor functions to match what the AWS SDK client expects
+    CognitoIdentityProviderClient: jest.fn().mockImplementation(() => ({
+      send: mockSendImpl,
     })),
-    ListUsersCommand: jest.fn(),
-    AdminGetUserCommand: jest.fn(),
-    AdminConfirmSignUpCommand: jest.fn(),
-    AdminEnableUserCommand: jest.fn(),
-    AdminDisableUserCommand: jest.fn(),
-    AdminUpdateUserAttributesCommand: jest.fn(),
-    AdminAddUserToGroupCommand: jest.fn(),
-    AdminCreateUserCommand: jest.fn(),
+    ListUsersCommand: mockListUsersCommandImpl,
+    AdminGetUserCommand: mockAdminGetUserCommandImpl,
+    AdminConfirmSignUpCommand: mockAdminConfirmSignUpCommandImpl,
+    AdminEnableUserCommand: mockAdminEnableUserCommandImpl,
+    AdminUpdateUserAttributesCommand: mockAdminUpdateUserAttributesCommandImpl,
+    AdminAddUserToGroupCommand: mockAdminAddUserToGroupCommandImpl,
+    AdminCreateUserCommand: jest
+      .fn()
+      .mockImplementation((params) => ({ params })),
+    AdminDisableUserCommand: jest
+      .fn()
+      .mockImplementation((params) => ({ params })),
     MessageActionType: {
       RESEND: "RESEND",
       SUPPRESS: "SUPPRESS",
@@ -69,16 +71,16 @@ jest.mock("@aws-sdk/client-cognito-identity-provider", () => {
 
 // Mock the cognitoConfig module
 jest.mock("../cognitoConfig", () => ({
-  getCognitoConfig: jest.fn(() => ({
+  getCognitoConfig: jest.fn().mockReturnValue({
     userPoolId: "test-user-pool-id",
     region: "us-east-1",
     clientId: "test-client-id",
-  })),
+  }),
 }));
 
-// Mock adminUser module
-jest.mock("../adminUser", () => {
-  const getMockUsers = jest.fn().mockReturnValue([
+// Mock the adminUser module for development mode
+jest.mock("../adminUser", () => ({
+  getMockUsers: jest.fn().mockReturnValue([
     {
       id: "user1",
       email: "user1@example.com",
@@ -101,9 +103,8 @@ jest.mock("../adminUser", () => {
       created: "2023-01-02T00:00:00Z",
       lastModified: "2023-01-02T00:00:00Z",
     },
-  ]);
-
-  const getFilteredMockUsers = jest.fn((status) => {
+  ]),
+  getFilteredMockUsers: jest.fn().mockImplementation((status) => {
     if (status === "pending") {
       return [
         {
@@ -120,62 +121,66 @@ jest.mock("../adminUser", () => {
       ];
     }
     return [];
-  });
+  }),
+}));
 
-  return {
-    getMockUsers,
-    getFilteredMockUsers,
-  };
-});
-
-// Now import the module under test
-const cognitoAdmin = jest.requireActual("../cognitoAdmin");
-
-// Also import the AWS SDK types we need
+// Import after all mocks are set up
 import {
-  CognitoIdentityProviderClient,
-  ListUsersCommand,
-  AdminGetUserCommand,
-  AdminConfirmSignUpCommand,
-  AdminEnableUserCommand,
-  AdminUpdateUserAttributesCommand,
-  AdminAddUserToGroupCommand,
-  AdminCreateUserCommand,
-  MessageActionType,
-} from "@aws-sdk/client-cognito-identity-provider";
+  initCognitoClient,
+  listAllUsers,
+  getUsersByStatus,
+  getUserDetails,
+  approveUser,
+} from "../cognitoAdmin";
 
 describe("Cognito Admin Utils", () => {
-  // Store original NODE_ENV
+  // Store original NODE_ENV and console methods
   const originalNodeEnv = process.env.NODE_ENV;
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
 
   beforeEach(() => {
-    // Clear all mocks before each test
+    // Clear all mocks
     jest.clearAllMocks();
 
-    // Reset console mocks
+    // Reset mock functions
+    mockSendImpl.mockReset();
+    mockListUsersCommandImpl.mockClear();
+    mockAdminGetUserCommandImpl.mockClear();
+    mockAdminConfirmSignUpCommandImpl.mockClear();
+    mockAdminEnableUserCommandImpl.mockClear();
+    mockAdminUpdateUserAttributesCommandImpl.mockClear();
+
+    // Mock console methods to prevent noise
     console.log = jest.fn();
     console.error = jest.fn();
 
     // Reset environment
     process.env.NODE_ENV = originalNodeEnv;
-
-    // Reset mockSend for each test
-    mockSend.mockReset();
   });
 
-  afterEach(() => {
-    // Restore console methods if needed
-    jest.restoreAllMocks();
+  afterAll(() => {
+    // Restore original console methods
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
+
+    // Restore environment
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   describe("initCognitoClient", () => {
     it("should initialize the Cognito client with correct config", () => {
-      const { client, userPoolId } = cognitoAdmin.initCognitoClient();
+      const { client, userPoolId } = initCognitoClient();
+
       expect(client).toBeDefined();
       expect(userPoolId).toBe("test-user-pool-id");
-      expect(CognitoIdentityProviderClient).toHaveBeenCalledWith({
-        region: "us-east-1",
-      });
+    });
+
+    it("should reuse the existing client if already initialized", () => {
+      const firstInit = initCognitoClient();
+      const secondInit = initCognitoClient();
+
+      expect(firstInit.client).toBe(secondInit.client);
     });
   });
 
@@ -184,323 +189,131 @@ describe("Cognito Admin Utils", () => {
       // Set development mode
       process.env.NODE_ENV = "development";
 
-      // Use manual mocking to avoid ESM issues
-      const originalListAllUsers = cognitoAdmin.listAllUsers;
-      cognitoAdmin.listAllUsers = jest.fn().mockResolvedValue([
-        {
-          id: "user1",
-          email: "user1@example.com",
-          firstName: "Test",
-          lastName: "User",
-          role: "admin",
-          status: "CONFIRMED",
-          enabled: true,
-        },
-        {
-          id: "user2",
-          email: "user2@example.com",
-          firstName: "Another",
-          lastName: "User",
-          role: "user",
-          status: "FORCE_CHANGE_PASSWORD",
-          enabled: true,
-        },
-      ]);
+      const users = await listAllUsers();
 
-      const result = await cognitoAdmin.listAllUsers();
-
-      // Verify mock data was returned
-      expect(result.length).toBe(2);
-      expect(result[0].email).toBe("user1@example.com");
-      expect(result[1].email).toBe("user2@example.com");
-
-      // Verify AWS was not called
-      expect(mockSend).not.toHaveBeenCalled();
-
-      // Restore original function
-      cognitoAdmin.listAllUsers = originalListAllUsers;
+      // Should return mock users without calling AWS
+      expect(users.length).toBe(2);
+      expect(users[0].email).toBe("user1@example.com");
+      expect(users[1].email).toBe("user2@example.com");
     });
 
     it("should call Cognito API in production mode", async () => {
       // Set production mode
       process.env.NODE_ENV = "production";
 
-      // Setup mock response
-      mockSend.mockResolvedValueOnce({
-        Users: mockUsers,
+      // Mock the Cognito API response
+      mockSendImpl.mockResolvedValueOnce({
+        Users: [
+          {
+            Username: "user1@example.com",
+            Attributes: [
+              { Name: "email", Value: "user1@example.com" },
+              { Name: "given_name", Value: "Test" },
+              { Name: "family_name", Value: "User" },
+            ],
+            UserStatus: "CONFIRMED",
+            Enabled: true,
+          },
+        ],
       });
 
-      // Use manual mocking to avoid ESM issues
-      const originalListAllUsers = cognitoAdmin.listAllUsers;
-      cognitoAdmin.listAllUsers = jest.fn().mockImplementation(async () => {
-        // Simulate the real function call that would happen in production
-        mockSend({});
-        ListUsersCommand({
+      const users = await listAllUsers();
+
+      // Should call AWS SDK
+      expect(mockSendImpl).toHaveBeenCalled();
+      expect(mockListUsersCommandImpl).toHaveBeenCalledWith(
+        expect.objectContaining({
           UserPoolId: "test-user-pool-id",
-          Limit: 60,
-        });
-
-        return [
-          {
-            id: "user1",
-            email: "user1@example.com",
-            firstName: "Test",
-            lastName: "User",
-            role: "admin",
-            status: "CONFIRMED",
-            enabled: true,
-          },
-          {
-            id: "user2",
-            email: "user2@example.com",
-            firstName: "Another",
-            lastName: "User",
-            role: "user",
-            status: "FORCE_CHANGE_PASSWORD",
-            enabled: true,
-          },
-        ];
-      });
-
-      const result = await cognitoAdmin.listAllUsers();
-
-      // Verify mockSend was called
-      expect(mockSend).toHaveBeenCalled();
-
-      // Verify results
-      expect(result.length).toBe(2);
-      expect(result[0].email).toBe("user1@example.com");
-
-      // Restore original function
-      cognitoAdmin.listAllUsers = originalListAllUsers;
+        }),
+      );
+      expect(users.length).toBe(1);
+      expect(users[0].email).toBe("user1@example.com");
     });
 
     it("should handle errors gracefully", async () => {
       // Set production mode
       process.env.NODE_ENV = "production";
 
-      // Setup mock error
-      mockSend.mockRejectedValueOnce(new Error("AWS API error"));
+      // Mock the Cognito API to throw an error
+      mockSendImpl.mockRejectedValueOnce(new Error("AWS API error"));
 
-      // Use manual mocking to avoid ESM issues
-      const originalListAllUsers = cognitoAdmin.listAllUsers;
-      cognitoAdmin.listAllUsers = jest.fn().mockImplementation(async () => {
-        try {
-          // Simulate throwing an error
-          throw new Error("AWS API error");
-        } catch (error) {
-          console.error("Error listing users:", error);
-          throw error;
-        }
-      });
-
-      // Expect the function to throw
-      await expect(cognitoAdmin.listAllUsers()).rejects.toThrow(
-        "AWS API error",
-      );
+      // Should throw the error
+      await expect(listAllUsers()).rejects.toThrow("AWS API error");
 
       // Verify error was logged
       expect(console.error).toHaveBeenCalledWith(
         expect.stringContaining("Error listing users:"),
         expect.any(Error),
       );
-
-      // Restore original function
-      cognitoAdmin.listAllUsers = originalListAllUsers;
     });
   });
 
   describe("getUsersByStatus", () => {
-    it("should return filtered users by 'pending' status in development mode", async () => {
+    it("should return filtered mock users in development mode", async () => {
       // Set development mode
       process.env.NODE_ENV = "development";
 
-      // Mock the dynamic import functionality
-      const originalGetUsersByStatus = cognitoAdmin.getUsersByStatus;
-      cognitoAdmin.getUsersByStatus = jest.fn().mockImplementation(async () => {
-        return [
-          {
-            id: "user2",
-            email: "user2@example.com",
-            firstName: "Another",
-            lastName: "User",
-            role: "user",
-            status: "FORCE_CHANGE_PASSWORD",
-            enabled: true,
-            created: "2023-01-02T00:00:00Z",
-            lastModified: "2023-01-02T00:00:00Z",
-          },
-        ];
-      });
+      const users = await getUsersByStatus("pending");
 
-      // Get users by status
-      const result = await cognitoAdmin.getUsersByStatus("pending");
-
-      // Results should match the mock data
-      expect(result.length).toBe(1);
-      expect(result[0].email).toBe("user2@example.com");
-      expect(result[0].status).toBe("FORCE_CHANGE_PASSWORD");
-
-      // Verify AWS was not called
-      expect(mockSend).not.toHaveBeenCalled();
-
-      // Restore original function
-      cognitoAdmin.getUsersByStatus = originalGetUsersByStatus;
+      // Should return filtered mock users
+      expect(users.length).toBe(1);
+      expect(users[0].email).toBe("user2@example.com");
     });
 
-    it("should handle 'active' status in production mode", async () => {
+    it("should use correct filter string for pending status", async () => {
       // Set production mode
       process.env.NODE_ENV = "production";
 
-      // Setup mock response with active users
-      mockSend.mockResolvedValueOnce({
+      // Mock the Cognito API response
+      mockSendImpl.mockResolvedValueOnce({
         Users: [
           {
-            Username: "active@example.com",
+            Username: "user2@example.com",
+            Attributes: [{ Name: "email", Value: "user2@example.com" }],
+            UserStatus: "FORCE_CHANGE_PASSWORD",
+            Enabled: true,
+          },
+        ],
+      });
+
+      await getUsersByStatus("pending");
+
+      // Verify the correct filter was used
+      expect(mockListUsersCommandImpl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Filter: 'cognito:user_status = "FORCE_CHANGE_PASSWORD"',
+        }),
+      );
+    });
+
+    it("should filter suspended users by enabled status", async () => {
+      // Set production mode
+      process.env.NODE_ENV = "production";
+
+      // Mock the Cognito API response
+      mockSendImpl.mockResolvedValueOnce({
+        Users: [
+          {
+            Username: "user1@example.com",
+            Attributes: [{ Name: "email", Value: "user1@example.com" }],
             UserStatus: "CONFIRMED",
             Enabled: true,
-            Attributes: [
-              { Name: "email", Value: "active@example.com" },
-              { Name: "custom:role", Value: "user" },
-            ],
           },
-        ],
-      });
-
-      // Use manual mocking to avoid ESM issues
-      const originalGetUsersByStatus = cognitoAdmin.getUsersByStatus;
-      cognitoAdmin.getUsersByStatus = jest.fn().mockImplementation(async () => {
-        // Simulate the real function call that would happen in production
-        const command = new ListUsersCommand({
-          UserPoolId: "test-user-pool-id",
-          Filter: 'cognito:user_status = "CONFIRMED"',
-          Limit: 60,
-        });
-
-        const response = await mockSend(command);
-
-        // Process the response as the real function would
-        const users =
-          response.Users?.map((user) => {
-            const userObj = {
-              id: user.Username || "",
-              email: user.Username || "",
-              status: "active",
-              enabled: user.Enabled ?? false,
-              role: "user",
-            };
-            return userObj;
-          }) || [];
-
-        return users;
-      });
-
-      // Call the function
-      const result = await cognitoAdmin.getUsersByStatus("active");
-
-      // Verify mockSend was called
-      expect(mockSend).toHaveBeenCalled();
-
-      // Verify result
-      expect(result.length).toBe(1);
-      expect(result[0].email).toBe("active@example.com");
-      expect(result[0].status).toBe("active");
-
-      // Restore original function
-      cognitoAdmin.getUsersByStatus = originalGetUsersByStatus;
-    });
-
-    it("should handle 'suspended' status in production mode", async () => {
-      // Set production mode
-      process.env.NODE_ENV = "production";
-
-      // Setup mock response with suspended users
-      mockSend.mockResolvedValueOnce({
-        Users: [
           {
-            Username: "suspended@example.com",
+            Username: "user2@example.com",
+            Attributes: [{ Name: "email", Value: "user2@example.com" }],
             UserStatus: "CONFIRMED",
             Enabled: false,
-            Attributes: [
-              { Name: "email", Value: "suspended@example.com" },
-              { Name: "custom:status", Value: "suspended" },
-            ],
           },
         ],
       });
 
-      // Use manual mocking
-      const originalGetUsersByStatus = cognitoAdmin.getUsersByStatus;
-      cognitoAdmin.getUsersByStatus = jest.fn().mockImplementation(async () => {
-        // Simulate the real function call
-        const command = new ListUsersCommand({
-          UserPoolId: "test-user-pool-id",
-          Limit: 60,
-        });
+      const users = await getUsersByStatus("suspended");
 
-        const response = await mockSend(command);
-
-        // Process the response for suspended users
-        const users =
-          response.Users?.map((user) => {
-            const userObj = {
-              id: user.Username || "",
-              email: user.Username || "",
-              status: "suspended",
-              enabled: false,
-              role: "user",
-            };
-            return userObj;
-          }).filter((user) => !user.enabled) || [];
-
-        return users;
-      });
-
-      // Call the function
-      const result = await cognitoAdmin.getUsersByStatus("suspended");
-
-      // Verify mockSend was called
-      expect(mockSend).toHaveBeenCalled();
-
-      // Verify result
-      expect(result.length).toBe(1);
-      expect(result[0].email).toBe("suspended@example.com");
-      expect(result[0].status).toBe("suspended");
-      expect(result[0].enabled).toBe(false);
-
-      // Restore original function
-      cognitoAdmin.getUsersByStatus = originalGetUsersByStatus;
-    });
-
-    it("should handle errors gracefully", async () => {
-      // Set production mode
-      process.env.NODE_ENV = "production";
-
-      // Setup mock error
-      mockSend.mockRejectedValueOnce(new Error("API error"));
-
-      // Use manual mocking
-      const originalGetUsersByStatus = cognitoAdmin.getUsersByStatus;
-      cognitoAdmin.getUsersByStatus = jest.fn().mockImplementation(async () => {
-        try {
-          // Simulate throwing an error
-          throw new Error("API error");
-        } catch (error) {
-          console.error("Error fetching users:", error);
-          throw error;
-        }
-      });
-
-      // Expect the function to throw
-      await expect(cognitoAdmin.getUsersByStatus("pending")).rejects.toThrow(
-        "API error",
-      );
-
-      // Verify error was logged
-      expect(console.error).toHaveBeenCalled();
-
-      // Restore original function
-      cognitoAdmin.getUsersByStatus = originalGetUsersByStatus;
+      // Should only include the disabled user
+      expect(users.length).toBe(1);
+      expect(users[0].email).toBe("user2@example.com");
+      expect(users[0].enabled).toBe(false);
     });
   });
 
@@ -509,32 +322,19 @@ describe("Cognito Admin Utils", () => {
       // Set development mode
       process.env.NODE_ENV = "development";
 
-      // Use manual mocking to avoid ESM issues
-      const originalGetUserDetails = cognitoAdmin.getUserDetails;
-      cognitoAdmin.getUserDetails = jest.fn().mockResolvedValue({
-        id: "user1",
-        email: "user1@example.com",
-        firstName: "Test",
-        lastName: "User",
-        role: "admin",
-      });
+      const user = await getUserDetails("user1@example.com");
 
-      const result = await cognitoAdmin.getUserDetails("user1@example.com");
-
-      // Verify mock user was returned
-      expect(result.email).toBe("user1@example.com");
-      expect(result.firstName).toBe("Test");
-
-      // Restore original function
-      cognitoAdmin.getUserDetails = originalGetUserDetails;
+      // Should return mock user
+      expect(user.email).toBe("user1@example.com");
+      expect(user.firstName).toBe("Test");
     });
 
     it("should call Cognito API in production mode", async () => {
       // Set production mode
       process.env.NODE_ENV = "production";
 
-      // Setup mock response
-      mockSend.mockResolvedValueOnce({
+      // Mock the Cognito API response
+      mockSendImpl.mockResolvedValueOnce({
         Username: "user1@example.com",
         UserAttributes: [
           { Name: "email", Value: "user1@example.com" },
@@ -544,36 +344,38 @@ describe("Cognito Admin Utils", () => {
         ],
       });
 
-      // Use manual mocking to avoid ESM issues
-      const originalGetUserDetails = cognitoAdmin.getUserDetails;
-      cognitoAdmin.getUserDetails = jest
-        .fn()
-        .mockImplementation(async (email) => {
-          // Simulate the real function call that would happen in production
-          mockSend({});
-          AdminGetUserCommand({
-            UserPoolId: "test-user-pool-id",
-            Username: email,
-          });
+      const user = await getUserDetails("user1@example.com");
 
-          return {
-            email: "user1@example.com",
-            firstName: "Test",
-            lastName: "User",
-            role: "admin",
-          };
-        });
+      // Verify AWS SDK called with correct parameters
+      expect(mockAdminGetUserCommandImpl).toHaveBeenCalledWith({
+        UserPoolId: "test-user-pool-id",
+        Username: "user1@example.com",
+      });
 
-      const result = await cognitoAdmin.getUserDetails("user1@example.com");
+      // Verify user details
+      expect(user.email).toBe("user1@example.com");
+      expect(user.firstName).toBe("Test");
+      expect(user.lastName).toBe("User");
+      expect(user.role).toBe("admin");
+    });
 
-      // Verify result matches expected values
-      expect(result.email).toBe("user1@example.com");
-      expect(result.firstName).toBe("Test");
-      expect(result.lastName).toBe("User");
-      expect(result.role).toBe("admin");
+    it("should handle non-existent users gracefully", async () => {
+      // Set production mode
+      process.env.NODE_ENV = "production";
 
-      // Restore original function
-      cognitoAdmin.getUserDetails = originalGetUserDetails;
+      // Mock the Cognito API to throw an error
+      mockSendImpl.mockRejectedValueOnce(new Error("User does not exist"));
+
+      const user = await getUserDetails("nonexistent@example.com");
+
+      // Should return empty user object
+      expect(user).toEqual({});
+
+      // Verify error was logged
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining("Error fetching user details"),
+        expect.any(Error),
+      );
     });
   });
 
@@ -582,215 +384,26 @@ describe("Cognito Admin Utils", () => {
       // Set development mode
       process.env.NODE_ENV = "development";
 
-      // Use manual mocking to avoid ESM issues
-      const originalApproveUser = cognitoAdmin.approveUser;
-      cognitoAdmin.approveUser = jest.fn().mockResolvedValue(true);
+      const result = await approveUser("user@example.com");
 
-      const result = await cognitoAdmin.approveUser("user@example.com");
-
-      // Verify success response
+      // Should return success without calling AWS
       expect(result).toBe(true);
-
-      // Verify mockSend wasn't called
-      expect(mockSend).not.toHaveBeenCalled();
-
-      // Restore original function
-      cognitoAdmin.approveUser = originalApproveUser;
     });
 
     it("should call multiple Cognito API commands in production mode", async () => {
       // Set production mode
       process.env.NODE_ENV = "production";
 
-      // Setup mock responses for all calls
-      mockSend.mockResolvedValue({});
+      // Mock the Cognito API responses
+      mockSendImpl.mockResolvedValue({});
 
-      // Use manual mocking to avoid ESM issues
-      const originalApproveUser = cognitoAdmin.approveUser;
-      cognitoAdmin.approveUser = jest.fn().mockImplementation(async (email) => {
-        // Simulate the real function call that would happen in production
-        mockSend({});
-        mockSend({});
-        mockSend({});
+      const result = await approveUser("user@example.com");
 
-        AdminConfirmSignUpCommand({
-          UserPoolId: "test-user-pool-id",
-          Username: email,
-        });
+      // We expect multiple calls to mockSendImpl (confirm, enable, update attributes)
+      expect(mockSendImpl.mock.calls.length).toBeGreaterThanOrEqual(3);
 
-        AdminEnableUserCommand({
-          UserPoolId: "test-user-pool-id",
-          Username: email,
-        });
-
-        AdminUpdateUserAttributesCommand({
-          UserPoolId: "test-user-pool-id",
-          Username: email,
-          UserAttributes: [
-            {
-              Name: "custom:status",
-              Value: "ACTIVE",
-            },
-          ],
-        });
-
-        return true;
-      });
-
-      const result = await cognitoAdmin.approveUser("user@example.com");
-
-      // Verify success response
+      // Verify result
       expect(result).toBe(true);
-
-      // Verify mockSend was called multiple times
-      expect(mockSend).toHaveBeenCalledTimes(3);
-
-      // Restore original function
-      cognitoAdmin.approveUser = originalApproveUser;
-    });
-  });
-
-  describe("createUser", () => {
-    it("should create a new user in development mode", async () => {
-      // Set development mode
-      process.env.NODE_ENV = "development";
-
-      // Create a new user
-      const result = await cognitoAdmin.createUser(
-        "newuser@example.com",
-        "user",
-        true,
-      );
-
-      // Verify the result
-      expect(result.success).toBe(true);
-      expect(result.user?.email).toBe("newuser@example.com");
-      expect(result.user?.role).toBe("user");
-      expect(result.user?.status).toBe("pending");
-
-      // Verify AWS was not called
-      expect(mockSend).not.toHaveBeenCalled();
-    });
-
-    it("should call Cognito API in production mode", async () => {
-      // Set production mode
-      process.env.NODE_ENV = "production";
-
-      // Setup mock response
-      mockSend.mockResolvedValueOnce({
-        User: {
-          Username: "newuser@example.com",
-          UserStatus: "FORCE_CHANGE_PASSWORD",
-          Enabled: true,
-        },
-      });
-
-      // Setup second mock response for group assignment
-      mockSend.mockResolvedValueOnce({});
-
-      // Use manual mocking to avoid ESM issues
-      const originalCreateUser = cognitoAdmin.createUser;
-      cognitoAdmin.createUser = jest
-        .fn()
-        .mockImplementation(async (email, role, sendEmail) => {
-          // Simulate the real function call that would happen in production
-          const createCommand = new AdminCreateUserCommand({
-            UserPoolId: "test-user-pool-id",
-            Username: email,
-            UserAttributes: [
-              {
-                Name: "email",
-                Value: email,
-              },
-              {
-                Name: "email_verified",
-                Value: "true",
-              },
-              {
-                Name: "custom:role",
-                Value: role,
-              },
-            ],
-            MessageAction: sendEmail
-              ? MessageActionType.SEND
-              : MessageActionType.SUPPRESS,
-          });
-
-          await mockSend(createCommand);
-
-          // If role is specified, add user to group
-          if (role) {
-            const addToGroupCommand = new AdminAddUserToGroupCommand({
-              UserPoolId: "test-user-pool-id",
-              Username: email,
-              GroupName: role.toUpperCase(),
-            });
-
-            await mockSend(addToGroupCommand);
-          }
-
-          return {
-            success: true,
-            user: {
-              email,
-              status: "pending",
-              role,
-            },
-          };
-        });
-
-      // Create a new user
-      const result = await cognitoAdmin.createUser(
-        "newuser@example.com",
-        "user",
-        true,
-      );
-
-      // Verify mockSend was called twice (once for create, once for group)
-      expect(mockSend).toHaveBeenCalledTimes(2);
-
-      // Verify result
-      expect(result.success).toBe(true);
-      expect(result.user?.email).toBe("newuser@example.com");
-
-      // Restore original function
-      cognitoAdmin.createUser = originalCreateUser;
-    });
-
-    it("should handle errors gracefully", async () => {
-      // Set production mode
-      process.env.NODE_ENV = "production";
-
-      // Setup mock error
-      mockSend.mockRejectedValueOnce(new Error("User already exists"));
-
-      // Use manual mocking to avoid ESM issues
-      const originalCreateUser = cognitoAdmin.createUser;
-      cognitoAdmin.createUser = jest.fn().mockImplementation(async () => {
-        try {
-          // Simulate throwing an error
-          throw new Error("User already exists");
-        } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-          };
-        }
-      });
-
-      // Create a new user that will fail
-      const result = await cognitoAdmin.createUser(
-        "existing@example.com",
-        "user",
-        true,
-      );
-
-      // Verify result
-      expect(result.success).toBe(false);
-      expect(result.error).toBe("User already exists");
-
-      // Restore original function
-      cognitoAdmin.createUser = originalCreateUser;
     });
   });
 });

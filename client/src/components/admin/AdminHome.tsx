@@ -4,6 +4,7 @@ import {
   fetchAdminStats,
   type AuditLog as BackendAuditLog,
   AdminEvents,
+  emitAdminEvent,
   clearAdminStatsCache,
 } from "../../utils/adminUser";
 import Spinner from "../Spinner";
@@ -44,7 +45,7 @@ const formatDateToHST = (dateString: string): string => {
   try {
     const date = new Date(dateString);
     return date.toLocaleString("en-US", {
-      timeZone: "Pacific/Honolulu", // Explicitly use HST
+      timeZone: "Pacific/Honolulu",
       year: "numeric",
       month: "numeric",
       day: "numeric",
@@ -61,7 +62,18 @@ const formatDateToHST = (dateString: string): string => {
 
 // Add window type extensions
 declare global {
-  // Window interface is now defined in types.d.ts
+  interface Window {
+    createDebouncedHandler: () => (event: CustomEvent) => void;
+    debouncedHandler: (event: CustomEvent) => void;
+    emitSingleEvent: (eventType?: string) => string;
+    manualRefresh: () => string;
+    adminUser: {
+      clearAdminStatsCache: () => void;
+      clearUserCache: () => void;
+      emitAdminEvent: typeof emitAdminEvent;
+      AdminEvents: typeof AdminEvents;
+    };
+  }
 }
 
 export default function AdminHome() {
@@ -75,20 +87,9 @@ export default function AdminHome() {
   // Add state for pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [activitiesPerPage] = useState<number>(15); // Show 15 activities per page
-  // Add filters state
+  // Add user filter
   const [userFilter, setUserFilter] = useState<string>("");
-  const [actionFilter, setActionFilter] = useState<string>("");
-  const [adminEmailFilter, setAdminEmailFilter] = useState<string>(""); // State for admin email filter
-  const [startDateFilter, setStartDateFilter] = useState<string>(""); // State for start date filter
-  const [endDateFilter, setEndDateFilter] = useState<string>(""); // State for end date filter
   const [showFilters, setShowFilters] = useState<boolean>(false);
-
-  // Define possible actions for the filter dropdown
-  // Include USER_UPDATED for backward compatibility in the dropdown
-  const possibleActions = [
-    ...Object.values(AdminEvents),
-    "USER_UPDATED", // Add USER_UPDATED for backward compatibility
-  ].filter((action) => action !== "USER_STATUS_UPDATED");
 
   // Function to fetch stats with improved error handling and debugging
   const fetchStats = useCallback(async (forceRefresh = true) => {
@@ -128,7 +129,7 @@ export default function AdminHome() {
           });
         } else {
           logDebug(
-            "No activities received from API - this could indicate a backend issue",
+            "⚠️ No activities received from API - this could indicate a backend issue",
           );
         }
 
@@ -208,7 +209,7 @@ export default function AdminHome() {
             );
           });
         } else {
-          logDebug("No activities found after filtering and sorting");
+          logDebug("⚠️ No activities found after filtering and sorting");
 
           // If we have no activities, schedule a retry with delay
           if (forceRefresh) {
@@ -230,7 +231,7 @@ export default function AdminHome() {
                     );
                     setAdminStats(retryStats as unknown as AdminStats);
                   } else {
-                    logDebug("Retry failed to get activities");
+                    logDebug("⚠️ Retry failed to get activities");
                   }
                   setIsLoading(false);
                 })
@@ -288,7 +289,7 @@ export default function AdminHome() {
       logDebug(`Admin action detected: ${eventType}`);
       if (
         eventType === AdminEvents.USER_DELETED ||
-        eventType === AdminEvents.USER_PROFILE_UPDATED ||
+        eventType === AdminEvents.USER_UPDATED ||
         eventType === AdminEvents.USER_APPROVED ||
         eventType === AdminEvents.USER_REJECTED ||
         eventType === AdminEvents.USER_SUSPENDED ||
@@ -396,7 +397,7 @@ export default function AdminHome() {
       logDebug(`Admin action detected: ${eventType}`);
       if (
         eventType === AdminEvents.USER_DELETED ||
-        eventType === AdminEvents.USER_PROFILE_UPDATED ||
+        eventType === AdminEvents.USER_UPDATED ||
         eventType === AdminEvents.USER_APPROVED ||
         eventType === AdminEvents.USER_REJECTED ||
         eventType === AdminEvents.USER_SUSPENDED ||
@@ -488,18 +489,16 @@ export default function AdminHome() {
 
       // Clear any pending refreshes
       if (timeout) {
-        console.log("Cancelling previous pending refresh");
+        console.log("🛑 Cancelling previous pending refresh");
         clearTimeout(timeout);
       }
 
       // If already refreshing, just schedule a final refresh
       if (isRefreshing) {
-        console.log("Already refreshing, scheduling final refresh only");
+        console.log("⏳ Already refreshing, scheduling final refresh only");
         timeout = setTimeout(() => {
-          console.log("Executing final debounced refresh");
-          if (window.adminUser) {
-            window.adminUser.clearAdminStatsCache();
-          }
+          console.log("🔄 Executing final debounced refresh");
+          window.adminUser.clearAdminStatsCache();
           // No need to set force counter or anything - this is direct
           timeout = null;
           isRefreshing = false;
@@ -509,17 +508,15 @@ export default function AdminHome() {
 
       // Start a new refresh sequence
       isRefreshing = true;
-      console.log("Starting debounced refresh sequence");
+      console.log("🔄 Starting debounced refresh sequence");
 
       // Clear cache immediately
-      if (window.adminUser) {
-        window.adminUser.clearAdminStatsCache();
-      }
+      window.adminUser.clearAdminStatsCache();
 
       // Set a delayed refresh
       timeout = setTimeout(() => {
-        console.log("Executing debounced refresh");
-        // This would ideally call  fetchStats function directly
+        console.log("🔄 Executing debounced refresh");
+        // This would ideally call your fetchStats function directly
         // but we can use a workaround
         document.dispatchEvent(new CustomEvent("manualRefresh"));
 
@@ -820,8 +817,7 @@ export default function AdminHome() {
             {/* Filter controls */}
             {showFilters && (
               <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* User Email Filter */}
+                <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4">
                   <div className="flex-1">
                     <label
                       htmlFor="userFilter"
@@ -841,99 +837,10 @@ export default function AdminHome() {
                       className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     />
                   </div>
-                  {/* Action Filter Dropdown */}
-                  <div className="flex-1">
-                    <label
-                      htmlFor="actionFilter"
-                      className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Filter by Action
-                    </label>
-                    <select
-                      id="actionFilter"
-                      value={actionFilter}
-                      onChange={(e) => {
-                        setActionFilter(e.target.value);
-                        setCurrentPage(1); // Reset page on filter change
-                      }}
-                      className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    >
-                      <option value="">All Actions</option>
-                      {possibleActions.map((action) => (
-                        <option key={action} value={action}>
-                          {formatActionName(action)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Admin Email Filter */}
-                  <div className="flex-1">
-                    <label
-                      htmlFor="adminEmailFilter"
-                      className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >
-                      Filter by Admin Email
-                    </label>
-                    <input
-                      type="text"
-                      id="adminEmailFilter"
-                      value={adminEmailFilter}
-                      onChange={(e) => {
-                        setAdminEmailFilter(e.target.value);
-                        setCurrentPage(1);
-                      }}
-                      placeholder="Enter admin email"
-                      className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    />
-                  </div>
-                  {/* Date Range Filter */}
-                  <div className="flex-1 grid grid-cols-2 gap-2">
-                    <div>
-                      <label
-                        htmlFor="startDateFilter"
-                        className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-                      >
-                        Start Date
-                      </label>
-                      <input
-                        type="date"
-                        id="startDateFilter"
-                        value={startDateFilter}
-                        onChange={(e) => {
-                          setStartDateFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                        className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label
-                        htmlFor="endDateFilter"
-                        className="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300"
-                      >
-                        End Date
-                      </label>
-                      <input
-                        type="date"
-                        id="endDateFilter"
-                        value={endDateFilter}
-                        onChange={(e) => {
-                          setEndDateFilter(e.target.value);
-                          setCurrentPage(1);
-                        }}
-                        className="w-full p-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-                  {/* Clear Filters Button */}
                   <div className="flex items-end">
                     <button
                       onClick={() => {
                         setUserFilter("");
-                        setActionFilter("");
-                        setAdminEmailFilter("");
-                        setStartDateFilter("");
-                        setEndDateFilter("");
                         setCurrentPage(1);
                       }}
                       className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-300 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700"
@@ -974,58 +881,21 @@ export default function AdminHome() {
                   <tbody>
                     {adminStats?.recentActivity &&
                     adminStats.recentActivity.length > 0 ? (
-                      // Filter activities based on current filters
+                      // Filter activities by user email if filter is set
                       adminStats.recentActivity
                         .filter((activity) => {
-                          // User Email Filter
-                          const emailMatches = (() => {
-                            if (!userFilter) return true;
-                            const email =
-                              activity.resourceId ||
-                              (activity.details &&
-                                (activity.details.email as string)) ||
-                              "";
-                            return email
-                              .toLowerCase()
-                              .includes(userFilter.toLowerCase());
-                          })();
+                          if (!userFilter) return true;
 
-                          // Action Filter
-                          const actionMatches = actionFilter
-                            ? // Special handling for USER_UPDATED action
-                              actionFilter === "USER_UPDATED"
-                              ? activity.action === "USER_PROFILE_UPDATED"
-                              : activity.action === actionFilter
-                            : true;
+                          // Check different places where the email might be stored
+                          const email =
+                            activity.resourceId ||
+                            (activity.details &&
+                              (activity.details.email as string)) ||
+                            "";
 
-                          // Admin Email Filter
-                          const adminEmailMatches = adminEmailFilter
-                            ? (activity.performedBy || "")
-                                .toLowerCase()
-                                .includes(adminEmailFilter.toLowerCase())
-                            : true;
-
-                          // Date Range Filter
-                          const activityDate = new Date(activity.timestamp);
-                          // Adjust start date to beginning of the day (local time)
-                          const startDate = startDateFilter
-                            ? new Date(startDateFilter + "T00:00:00")
-                            : null;
-                          // Adjust end date to end of the day (local time)
-                          const endDate = endDateFilter
-                            ? new Date(endDateFilter + "T23:59:59.999")
-                            : null;
-
-                          const dateMatches =
-                            (!startDate || activityDate >= startDate) &&
-                            (!endDate || activityDate <= endDate);
-
-                          return (
-                            emailMatches &&
-                            actionMatches &&
-                            adminEmailMatches &&
-                            dateMatches
-                          ); // Combine all filters
+                          return email
+                            .toLowerCase()
+                            .includes(userFilter.toLowerCase());
                         })
                         // Apply pagination to display only a subset of activities
                         .slice(
@@ -1102,53 +972,18 @@ export default function AdminHome() {
                   // Get filtered activities
                   const filteredActivities = adminStats.recentActivity.filter(
                     (activity) => {
-                      // User Email Filter
-                      const emailMatches = (() => {
-                        if (!userFilter) return true;
-                        const email =
-                          activity.resourceId ||
-                          (activity.details &&
-                            (activity.details.email as string)) ||
-                          "";
-                        return email
-                          .toLowerCase()
-                          .includes(userFilter.toLowerCase());
-                      })();
+                      if (!userFilter) return true;
 
-                      // Action Filter
-                      const actionMatches = actionFilter
-                        ? // Special handling for USER_UPDATED action
-                          actionFilter === "USER_UPDATED"
-                          ? activity.action === "USER_PROFILE_UPDATED"
-                          : activity.action === actionFilter
-                        : true;
+                      // Check different places where the email might be stored
+                      const email =
+                        activity.resourceId ||
+                        (activity.details &&
+                          (activity.details.email as string)) ||
+                        "";
 
-                      // Admin Email Filter
-                      const adminEmailMatches = adminEmailFilter
-                        ? (activity.performedBy || "")
-                            .toLowerCase()
-                            .includes(adminEmailFilter.toLowerCase())
-                        : true;
-
-                      // Date Range Filter
-                      const activityDate = new Date(activity.timestamp);
-                      const startDate = startDateFilter
-                        ? new Date(startDateFilter + "T00:00:00")
-                        : null;
-                      const endDate = endDateFilter
-                        ? new Date(endDateFilter + "T23:59:59.999")
-                        : null;
-
-                      const dateMatches =
-                        (!startDate || activityDate >= startDate) &&
-                        (!endDate || activityDate <= endDate);
-
-                      return (
-                        emailMatches &&
-                        actionMatches &&
-                        adminEmailMatches &&
-                        dateMatches
-                      ); // Combine all filters
+                      return email
+                        .toLowerCase()
+                        .includes(userFilter.toLowerCase());
                     },
                   );
 
@@ -1276,14 +1111,12 @@ const formatActionName = (action: string): string => {
     USER_REACTIVATED: "User Reactivated",
     USER_CREATED: "User Created",
     USER_ROLE_UPDATED: "Role Updated",
-    USER_PROFILE_UPDATED: "User Profile Updated",
     USER_DELETED: "User Deleted",
-    USER_UPDATED: "User Profile Updated", // Add mapping for backward compatibility
     ASSESSMENT_CREATED: "Assessment Created",
     ASSESSMENT_COMPLETED: "Assessment Completed",
     ASSESSMENT_DELETED: "Assessment Deleted",
     // Keep this for backward compatibility with existing data
-    USER_STATUS_UPDATED: "Status Updated", // This might be obsolete now
+    USER_STATUS_UPDATED: "Status Updated",
   };
 
   // Return the mapped value or format the raw action string
@@ -1300,24 +1133,16 @@ const getActionBadgeStyle = (action: string): string => {
   ) {
     return "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300";
   }
-  // Rejection actions - orange
-  else if (action.includes("REJECTED")) {
-    return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
-  }
-  // Deletion actions - red
-  else if (action.includes("DELETED")) {
+  // Negative actions - red
+  else if (action.includes("REJECTED") || action.includes("DELETED")) {
     return "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300";
   }
-  // Suspension actions - yellow
+  // Warning actions - orange
   else if (action.includes("SUSPENDED")) {
-    return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300";
+    return "bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300";
   }
-  // Update actions - purple - handle both USER_PROFILE_UPDATED and USER_UPDATED
-  else if (
-    action === "USER_ROLE_UPDATED" ||
-    action === "USER_PROFILE_UPDATED" ||
-    action === "USER_UPDATED"
-  ) {
+  // Update actions - purple
+  else if (action === "USER_ROLE_UPDATED") {
     return "bg-purple-100 text-purple-600 dark:bg-purple-900 dark:text-purple-300";
   }
   // Default style - gray
@@ -1408,24 +1233,6 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             </span>
           </span>
         );
-      case "USER_PROFILE_UPDATED":
-      case "USER_UPDATED": // Handle both for backward compatibility
-        return (
-          <span>
-            <span className="font-medium text-purple-600 dark:text-purple-400">
-              Profile updated
-            </span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {getAdminInfo(activity.performedBy)}
-            </span>
-            <span className="block text-xs text-gray-500 dark:text-gray-400">
-              on{" "}
-              {safeTimeDisplay(
-                (activity.details.updatedAt as string) || activity.timestamp,
-              )}
-            </span>
-          </span>
-        );
       case "USER_DELETED":
         return (
           <span>
@@ -1485,10 +1292,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
       case "USER_REJECTED":
         return (
           <span>
-            <strong className="text-orange-600 dark:text-orange-400">
-              Rejected
-            </strong>{" "}
-            {/* Changed text color to orange */}
+            <strong className="text-red-600 dark:text-red-400">Rejected</strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
               {getAdminInfo(activity.performedBy)}
             </span>
@@ -1521,9 +1325,7 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
 
         return (
           <span>
-            <strong className="text-yellow-600 dark:text-yellow-400">
-              {" "}
-              {/* Changed text color to yellow */}
+            <strong className="text-orange-600 dark:text-orange-400">
               Suspended
             </strong>
             <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">

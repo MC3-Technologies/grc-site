@@ -11,11 +11,15 @@ const redirectToAssessments = (): void => {
 };
 
 const redirectToInProgressAssessment = (assessmentId: string): void => {
-  window.location.href = `/assessment/?assessment-id=${encodeURIComponent(assessmentId)}`;
+  window.location.href = `/assessment/?assessment-id=${assessmentId}`;
 };
 
 const redirectToCompletedAssessment = (assessmentId: string): void => {
-  window.location.href = `/completed-assessment/?assessment-id=${encodeURIComponent(assessmentId)}`;
+  window.location.href = `/completed-assessment/?assessment-id=${assessmentId}`;
+};
+
+const redirectToReport = (assessmentId: string): void => {
+  window.location.href = `/report/?assessment-id=${assessmentId}`;
 };
 
 export {
@@ -24,4 +28,5 @@ export {
   redirectToAssessments,
   redirectToInProgressAssessment,
   redirectToCompletedAssessment,
+  redirectToReport,
 };

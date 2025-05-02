@@ -21,10 +21,8 @@ type PageData = {
   assessment: Model | null;
   assessmentData: {
     id: string;
-    name: string;
     completedAt: string;
     complianceScore: number;
-    isCompliant: boolean;
     storagePath: string;
     version: string;
     owner: string | null;
@@ -141,23 +139,9 @@ export function CompletedAssessmentView() {
             assessmentIdParam,
           );
 
-        // Parse the assessment JSON data
-        const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
-
-        // Use the questionnaire stored with the assessment if available
-        // Otherwise fall back to the latest questionnaire data (for backward compatibility)
-        let questionnaireData;
-        if (parsedAssessmentData && parsedAssessmentData.questionnaire) {
-          console.log("Using questionnaire stored with assessment");
-          questionnaireData = parsedAssessmentData.questionnaire;
-        } else {
-          console.log("Using latest questionnaire (compatibility mode)");
-          questionnaireData = await getLatestQuestionnaireData();
-        }
-
-        // Create assessment survey model with the data
-        const assessment = new Model(questionnaireData);
-        assessment.data = parsedAssessmentData.data || parsedAssessmentData;
+        // Create assessment and give assessment data
+        const assessment = new Model(getLatestQuestionnaireData());
+        assessment.data = JSON.parse(assessmentJsonData as string);
 
         // Set survey to display mode (read-only)
         assessment.mode = "display";
@@ -300,7 +284,7 @@ export function CompletedAssessmentView() {
                   Back to Assessments
                 </button>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {assessmentData.name}
+                  {assessmentData.completedAt}
                 </h1>
               </div>
 
@@ -361,7 +345,7 @@ export function CompletedAssessmentView() {
                 </div>
 
                 {/* Compliance Status */}
-                <div
+                {/* <div
                   className={`flex items-center p-3 rounded-md ${
                     assessmentData.isCompliant
                       ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50"
@@ -418,7 +402,7 @@ export function CompletedAssessmentView() {
                       ? "CMMC Level 1 Compliant"
                       : "Not Compliant with CMMC Level 1"}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
 
