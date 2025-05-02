@@ -10,7 +10,7 @@ export const preSignUpFunction = defineFunction({
       "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
     REGION: process.env.REGION || "us-west-1",
     ADMIN_EMAIL: process.env.ADMIN_EMAIL || "cmmc.support@mc3technologies.com",
-    FROM_EMAIL: process.env.FROM_EMAIL || "cmmc.support@mc3technologies.com",
+    FROM_EMAIL: process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com",
     ADMIN_URL: process.env.ADMIN_URL || "http://localhost:5173/admin/",
     ADMIN_NOTIFICATION_TOPIC_ARN:
       process.env.ADMIN_NOTIFICATION_TOPIC_ARN || "",

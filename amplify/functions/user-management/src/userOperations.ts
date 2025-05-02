@@ -111,7 +111,7 @@ export const sendEmail = async ({
           Data: subject,
         },
       },
-      Source: env.EMAIL_SENDER || "cmmc.support@mc3technologies.com",
+      Source: env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
     });
 
     await ses.send(command);
