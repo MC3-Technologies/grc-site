@@ -1,6 +1,6 @@
 // Email configuration
 export const FROM_EMAIL =
-  process.env.FROM_EMAIL || "cmmc.support@mc3technologies.com";
+  process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com";
 
 // Other configuration constants can be added here as needed
 export const ADMIN_EMAIL =

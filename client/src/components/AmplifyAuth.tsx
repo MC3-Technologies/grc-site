@@ -41,6 +41,47 @@ const AmplifyAuth = ({ initialTab }: Props) => {
     };
   }, [authEvents]);
 
+  const formFields = {
+    signUp: {
+      given_name: {
+        order: 1,
+        isRequired: true,
+        placeholder: "Enter your First Name",
+        label: "First Name",
+      },
+      family_name: {
+        order: 2,
+        isRequired: true,
+        placeholder: "Enter your Last Name",
+        label: "Last Name",
+      },
+      "custom:companyName": {
+        order: 3,
+        isRequired: true,
+        placeholder: "Enter your Company Name",
+        label: "Company Name",
+      },
+      email: {
+        order: 4,
+        isRequired: true,
+        placeholder: "Enter your Email",
+        label: "Email",
+      },
+      password: {
+        order: 5,
+        isRequired: true,
+        placeholder: "Enter your Password",
+        label: "Password",
+      },
+      confirm_password: {
+        order: 6,
+        isRequired: true,
+        placeholder: "Confirm your Password",
+        label: "Confirm Password",
+      },
+    },
+  };
+
   const components = {
     Header() {
       return (
@@ -65,6 +106,7 @@ const AmplifyAuth = ({ initialTab }: Props) => {
     <Authenticator
       {...(initialTab ? { initialState: initialTab } : {})}
       components={components}
+      formFields={formFields}
     >
       <Spinner />
     </Authenticator>

@@ -33,7 +33,7 @@ const FROM_EMAIL =
   process.env.EMAIL_SENDER ||
   amplifyEnv.FROM_EMAIL ||
   process.env.FROM_EMAIL ||
-  "cmmc.support@mc3technologies.com";
+  "no-reply-grc@mc3technologies.com";
 
 // Log email configuration for debugging
 console.log("Email configuration:", {

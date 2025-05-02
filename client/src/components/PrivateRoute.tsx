@@ -39,7 +39,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
           // If this is your admin email, bypass the active check
           if (
             user &&
-            (user.email === "cmmc.support@mc3technologies.com" ||
+            (user.email === "no-reply-grc@mc3technologies.com" ||
               user.email === "imatar77@hawaii.edu")
           ) {
             setIsActive(true);

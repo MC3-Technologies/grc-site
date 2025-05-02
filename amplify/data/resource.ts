@@ -13,18 +13,22 @@ const schema = a.schema({
   CompletedAssessment: a
     .model({
       id: a.id().required(),
+      name: a.string().required(),
       completedAt: a.string().required(),
       complianceScore: a.integer().required(),
+      isCompliant: a.boolean().required(),
       storagePath: a.string().required(),
       version: a.string().required(),
+      duration: a.integer().required(),
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
-      allow.groups(["GRC-Admin"]).to(["read"]),
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]), // Grant full CRUD to Admins
     ]),
   InProgressAssessment: a
     .model({
       id: a.id().required(),
+      name: a.string().required(),
       currentPage: a.integer().required(),
       percentCompleted: a.integer().required(),
       storagePath: a.string().required(),
@@ -33,7 +37,7 @@ const schema = a.schema({
     })
     .authorization((allow) => [
       allow.owner().to(["read", "create", "update", "delete"]),
-      allow.groups(["GRC-Admin"]).to(["read"]),
+      allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]), // Grant full CRUD to Admins
     ]),
   gptCompletion: a
     .query()
@@ -50,6 +54,9 @@ const schema = a.schema({
       email: a.string().required(),
       status: a.enum(["pending", "active", "suspended", "rejected"]),
       role: a.enum(["user", "admin"]),
+      lastName: a.string(),
+      firstName: a.string(),
+      companyName: a.string(),
       lastLogin: a.string(),
       registrationDate: a.string().required(),
       notes: a.string(),
@@ -149,6 +156,9 @@ const schema = a.schema({
       role: a.string().required(),
       sendEmail: a.boolean(),
       adminEmail: a.string(),
+      firstName: a.string(),
+      lastName: a.string(),
+      companyName: a.string(),
     })
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
@@ -162,6 +172,19 @@ const schema = a.schema({
       adminEmail: a.string(),
     })
     .returns(a.boolean())
+    .authorization((allow) => [allow.groups(["GRC-Admin"])])
+    .handler(a.handler.function(userManagementFunction)),
+
+  updateUserProfile: a // New mutation for profile updates
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      firstName: a.string(),
+      lastName: a.string(),
+      companyName: a.string(),
+      adminEmail: a.string(), // To log who made the change
+    })
+    .returns(a.boolean()) // Return true on success, false on failure
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
 

@@ -33,7 +33,7 @@ export const getRelativeTimeString = (isoDateString: string): string => {
   try {
     const date = new Date(isoDateString);
 
-    // Check if date is valid
+    // Check if date is valid first
     if (isNaN(date.getTime())) {
       return "Invalid date";
     }
@@ -65,10 +65,11 @@ export const getRelativeTimeString = (isoDateString: string): string => {
       return `${days} days ago`;
     }
 
-    // Fall back to regular date format
+    // Fall back to regular date format for older dates
     return formatDateTime(isoDateString);
   } catch (error) {
     console.error("Error calculating relative time:", error);
-    return isoDateString; // Return original string as fallback
+    // Return original string as fallback if calculations/formatting fail
+    return isoDateString;
   }
 };

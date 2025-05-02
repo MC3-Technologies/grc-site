@@ -294,6 +294,9 @@ describe("User Management Handler", () => {
         "StandardUser",
         true,
         "admin@example.com",
+        undefined, // firstName
+        undefined, // lastName
+        undefined, // companyName
       );
       expect(result).toBe(true);
     });

@@ -153,6 +153,9 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
           event.arguments?.role,
           event.arguments?.sendEmail,
           event.arguments?.adminEmail,
+          event.arguments?.firstName, // Pass firstName
+          event.arguments?.lastName, // Pass lastName
+          event.arguments?.companyName, // Pass companyName
         );
         console.log(
           `[DEBUG] createUser operation COMPLETE - result=${JSON.stringify(createResult)}`,
@@ -172,6 +175,22 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
           `[DEBUG] updateUserRole operation COMPLETE - result=${JSON.stringify(updateRoleResult)}`,
         );
         return updateRoleResult;
+
+      case "updateUserProfile": // Add case for the new mutation
+        console.log(
+          `[DEBUG] updateUserProfile operation START - email=${event.arguments?.email}, firstName=${event.arguments?.firstName}, lastName=${event.arguments?.lastName}, companyName=${event.arguments?.companyName}, adminEmail=${event.arguments?.adminEmail}`,
+        );
+        const updateProfileResult = await userOperations.updateUserProfile(
+          event.arguments?.email,
+          event.arguments?.firstName,
+          event.arguments?.lastName,
+          event.arguments?.companyName,
+          event.arguments?.adminEmail,
+        );
+        console.log(
+          `[DEBUG] updateUserProfile operation COMPLETE - result=${JSON.stringify(updateProfileResult)}`,
+        );
+        return updateProfileResult;
 
       case "deleteUser":
         console.log(

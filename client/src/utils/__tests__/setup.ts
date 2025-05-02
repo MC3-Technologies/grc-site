@@ -73,12 +73,25 @@ export const createTestAssessmentFile = (
   return new File([blob], filename, { type: "application/json" });
 };
 
-// Reset all mocks before each test
+// Reset all mocks before each test - safely handle missing functions
 export const resetAllMocks = () => {
-  __resetMockClient();
-  __resetMockStorage();
-  __resetMockAuth();
-  __resetMockCognito();
-  __resetMockSES();
-  __resetMockDynamoDB();
+  // Safely reset each mock, handling cases where a reset function might be undefined
+  const safeReset = (resetFn: unknown) => {
+    if (typeof resetFn === "function") {
+      try {
+        resetFn();
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        console.warn(`Error resetting mock: ${errorMessage}`);
+      }
+    }
+  };
+
+  safeReset(__resetMockClient);
+  safeReset(__resetMockStorage);
+  safeReset(__resetMockAuth);
+  safeReset(__resetMockCognito);
+  safeReset(__resetMockSES);
+  safeReset(__resetMockDynamoDB);
 };
