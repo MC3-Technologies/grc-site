@@ -2,6 +2,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { chatGptFunction } from "../functions/chat-gpt/resource";
 import { userManagementFunction } from "../functions/user-management/resource";
+import { preSignUpFunction } from '../functions/auth-triggers/resource';
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -65,7 +66,7 @@ const schema = a.schema({
       approvedBy: a.string(),
       lastStatusChange: a.string(),
       lastStatusChangeBy: a.string(),
-      nickname: a.string(),
+      //nickname: a.string(),
     })
     .secondaryIndexes((index) => [
       index("status")
@@ -263,7 +264,10 @@ const schema = a.schema({
     .returns(a.json())
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
-});
+}).authorization(allow => [
+  // Grant the auth-trigger Lambda permission to create & update any model via the API
+  allow.resource(preSignUpFunction).to(["mutate", "query"])
+]);
 
 export type Schema = ClientSchema<typeof schema>;
 

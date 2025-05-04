@@ -9,6 +9,7 @@ import {
 } from "../amplify/auth";
 import Spinner from "./Spinner";
 import { Alert } from "./Alert";
+import { ensureUserRecordExists } from "../utils/autoCreateUserRecord";
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -33,6 +34,9 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
         setIsAuthenticated(authenticated);
 
         if (authenticated) {
+          // Try to create DynamoDB record if it doesn't exist
+          await ensureUserRecordExists();
+
           // TEMPORARY FIX: Check if this is the admin account
           const user = await getCurrentUser();
 

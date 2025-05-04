@@ -12,16 +12,20 @@ export const userManagementFunction = defineFunction({
       process.env.LOGO_URL ||
       "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png",
 
-    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_10IP1yz5s",
+    // Updated user pool ID as specified by user
+    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_ZIDNJDzP5",
+    
     // DynamoDB table names
     SYSTEM_SETTINGS_TABLE_NAME:
-      "SystemSettings-fk4antj52jgh3j6qjhbhwur5qa-NONE",
-    AUDIT_LOG_TABLE_NAME: "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.SYSTEM_SETTINGS_TABLE_NAME || "SystemSettings-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+    AUDIT_LOG_TABLE_NAME: 
+      process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE",
     COMPLETED_ASSESSMENT_TABLE_NAME:
-      "CompletedAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.COMPLETED_ASSESSMENT_TABLE_NAME || "CompletedAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
     IN_PROGRESS_ASSESSMENT_TABLE_NAME:
-      "InProgressAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
-    USER_STATUS_TABLE_NAME: "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.IN_PROGRESS_ASSESSMENT_TABLE_NAME || "InProgressAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+    USER_STATUS_TABLE_NAME: 
+      process.env.USER_STATUS_TABLE_NAME || "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE",
     FROM_EMAIL: process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com",
   },
   timeoutSeconds: 60,

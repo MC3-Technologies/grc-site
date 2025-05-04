@@ -42,7 +42,7 @@ export const auth = defineAuth({
 
   triggers: {
     preSignUp: preSignUpFunction,
-    postConfirmation: preSignUpFunction,
+    postConfirmation: preSignUpFunction
   },
 
   // Admin-only access to user management functions

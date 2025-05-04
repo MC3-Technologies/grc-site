@@ -5,6 +5,7 @@ import Spinner from "./Spinner";
 import { Hub } from "aws-amplify/utils";
 import { getCurrentUser, ListenData } from "../amplify/auth";
 import { redirectHome } from "../utils/routing";
+import { ensureUserRecordExists } from "../utils/autoCreateUserRecord";
 
 interface Props {
   initialTab?: "signUp" | "forgotPassword";
@@ -19,6 +20,8 @@ const AmplifyAuth = ({ initialTab }: Props) => {
       try {
         const user = await getCurrentUser();
         if (user) {
+          // Ensure the user has a DynamoDB record before redirecting
+          await ensureUserRecordExists();
           window.location.href = "/";
         }
       } catch (error) {
@@ -28,8 +31,11 @@ const AmplifyAuth = ({ initialTab }: Props) => {
     checkUser();
     getAmplify();
     setIsLoading(false);
-    const hubListener = Hub.listen("auth", (data: ListenData) => {
-      if (data.payload.event !== "signedIn") {
+    const hubListener = Hub.listen("auth", async (data: ListenData) => {
+      if (data.payload.event === "signedIn") {
+        // User just signed in, ensure they have a DynamoDB record
+        await ensureUserRecordExists();
+      } else {
         setAuthEvents(data);
       }
       redirectHome();

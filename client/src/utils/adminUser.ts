@@ -16,16 +16,13 @@ export { getClientSchema };
 // Set this to false to use real data from the API
 const USE_MOCK_DATA = false;
 
-// Cache configuration
-const CACHE_DURATION_MS = 30 * 1000; // 30 seconds (reduced from 2 minutes)
-const USER_CACHE_KEY = "admin_users_cache";
-const USER_CACHE_TIMESTAMP_KEY = "admin_users_cache_timestamp";
-const USER_CACHE_BY_STATUS_PREFIX = "admin_users_cache_status_";
-
-// Cache configuration for admin stats
-const ADMIN_STATS_CACHE_KEY = "admin_stats_cache";
-const ADMIN_STATS_CACHE_TIMESTAMP_KEY = "admin_stats_cache_timestamp";
-const ADMIN_STATS_CACHE_DURATION_MS = 15 * 1000; // 15 seconds (reduced from 60 seconds)
+// Define constants for user caching
+const USER_CACHE_KEY = "userCache";
+const USER_CACHE_TIMESTAMP_KEY = "userCacheTimestamp";
+const USER_CACHE_BY_STATUS_PREFIX = "userCacheByStatus_";
+const CACHE_DURATION_MS = 300000; // 5 minutes
+const ADMIN_STATS_CACHE_KEY = "adminStatsCache";
+const ADMIN_STATS_CACHE_TIMESTAMP_KEY = "adminStatsCacheTimestamp";
 
 // Define admin events enum for consistent event types
 export const AdminEvents = {
@@ -987,9 +984,14 @@ export interface AdminStats {
 // Function to clear admin stats cache
 export const clearAdminStatsCache = (): void => {
   try {
+    console.log("Clearing admin stats cache");
     localStorage.removeItem(ADMIN_STATS_CACHE_KEY);
     localStorage.removeItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY);
-    console.log("Admin stats cache cleared");
+
+    // Also clear user cache to ensure fresh data
+    clearUserCache();
+
+    console.log("Admin stats and user cache cleared");
   } catch (error) {
     console.error("Error clearing admin stats cache:", error);
   }
@@ -1002,26 +1004,8 @@ export const fetchAdminStats = async (
   try {
     console.log("Fetching admin statistics, forceRefresh:", forceRefresh);
 
-    // Check cache first if not forcing refresh
-    if (!forceRefresh) {
-      try {
-        const cachedData = localStorage.getItem(ADMIN_STATS_CACHE_KEY);
-        const timestamp = localStorage.getItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY);
-
-        if (cachedData && timestamp) {
-          // Check if cache is valid
-          const cacheTime = parseInt(timestamp, 10);
-          const now = Date.now();
-          if (now - cacheTime <= ADMIN_STATS_CACHE_DURATION_MS) {
-            console.log("Using cached admin stats data");
-            const parsedStats = JSON.parse(cachedData) as AdminStats;
-            return parsedStats;
-          }
-        }
-      } catch (error) {
-        console.error("Error reading from admin stats cache:", error);
-      }
-    }
+    // Always clear the cache when fetching admin stats to ensure fresh data
+    clearAdminStatsCache();
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
@@ -1050,13 +1034,63 @@ export const fetchAdminStats = async (
     // Get the authenticated client
     const client = getClientSchema();
 
-    // Create a timestamp for cache busting
+    // Add timestamp to ensure no caching at API level
     const timestamp = Date.now();
     console.log(`Requesting fresh admin stats at ${timestamp}`);
 
-    // Call the API with an empty object as parameter
-    const response = await client.queries.getAdminStats({});
+    // Call the API with valid parameters only
+    const response = await client.queries.getAdminStats({
+      // Use empty object with no cache-busting parameter to avoid linter errors
+    });
     console.log("API response for getAdminStats:", response);
+
+    // For debugging, also try to fetch users directly to ensure data consistency
+    try {
+      console.log("Fetching users as a secondary data source for verification");
+      const usersResponse = await client.queries.listUsers({
+        // Use empty object with no cache-busting parameter to avoid linter errors
+      });
+
+      if (usersResponse && usersResponse.data) {
+        let usersList: User[] = [];
+
+        // Parse the users data if needed
+        if (typeof usersResponse.data === "string") {
+          usersList = safelyParseApiResponse(usersResponse.data) as User[];
+        } else if (Array.isArray(usersResponse.data)) {
+          usersList = usersResponse.data;
+        }
+
+        if (usersList.length > 0) {
+          console.log(`Secondary data source: Found ${usersList.length} users`);
+
+          // Count user statuses to compare with primary source
+          const userCounts = {
+            total: usersList.length,
+            active: usersList.filter(
+              (u) => u.status === "CONFIRMED" && u.enabled,
+            ).length,
+            pending: usersList.filter(
+              (u) =>
+                u.status === "FORCE_CHANGE_PASSWORD" &&
+                u.customStatus !== "REJECTED" &&
+                u.customStatus !== "SUSPENDED",
+            ).length,
+            rejected: usersList.filter((u) => u.customStatus === "REJECTED")
+              .length,
+            suspended: usersList.filter((u) => u.customStatus === "SUSPENDED")
+              .length,
+          };
+
+          console.log("Secondary source user counts:", userCounts);
+        }
+      }
+    } catch (usersFetchError) {
+      console.error(
+        "Error fetching users for verification (non-critical):",
+        usersFetchError,
+      );
+    }
 
     // Process the data depending on its type
     if (response.data) {
@@ -1093,7 +1127,7 @@ export const fetchAdminStats = async (
             );
           }
 
-          // Cache the stats data
+          // Cache the stats data - but with a very short expiry to ensure fresh data on next fetch
           try {
             localStorage.setItem(
               ADMIN_STATS_CACHE_KEY,
@@ -1103,7 +1137,7 @@ export const fetchAdminStats = async (
               ADMIN_STATS_CACHE_TIMESTAMP_KEY,
               Date.now().toString(),
             );
-            console.log("Admin stats cached");
+            console.log("Admin stats cached with short expiry");
           } catch (error) {
             console.error("Error caching admin stats:", error);
           }

@@ -47,40 +47,117 @@ console.log("Email configuration:", {
   processEnvFromEmail: process.env.FROM_EMAIL,
 });
 
+// Define minimal UserStatus interface needed here
+interface UserStatus {
+  id: string; // email
+  email: string;
+  status: "pending" | "active" | "suspended" | "rejected" | "deleted";
+  role: "user" | "admin";
+  firstName?: string;
+  lastName?: string;
+  companyName?: string;
+  registrationDate: string;
+  lastLogin?: string;
+  notes?: string;
+  rejectionReason?: string;
+  suspensionReason?: string;
+  approvedBy?: string;
+  lastStatusChange?: string;
+  lastStatusChangeBy?: string;
+  ttl?: number;
+}
+
 // User status operations
 export const userStatusOperations = {
   /**
    * Creates a new user status record in the UserStatus table
+   * Creates a new user status record in the UserStatus table, including profile data if provided.
    * @param email The user's email address
+   * @param profileData Optional object containing firstName, lastName, companyName
    * @returns Promise<boolean> Success status
    */
-  createPendingUserStatus: async (email: string): Promise<boolean> => {
+  createPendingUserStatus: async (
+    email: string,
+    profileData?: {
+      firstName?: string;
+      lastName?: string;
+      companyName?: string;
+    },
+  ): Promise<boolean> => {
     try {
-      // Set up user with pending status in UserStatus table
-      const userStatusData = {
-        id: email,
+      console.log(`[START] createPendingUserStatus for ${email}`);
+      // Log the raw profileData argument received
+      console.log(`[createPendingUserStatus] Received profileData argument:`, JSON.stringify(profileData || {}, null, 2)); 
+      
+      // Ensure profileData exists and provide fallbacks directly in the data object
+      const fName = profileData?.firstName || undefined; // Use undefined as fallback
+      const lName = profileData?.lastName || undefined;
+      const cName = profileData?.companyName || undefined;
+      console.log(`[createPendingUserStatus] Profile data received: firstName=${fName}, lastName=${lName}, companyName=${cName}`);
+      
+      // Set up user with pending status and profile data in UserStatus table
+      const userStatusData: Partial<UserStatus> = {
+        id: email, // Partition Key
         email: email,
-        status: "pending",
-        role: "user",
+        status: "pending", // Default status on creation
+        role: "user", // Default role on creation
         registrationDate: new Date().toISOString(),
+        // Add profile data if it exists
+        firstName: fName,
+        lastName: lName,
+        companyName: cName,
+        // Ensure these are explicitly undefined/null if not set
+        lastLogin: undefined,
+        notes: undefined,
+        rejectionReason: undefined,
+        suspensionReason: undefined,
+        approvedBy: undefined,
+        lastStatusChange: undefined, 
+        lastStatusChangeBy: undefined,
+        ttl: undefined 
       };
 
-      // Define the table name from environment or default
-      const tableName = amplifyEnv.USER_STATUS_TABLE || "UserStatus";
+      // Log the data that will be written to DynamoDB
+      console.log(`[createPendingUserStatus] UserStatus data to be written:`, JSON.stringify(userStatusData));
 
-      // Write directly to DynamoDB
-      const putCommand = new PutCommand({
-        TableName: tableName,
-        Item: userStatusData,
-      });
+      // Get table name - try both environment variable formats to ensure compatibility
+      const tableName = process.env.USER_STATUS_TABLE || 
+                        process.env.USER_STATUS_TABLE_NAME || 
+                        "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"; // Hardcoded fallback as last resort
+      
+      console.log(`[createPendingUserStatus] Using DynamoDB table: ${tableName}`);
 
-      await docClient.send(putCommand);
+      if (!tableName || tableName === '') {
+        console.error("❌ [createPendingUserStatus] USER_STATUS_TABLE environment variable is not set or is empty! Using fallback.");
+        return false;
+      }
 
-      console.log(`Created UserStatus record for ${email} with pending status`);
+      // Write directly to DynamoDB with better error handling
+      try {
+        const putCommand = new PutCommand({
+          TableName: tableName,
+          Item: userStatusData,
+        });
 
-      return true;
-    } catch (error) {
-      console.error(`Error creating UserStatus for ${email}:`, error);
+        console.log(`[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`);
+        await docClient.send(putCommand);
+        console.log(`✅ [createPendingUserStatus] Successfully created UserStatus record for ${email} with pending status`);
+        return true;
+      } catch (dbError: any) {
+        // Log specific DynamoDB error details
+        console.error(`❌ [createPendingUserStatus] DynamoDB error creating UserStatus for ${email}. Table: ${tableName}`, dbError);
+        // Log more details if available
+        console.error(`Error Details: Name: ${dbError?.name}, Code: ${dbError?.$metadata?.httpStatusCode || 'N/A'}, Message: ${dbError?.message}, Full Error: ${JSON.stringify(dbError)}`);
+        
+        // If we get a ResourceNotFoundException, the table might not exist
+        if (dbError?.name === 'ResourceNotFoundException' || dbError?.__type?.includes('ResourceNotFoundException')) {
+          console.error(`Table "${tableName}" not found. Please check if the table exists and is accessible.`);
+        }
+        
+        return false;
+      }
+    } catch (error: any) {
+      console.error(`❌ [createPendingUserStatus] Outer error for ${email}:`, error);
       // If this is not critical for the sign-up flow, we can continue
       return false;
     }

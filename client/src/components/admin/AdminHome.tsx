@@ -5,6 +5,7 @@ import {
   type AuditLog as BackendAuditLog,
   AdminEvents,
   clearAdminStatsCache,
+  clearUserCache,
 } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
@@ -100,17 +101,18 @@ export default function AdminHome() {
 
       setIsLoading(true);
 
-      // Clear cache before fetching when forcing refresh
-      if (forceRefresh) {
-        logDebug("Force refreshing admin stats and clearing cache");
-        await clearAdminStatsCache();
-      }
+      // Always clear cache before fetching to ensure fresh data
+      logDebug("Force refreshing admin stats and clearing cache");
+      await clearAdminStatsCache();
 
       logDebug("Fetching admin statistics");
-      const stats = await fetchAdminStats(forceRefresh);
+      const stats = await fetchAdminStats(true); // Always force refresh from API
       logDebug("Admin stats received from API");
 
       if (stats) {
+        // Log user stats specifically to debug
+        logDebug(`User stats received: ${JSON.stringify(stats.users)}`);
+
         logDebug(
           `Raw recent activity count: ${stats.recentActivity?.length || 0}`,
         );
@@ -252,13 +254,18 @@ export default function AdminHome() {
         setAdminStats(statsWithDebug as unknown as AdminStats);
         lastRefreshTimeRef.current = new Date();
         logDebug("Stats updated in component state");
+
+        // Schedule next auto-refresh - reduced from 5 min to 1 min to keep data fresh
+        refreshTimeoutRef.current = setTimeout(() => {
+          logDebug("Auto-refresh triggered");
+          fetchStats(true);
+        }, 60000); // 1 minute refresh interval
       }
     } catch (error) {
       console.error("Error fetching admin stats:", error);
       logDebug(
         `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`,
       );
-    } finally {
       setIsLoading(false);
     }
   }, []);
@@ -294,7 +301,8 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_SUSPENDED ||
         eventType === AdminEvents.USER_REACTIVATED ||
         eventType === AdminEvents.USER_ROLE_UPDATED ||
-        eventType === AdminEvents.USER_CREATED
+        eventType === AdminEvents.USER_CREATED ||
+        eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
         logDebug("Action requires refresh, initiating debounced refresh");
         debouncedRefresh(eventType);
@@ -386,6 +394,10 @@ export default function AdminHome() {
 
   useEffect(() => {
     // Initial fetch
+    console.log("Admin dashboard mounting, clearing all caches");
+    clearAdminStatsCache(); // Always clear cache on mount
+    clearUserCache(); // Also clear user cache to ensure consistency
+
     fetchStats(true);
 
     // Set up event listener for admin actions with improved handling
@@ -402,73 +414,50 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_SUSPENDED ||
         eventType === AdminEvents.USER_REACTIVATED ||
         eventType === AdminEvents.USER_ROLE_UPDATED ||
-        eventType === AdminEvents.USER_CREATED
+        eventType === AdminEvents.USER_CREATED ||
+        eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
-        logDebug("Action requires refresh, initiating refresh sequence");
-
-        // Set loading state to indicate refresh is happening
-        setIsLoading(true);
-
-        // Clear cache immediately
-        clearAdminStatsCache();
-
-        // Increment force refresh counter to trigger refresh
-        setForceRefreshCounter((prev) => prev + 1);
-
-        // Wait longer to ensure backend has time to update database and audit logs
-        setTimeout(async () => {
-          logDebug("First refresh after admin action");
-          // Force an initial refresh
-          await fetchStats(true);
-
-          // After a short delay, do a final refresh to catch any late updates
-          setTimeout(async () => {
-            logDebug("Final refresh to ensure all changes are captured");
-            await fetchStats(true);
-            setIsLoading(false);
-          }, 2500);
-        }, 3000); // Even longer initial delay for backend processing
+        logDebug(`Refreshing after admin action: ${eventType}`);
+        // Add a small delay to ensure backend processing is complete
+        setTimeout(() => {
+          console.log(`Triggering refresh due to admin action: ${eventType}`);
+          // Force increment to trigger UI rerenders
+          setForceRefreshCounter((prev) => prev + 1);
+          // Always force refresh from API
+          fetchStats(true);
+        }, 1000);
       }
     };
 
-    // Add event listeners to both document and window
     document.addEventListener("adminAction", handleAdminAction);
-    window.addEventListener("adminAction", handleAdminAction);
 
-    // Set up auto-refresh every 30 seconds (reduced from 1 minute)
-    const refreshInterval = setInterval(() => {
-      logDebug("Running scheduled refresh (30 second interval)");
-      fetchStats(true); // Always force refresh
-    }, 30 * 1000);
-
-    // Add visibility change listener with improved handling
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        const timeSinceLastRefresh =
-          new Date().getTime() - lastRefreshTimeRef.current.getTime();
-        if (timeSinceLastRefresh > 5000) {
-          // 5 seconds (reduced from 10)
-          logDebug("Tab became visible, refreshing stats...");
-          fetchStats(true); // Force refresh when tab becomes visible
-        }
-      }
+    // Add a listener for the special manual refresh event
+    const handleManualRefresh = () => {
+      logDebug("Manual refresh event received");
+      fetchStats(true);
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("manualRefresh", handleManualRefresh);
 
-    // Store the current timeout ref value in a local variable for cleanup
-    const currentTimeoutRef = refreshTimeoutRef.current;
-
+    // Cleanup function
     return () => {
-      if (currentTimeoutRef) {
-        clearTimeout(currentTimeoutRef);
-      }
-      clearInterval(refreshInterval);
       document.removeEventListener("adminAction", handleAdminAction);
-      window.removeEventListener("adminAction", handleAdminAction);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("manualRefresh", handleManualRefresh);
+
+      // Clear any pending refresh timeouts
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current);
+      }
     };
-  }, [fetchStats, forceRefreshCounter]); // Added forceRefreshCounter as dependency
+  }, [fetchStats]);
+
+  // Also refresh whenever force refresh counter changes
+  useEffect(() => {
+    if (forceRefreshCounter > 0) {
+      logDebug(`Force refresh counter changed: ${forceRefreshCounter}`);
+      fetchStats(true);
+    }
+  }, [forceRefreshCounter, fetchStats]);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);

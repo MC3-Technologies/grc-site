@@ -342,10 +342,11 @@ describe("User Management Operations", () => {
       mockCognito.__setMockUserGroups(userEmail, ["Approved-Users", "Admin"]);
 
       // Call the function
-      const result = await userOperations.getUserDetails(userEmail);
+      const rawResult = await userOperations.getUserDetails(userEmail);
+      expect(rawResult).toBeTruthy(); // Ensure we have a result before parsing
+      const result = parseResponse<ExtendedUserData>(rawResult); // Parse the result
 
       // Verify the results by treating result as ExtendedUserData
-      expect(result).toBeTruthy();
       expect(result.email).toBe(userEmail);
 
       // Accept either APPROVED or CONFIRMED as valid statuses
@@ -363,15 +364,16 @@ describe("User Management Operations", () => {
 
     test("should handle non-existent user", async () => {
       // Call the function with a non-existent user
-      const result = await userOperations.getUserDetails(
+      const rawResult = await userOperations.getUserDetails(
         "nonexistent@example.com",
       );
 
       // Accept either null or an object with unknown status
-      if (result) {
+      if (rawResult) {
+        const result = parseResponse<ExtendedUserData>(rawResult); // Parse inside the if block
         expect(result.status).toBe("unknown");
       } else {
-        expect(result).toBeNull();
+        expect(rawResult).toBeNull();
       }
     });
   });
