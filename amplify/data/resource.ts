@@ -185,7 +185,7 @@ const schema = a.schema({
       companyName: a.string(),
       adminEmail: a.string(), // To log who made the change
     })
-    .returns(a.boolean()) // Return true on success, false on failure
+    .returns(a.boolean()) // Return true on success, false on failure.
     .authorization((allow) => [allow.groups(["GRC-Admin"])])
     .handler(a.handler.function(userManagementFunction)),
 
