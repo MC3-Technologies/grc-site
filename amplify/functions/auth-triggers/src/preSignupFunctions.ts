@@ -17,6 +17,14 @@ try {
   amplifyEnv = process.env;
 }
 
+// --- Log resolved configuration ---
+console.log(`[AuthTriggerConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`);
+console.log(`[AuthTriggerConfig] Using UserStatus Table Name: ${process.env.USER_STATUS_TABLE || process.env.USER_STATUS_TABLE_NAME || 'UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE (Hardcoded Fallback!)'}`);
+console.log(`[AuthTriggerConfig] Using User Pool ID (from env): ${amplifyEnv.USER_POOL_ID || process.env.USER_POOL_ID || 'NOT SET IN ENV'}`); // Log pool ID if available
+console.log(`[AuthTriggerConfig] Resolved ADMIN_EMAIL: ${amplifyEnv.ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'cmmc.support@mc3technologies.com'}`);
+console.log(`[AuthTriggerConfig] Resolved FROM_EMAIL: ${amplifyEnv.EMAIL_SENDER || process.env.EMAIL_SENDER || amplifyEnv.FROM_EMAIL || process.env.FROM_EMAIL || 'no-reply-grc@mc3technologies.com'}`);
+// --------------------------------
+
 // Initialize clients
 const cognito = new CognitoIdentityProviderClient();
 const dynamoClient = new DynamoDBClient();

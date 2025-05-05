@@ -15,15 +15,15 @@ export const userManagementFunction = defineFunction({
     // Updated user pool ID as specified by user
     USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_ZIDNJDzP5",
     
-    // DynamoDB table names
+    // DynamoDB table names - Use persistent environment names as defaults
     SYSTEM_SETTINGS_TABLE_NAME:
-      process.env.SYSTEM_SETTINGS_TABLE_NAME || "SystemSettings-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.SYSTEM_SETTINGS_TABLE_NAME || "SystemSettings-jvvqiyl2bfghrnbjzog3hwam3y-NONE",
     AUDIT_LOG_TABLE_NAME: 
-      process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-jvvqiyl2bfghrnbjzog3hwam3y-NONE",
     COMPLETED_ASSESSMENT_TABLE_NAME:
-      process.env.COMPLETED_ASSESSMENT_TABLE_NAME || "CompletedAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.COMPLETED_ASSESSMENT_TABLE_NAME || "CompletedAssessment-b5j4wql6m5fijablcodytncwrm-NONE",
     IN_PROGRESS_ASSESSMENT_TABLE_NAME:
-      process.env.IN_PROGRESS_ASSESSMENT_TABLE_NAME || "InProgressAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE",
+      process.env.IN_PROGRESS_ASSESSMENT_TABLE_NAME || "InProgressAssessment-b5j4wql6m5fijablcodytncwrm-NONE",
     USER_STATUS_TABLE_NAME: 
       process.env.USER_STATUS_TABLE_NAME || "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE",
     FROM_EMAIL: process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com",

@@ -101,9 +101,11 @@ const handlePostConfirmation = async (event: any) => {
     };
 
     // Step 1: Create the user record in DynamoDB upon confirmation
-    console.log("[PostConfirmation] Attempting to create initial DynamoDB record with status: pending");
+    console.log(`[PostConfirmation] Attempting to create initial DynamoDB record for user: ${email}`);
+    console.log(`[PostConfirmation] Passing profile data:`, JSON.stringify(profileData)); // Log data being passed
     try {
-      const dbRecordCreated = await userStatusOperations.createPendingUserStatus(email, profileData);
+      // Ensure profileData object is passed as the second argument
+      const dbRecordCreated = await userStatusOperations.createPendingUserStatus(email, profileData); 
       if (dbRecordCreated) {
         console.log(`[PostConfirmation] ✅ Successfully created initial pending DynamoDB record for user: ${email}`);
       } else {

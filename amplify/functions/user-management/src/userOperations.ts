@@ -72,6 +72,7 @@ try {
   ses = getSesClient();
   dynamodb = getDynamoDBClient();
   console.log("AWS clients initialized successfully");
+
 } catch (error) {
   console.error("Error initializing AWS clients:", error);
 }
@@ -100,7 +101,7 @@ interface UserStatus {
   firstName?: string;
   lastName?: string;
   companyName?: string;
-  registrationDate: string;
+  registrationDate?: string;
   lastLogin?: string;
   notes?: string;
   rejectionReason?: string;
@@ -142,39 +143,67 @@ interface AdminStats {
 const getUserPoolId = (): string => {
   const userPoolId = env.USER_POOL_ID || process.env.USER_POOL_ID;
   if (!userPoolId) throw new Error("USER_POOL_ID environment variable is not set.");
+  console.log(`[Debug] Using UserPoolId: ${userPoolId}`);
   return userPoolId;
 };
 
 const getUserStatusTableName = (): string => {
-  const tableName = env.USER_STATUS_TABLE_NAME || process.env.USER_STATUS_TABLE_NAME || "UserStatus-fk4antj52jgh3j6qjhbhwur5qa-NONE"; // Provide default or ensure env var is set
+  const tableName = env.USER_STATUS_TABLE_NAME || process.env.USER_STATUS_TABLE_NAME;
   if (!tableName) throw new Error("USER_STATUS_TABLE_NAME environment variable is not set.");
+  console.log(`[Debug] Using UserStatus Table: ${tableName}`);
   return tableName;
 }
 
 const getAuditLogTableName = (): string => {
-  const tableName = env.AUDIT_LOG_TABLE_NAME || process.env.AUDIT_LOG_TABLE_NAME || "AuditLog-fk4antj52jgh3j6qjhbhwur5qa-NONE"; // Provide default or ensure env var is set
+  const tableName = env.AUDIT_LOG_TABLE_NAME || process.env.AUDIT_LOG_TABLE_NAME;
   if (!tableName) throw new Error("AUDIT_LOG_TABLE_NAME environment variable is not set.");
+  console.log(`[Debug] Using AuditLog Table: ${tableName}`);
   return tableName;
 }
 
 const getSystemSettingsTableName = (): string => {
-    const tableName = env.SYSTEM_SETTINGS_TABLE_NAME || process.env.SYSTEM_SETTINGS_TABLE_NAME || "SystemSettings"; // Provide default or ensure env var is set
+    const tableName = env.SYSTEM_SETTINGS_TABLE_NAME || process.env.SYSTEM_SETTINGS_TABLE_NAME;
     if (!tableName) throw new Error("SYSTEM_SETTINGS_TABLE_NAME environment variable is not set.");
+    console.log(`[Debug] Using SystemSettings Table: ${tableName}`);
     return tableName;
 }
 
 const getCompletedAssessmentTableName = (): string => {
-    const tableName = env.COMPLETED_ASSESSMENT_TABLE_NAME || process.env.COMPLETED_ASSESSMENT_TABLE_NAME || "CompletedAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE"; // Provide default or ensure env var is set
+    const tableName = env.COMPLETED_ASSESSMENT_TABLE_NAME || process.env.COMPLETED_ASSESSMENT_TABLE_NAME;
     if (!tableName) throw new Error("COMPLETED_ASSESSMENT_TABLE_NAME environment variable is not set.");
+    console.log(`[Debug] Using CompletedAssessment Table: ${tableName}`);
     return tableName;
 }
 
 const getInProgressAssessmentTableName = (): string => {
-    const tableName = env.IN_PROGRESS_ASSESSMENT_TABLE_NAME || process.env.IN_PROGRESS_ASSESSMENT_TABLE_NAME || "InProgressAssessment-fk4antj52jgh3j6qjhbhwur5qa-NONE"; // Provide default or ensure env var is set
+    const tableName = env.IN_PROGRESS_ASSESSMENT_TABLE_NAME || process.env.IN_PROGRESS_ASSESSMENT_TABLE_NAME;
     if (!tableName) throw new Error("IN_PROGRESS_ASSESSMENT_TABLE_NAME environment variable is not set.");
+    console.log(`[Debug] Using InProgressAssessment Table: ${tableName}`);
     return tableName;
 }
 
+// --- Log resolved configuration ---
+console.log(`[UserManagementConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`);
+try {
+  // Call helper functions to log resolved names
+  const poolId = getUserPoolId(); // Call once
+  const userStatusTable = getUserStatusTableName(); // Call once
+  const auditTable = getAuditLogTableName(); // Call once
+  const completedTable = getCompletedAssessmentTableName(); // Call once
+  const inProgressTable = getInProgressAssessmentTableName(); // Call once
+  const settingsTable = getSystemSettingsTableName(); // Call once
+  
+  console.log(`[UserManagementConfig] Resolved User Pool ID: ${poolId}`);
+  console.log(`[UserManagementConfig] Resolved UserStatus Table: ${userStatusTable}`);
+  console.log(`[UserManagementConfig] Resolved AuditLog Table: ${auditTable}`);
+  console.log(`[UserManagementConfig] Resolved CompletedAssessment Table: ${completedTable}`);
+  console.log(`[UserManagementConfig] Resolved InProgressAssessment Table: ${inProgressTable}`);
+  console.log(`[UserManagementConfig] Resolved SystemSettings Table: ${settingsTable}`);
+  console.log(`[UserManagementConfig] Resolved EMAIL_SENDER: ${env.EMAIL_SENDER || process.env.EMAIL_SENDER || 'Default Used'}`);
+} catch (e) {
+  console.error("[UserManagementConfig] Error resolving resource names during logging:", e);
+}
+// ---------------------------------------------------------------------------------------
 
 const sendEmailHelper = async ({ to, subject, message }: EmailOptions): Promise<boolean> => {
   // Renamed internal helper to avoid conflict with exported name
@@ -244,7 +273,7 @@ const createAuditLogEntry = async (logEntry: Omit<AuditLog, "id">) => {
 export const userOperations = {
   // List all users (Source: Cognito, Enriched with DynamoDB status)
   listUsers: async (): Promise<string> => {
-    try {
+     try {
       const userPoolId = getUserPoolId();
       const cognito = getCognitoClient();
       const dynamodb = getDynamoDBClient();
@@ -415,8 +444,8 @@ export const userOperations = {
       let fetchedAttributes: Record<string, string | undefined> = {}; // To log what we got from Cognito
 
       try {
-          const userDetailsResponse = await cognito.send(new AdminGetUserCommand({ UserPoolId: userPoolId, Username: email }));
-          if (userDetailsResponse.UserAttributes) {
+        const userDetailsResponse = await cognito.send(new AdminGetUserCommand({ UserPoolId: userPoolId, Username: email }));
+        if (userDetailsResponse.UserAttributes) {
               // Log raw attributes fetched
               console.log(`[approveUser] Fetched attributes from Cognito for ${email}:`, JSON.stringify(userDetailsResponse.UserAttributes));
 
@@ -445,53 +474,54 @@ export const userOperations = {
       // Fetch the existing DynamoDB record first
       const userStatusTableName = getUserStatusTableName(); // Get table name
       let existingUserStatus: Partial<UserStatus> = {};
+      let registrationDateToKeep: string | undefined;
+
       try {
         console.log(`[approveUser] Fetching existing UserStatus record from table: ${userStatusTableName} for user: ${email}`);
         const getResponse = await dynamodb.send(new GetItemCommand({ TableName: userStatusTableName, Key: marshall({ id: email }) }));
         if (getResponse.Item) {
           existingUserStatus = unmarshall(getResponse.Item) as UserStatus;
+          registrationDateToKeep = existingUserStatus.registrationDate; // Explicitly save registration date
           console.log(`[approveUser] Found existing DynamoDB record:`, JSON.stringify(existingUserStatus));
         } else {
           console.log(`[approveUser] No existing DynamoDB record found for ${email}. Will create new one.`);
-          // Set registration date if creating new, fallback to now
-          existingUserStatus.registrationDate = new Date().toISOString(); 
+          registrationDateToKeep = new Date().toISOString(); // Use now if creating
         }
       } catch (getError) {
         console.error(`[approveUser] Error fetching existing UserStatus record for ${email}:`, getError);
-        // Proceed, but log error - might result in overwriting registration date if fetch failed
-         existingUserStatus.registrationDate = new Date().toISOString(); // Fallback registration date
+        registrationDateToKeep = new Date().toISOString(); // Fallback registration date
       }
 
-      // Prepare data for DynamoDB update, merging with existing data
+      // Prepare data for DynamoDB update, merging carefully
       const userStatusUpdateData: UserStatus = {
-        // Start with existing data to preserve fields like registrationDate
-        ...existingUserStatus,
-        // Overwrite necessary fields
-        id: email,                  // Partition key (should match existing)
-        email: email,               // Ensure email is set
-        status: "active",           // Set status to active
-        role: (profileData.role as UserStatus['role']) || existingUserStatus.role || 'user', // Use fetched role, then existing, then default
-        lastStatusChange: new Date().toISOString(),
-        lastStatusChangeBy: adminEmail,
-        // Update profile data, preferring fetched data, fallback to existing, then undefined
-        firstName: profileData.firstName || existingUserStatus.firstName || undefined,   
-        lastName: profileData.lastName || existingUserStatus.lastName || undefined,     
-        companyName: profileData.companyName || existingUserStatus.companyName || undefined, 
-        // Ensure these are explicitly undefined if not set or cleared
-        rejectionReason: undefined, 
+        // Required fields
+        id: email,
+        email: email,
+        status: "active", // Set status to active
+        role: (profileData.role as UserStatus['role']) || existingUserStatus.role || 'user', // Prefer fetched role, then existing, fallback user
+        registrationDate: registrationDateToKeep, // Use the preserved/fetched registration date
+        lastStatusChange: new Date().toISOString(), // Always update this
+        lastStatusChangeBy: adminEmail, // Always update this
+        // Optional profile fields: prefer fetched Cognito data, fallback to existing, then undefined
+        firstName: profileData.firstName || existingUserStatus.firstName || undefined,
+        lastName: profileData.lastName || existingUserStatus.lastName || undefined,
+        companyName: profileData.companyName || existingUserStatus.companyName || undefined,
+        // Explicitly carry over other existing optional fields if they exist
+        lastLogin: existingUserStatus.lastLogin || undefined,
+        notes: existingUserStatus.notes || undefined,
+        approvedBy: existingUserStatus.approvedBy || undefined, // Should likely set this? Maybe add adminEmail here? Let's keep existing for now.
+        // Clear fields that should be cleared on approval
+        rejectionReason: undefined,
         suspensionReason: undefined,
-        // Ensure required fields have values (even if defaults)
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
+        ttl: undefined // Remove TTL if reactivating/approving
       };
       
-      //const userStatusTableName = getUserStatusTableName(); // Already defined above
-      console.log(`[approveUser] Preparing to write merged data to DynamoDB table: ${userStatusTableName} for user: ${email}`); 
-      console.log(`[approveUser] Merged data being written to DynamoDB:`, JSON.stringify(userStatusUpdateData)); // Log the exact data
+      console.log(`[approveUser] Preparing to write merged data to DynamoDB table: ${userStatusTableName} for user: ${email}`);
+      console.log(`[approveUser] Merged data being written to DynamoDB:`, JSON.stringify(userStatusUpdateData));
       
-      // Use PutItemCommand which creates or replaces the item
-      await dynamodb.send(new PutItemCommand({ 
-          TableName: userStatusTableName, 
-          Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }) // Marshall the data
+      await dynamodb.send(new PutItemCommand({
+          TableName: userStatusTableName,
+          Item: marshall(userStatusUpdateData, { removeUndefinedValues: true })
       }));
       console.log(`[approveUser] Successfully wrote UserStatus record for ${email} to DynamoDB.`);
 
@@ -730,14 +760,14 @@ export const userOperations = {
       let cognitoPending = 0;
       let cognitoSuspended = 0;
       try {
-        const userPoolId = getUserPoolId();
+          const userPoolId = getUserPoolId();
         console.log(`[getAdminStats] Fetching users from Cognito pool: ${userPoolId} for status counts.`);
         let paginationToken: string | undefined = undefined;
         let allCognitoUsers: UserType[] = [];
 
         // Paginate through all Cognito users
         do {
-          const listUsersCommand = new ListUsersCommand({
+          const listUsersCommand = new ListUsersCommand({ 
             UserPoolId: userPoolId,
             // Limit: 60, // Fetch in batches if needed, but we need all for counts
             PaginationToken: paginationToken,
@@ -787,7 +817,7 @@ export const userOperations = {
 
         console.log(`[getAdminStats] Calculated user counts from Cognito: Active=${cognitoActive}, Pending=${cognitoPending}, Suspended=${cognitoSuspended}`);
 
-      } catch (cognitoError) {
+        } catch (cognitoError) {
         console.error("[getAdminStats] Error fetching users from Cognito:", cognitoError);
         // Reset Cognito-based counts if fetching fails
         stats.users.active = 0;
@@ -848,7 +878,7 @@ export const userOperations = {
         console.error("[getAdminStats] Error fetching recent activity:", error);
         stats.recentActivity = [];
       }
-      
+
       console.log("[getAdminStats] Final stats object:", stats);
       return stats;
     } catch (error) {
