@@ -1,5 +1,5 @@
 import { defineAuth } from "@aws-amplify/backend";
-import { preSignUpFunction } from "../functions/auth-triggers/resource";
+import { authTriggersFunction } from "../functions/auth-triggers/resource";
 import { userManagementFunction } from "../functions/user-management/resource";
 /**
  * Define and configure your auth resource
@@ -41,8 +41,8 @@ export const auth = defineAuth({
   groups: ["GRC-Admin", "Approved-Users"],
 
   triggers: {
-    preSignUp: preSignUpFunction,
-    postConfirmation: preSignUpFunction
+    preSignUp: authTriggersFunction,
+    postConfirmation: authTriggersFunction
   },
 
   // Admin-only access to user management functions

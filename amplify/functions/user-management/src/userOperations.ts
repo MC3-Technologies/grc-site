@@ -516,12 +516,12 @@ export const userOperations = {
         ttl: undefined // Remove TTL if reactivating/approving
       };
       
-      console.log(`[approveUser] Preparing to write merged data to DynamoDB table: ${userStatusTableName} for user: ${email}`);
-      console.log(`[approveUser] Merged data being written to DynamoDB:`, JSON.stringify(userStatusUpdateData));
+      console.log(`[approveUser] Merged data being written to DynamoDB:`, JSON.stringify(userStatusUpdateData)); // Log the exact data
       
-      await dynamodb.send(new PutItemCommand({
-          TableName: userStatusTableName,
-          Item: marshall(userStatusUpdateData, { removeUndefinedValues: true })
+      // Use PutItemCommand which creates or replaces the item
+      await dynamodb.send(new PutItemCommand({ 
+          TableName: userStatusTableName, 
+          Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }) // Restore marshall call
       }));
       console.log(`[approveUser] Successfully wrote UserStatus record for ${email} to DynamoDB.`);
 

@@ -6,7 +6,7 @@ import { chatGptFunction } from "./functions/chat-gpt/resource";
 // import { osintFunction } from './functions/osint/resource';
 import { userManagementFunction } from "./functions/user-management/resource";
 import { assessmentStorage } from "./storage/resource";
-import { preSignUpFunction } from "./functions/auth-triggers/resource";
+import { authTriggersFunction } from "./functions/auth-triggers/resource";
 import { PolicyStatement } from "aws-cdk-lib/aws-iam";
 
 /**
@@ -17,7 +17,7 @@ const backend = defineBackend({
   data,
   chatGptFunction,
   userManagementFunction,
-  preSignUpFunction,
+  authTriggersFunction,
   // osintFunction
   assessmentStorage,
 });
@@ -52,7 +52,7 @@ backend.userManagementFunction.resources.lambda.addToRolePolicy(
 );
 
 // Add permissions to the preSignUp Lambda function
-backend.preSignUpFunction.resources.lambda.addToRolePolicy(
+backend.authTriggersFunction.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: [
       "dynamodb:PutItem",

@@ -144,7 +144,7 @@ export const userStatusOperations = {
       try {
         const putCommand = new PutCommand({
           TableName: tableName,
-          Item: userStatusData,
+          Item: userStatusData, // Pass the raw JS object here
         });
 
         console.log(`[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`);
