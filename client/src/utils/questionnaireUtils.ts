@@ -140,7 +140,7 @@ export const createNewVersion = async (
     // Also update the current.json to point to this version
     await setCurrentVersion(metadata.version);
 
-    console.log(`Successfully created version ${metadata.version}`);
+    //console.log(`Successfully created version ${metadata.version}`);
     return true;
   } catch (error) {
     console.error("Error creating new version:", error);
@@ -194,7 +194,7 @@ export const setCurrentVersion = async (version: string): Promise<boolean> => {
 
     localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(pages));
 
-    console.log(`Successfully set current version to ${version}`);
+    //console.log(`Successfully set current version to ${version}`);
     return true;
   } catch (error) {
     console.error(`Error setting current version to ${version}:`, error);
@@ -208,7 +208,7 @@ export const saveVersionToS3 = async (
   pages: QuestionPage[],
 ): Promise<boolean> => {
   try {
-    console.log(`Starting save for version ${version}...`);
+    //console.log(`Starting save for version ${version}...`);
 
     // Clean up the pages to remove admin-specific fields
     const cleanedPages = pages.map((page) => ({
@@ -232,7 +232,7 @@ export const saveVersionToS3 = async (
       versionData = JSON.parse(versionDataText) as QuestionnaireData;
     } catch {
       // If we can't find the version, create new metadata
-      console.log(`Creating new version data for ${version}`);
+      //console.log(`Creating new version data for ${version}`);
       versionData = {
         ...surveyJson,
         pages: [],
@@ -260,7 +260,7 @@ export const saveVersionToS3 = async (
       options: { bucket: "assessmentStorage" },
     }).result;
 
-    console.log(`Successfully saved changes to version ${version}`);
+    //console.log(`Successfully saved changes to version ${version}`);
 
     // Also update the current.json if this is the current version
     const currentVersionInfo = await getCurrentVersionInfo();
@@ -275,7 +275,7 @@ export const saveVersionToS3 = async (
         options: { bucket: "assessmentStorage" },
       }).result;
 
-      console.log(`Updated current.json to version ${version}`);
+      //console.log(`Updated current.json to version ${version}`);
     }
 
     return true;
@@ -321,7 +321,7 @@ export const deleteVersion = async (version: string): Promise<boolean> => {
       options: { bucket: "assessmentStorage" },
     });
 
-    console.log(`Successfully deleted version ${version}`);
+    //console.log(`Successfully deleted version ${version}`);
     return true;
   } catch (error) {
     console.error(`Error deleting version ${version}:`, error);
@@ -493,7 +493,7 @@ export const initializeVersioning = async (): Promise<boolean> => {
 
     if (versions.length === 0) {
       // No versions exist, create the first one from the default questionnaire
-      console.log("No questionnaire versions found. Creating initial version.");
+      //console.log("No questionnaire versions found. Creating initial version.");
 
       // Create pages from default survey
       const pages = surveyJson.pages.map((page: SurveyPage, index: number) => ({
@@ -518,14 +518,14 @@ export const getLatestQuestionnaireData = async () => {
     // First attempt to get centralized questionnaire from S3
     const s3Questionnaire = await fetchQuestionnaireFromS3();
     if (s3Questionnaire) {
-      console.log("Using questionnaire from S3");
+      //console.log("Using questionnaire from S3");
       return s3Questionnaire;
     }
 
     // If S3 fetch fails, check localStorage (mainly for admin)
     const savedData = localStorage.getItem(QUESTIONNAIRE_STORAGE_KEY);
     if (savedData) {
-      console.log("Using questionnaire from localStorage");
+      //console.log("Using questionnaire from localStorage");
 
       // Remove the id property which is only used in the admin UI
       const pages: QuestionPage[] = JSON.parse(savedData);
@@ -544,7 +544,7 @@ export const getLatestQuestionnaireData = async () => {
     }
 
     // If no custom questionnaire is found, return the default
-    console.log("Using default questionnaire");
+    //console.log("Using default questionnaire");
     return surveyJson;
   } catch (error) {
     console.error("Error retrieving questionnaire data:", error);
@@ -589,11 +589,11 @@ export const getAssessmentQuestionnaire = async (assessmentData: unknown) => {
     typeof assessmentData === "object" &&
     "questionnaire" in assessmentData
   ) {
-    console.log("Using questionnaire stored with assessment");
+    //console.log("Using questionnaire stored with assessment");
     return (assessmentData as Record<string, unknown>).questionnaire;
   }
 
   // For backward compatibility with older assessments that don't have the stored questionnaire
-  console.log("Using latest questionnaire (compatibility mode)");
+  //console.log("Using latest questionnaire (compatibility mode)");
   return await getLatestQuestionnaireData();
 };

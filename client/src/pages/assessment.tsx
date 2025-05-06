@@ -343,10 +343,10 @@ export function Assessment() {
         // Otherwise fall back to the latest questionnaire data (for backward compatibility)
         let questionnaireData;
         if (parsedAssessmentData && parsedAssessmentData.questionnaire) {
-          console.log("Using questionnaire stored with assessment");
+          //console.log("Using questionnaire stored with assessment");
           questionnaireData = parsedAssessmentData.questionnaire;
         } else {
-          console.log("Using latest questionnaire (compatibility mode)");
+          //console.log("Using latest questionnaire (compatibility mode)");
           questionnaireData = await getLatestQuestionnaireData();
         }
 

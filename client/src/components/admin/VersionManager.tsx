@@ -92,7 +92,7 @@ const VersionManager: React.FC<VersionManagerProps> = ({
 
         // Refresh the versions list
         await loadVersions();
-        setSuccess(`Successfully set current version to ${version}`);
+        //setSuccess(`Successfully set current version to ${version}`);
         onRefresh(); // This will tell AdminQuestionnaire to refresh its state
       } else {
         setError(`Failed to set version ${version} as current`);
@@ -129,7 +129,7 @@ const VersionManager: React.FC<VersionManagerProps> = ({
       const success = await deleteVersion(versionToDelete);
 
       if (success) {
-        setSuccess(`Successfully deleted version ${versionToDelete}`);
+        //setSuccess(`Successfully deleted version ${versionToDelete}`);
 
         // Reload versions list
         await loadVersions();

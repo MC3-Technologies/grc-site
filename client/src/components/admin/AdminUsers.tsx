@@ -96,12 +96,12 @@ const AdminUsers = () => {
     let tabToLoad: UserStatusType = "active"; // Default
 
     if (forcedTab) {
-      console.log(`Found forced tab in localStorage: ${forcedTab}`);
+      //console.log(`Found forced tab in localStorage: ${forcedTab}`);
       // Remove the flag once we've used it
       window.localStorage.removeItem("forceTabLoad");
       tabToLoad = forcedTab as UserStatusType;
     } else if (tabParam) {
-      console.log(`URL parameter tab detected: ${tabParam}`);
+      //console.log(`URL parameter tab detected: ${tabParam}`);
       tabToLoad = tabParam as UserStatusType;
     }
 
@@ -112,7 +112,7 @@ const AdminUsers = () => {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
-        console.log(`Initial load: Beginning data fetch for ${tabToLoad} tab`);
+        //console.log(`Initial load: Beginning data fetch for ${tabToLoad} tab`);
 
         // Fetch all users with force refresh
         const allFetchedUsers = await fetchUsers(true);
@@ -120,19 +120,19 @@ const AdminUsers = () => {
         setAllUsers(transformedAllUsers);
 
         // Filter for this specific tab
-        console.log(`Initial load: Filtering for tab: ${tabToLoad}`);
+        //console.log(`Initial load: Filtering for tab: ${tabToLoad}`);
         const filteredUsers = transformedAllUsers.filter(
           (user) => user.status === tabToLoad,
         );
-        console.log(
-          `Initial load: Found ${filteredUsers.length} users for ${tabToLoad} tab`,
-        );
+        //console.log(
+        //  `Initial load: Found ${filteredUsers.length} users for ${tabToLoad} tab`,
+        //);
 
         // Set the filtered users
         setUsers(filteredUsers);
-        console.log(
-          `Initial load: Users state updated with ${filteredUsers.length} ${tabToLoad} users`,
-        );
+        //console.log(
+        //  `Initial load: Users state updated with ${filteredUsers.length} ${tabToLoad} users`,
+        //);
 
         setLastRefreshTime(new Date());
       } catch (error) {
@@ -185,7 +185,7 @@ const AdminUsers = () => {
 
   // Add a function to handle tab changes
   const handleTabChange = async (tabName: UserStatusType) => {
-    console.log(`Tab change requested: ${tabName}`);
+    //console.log(`Tab change requested: ${tabName}`);
 
     // Always update URL to match the selected tab
     window.history.pushState(null, "", `/admin/?section=users&tab=${tabName}`);
@@ -208,9 +208,9 @@ const AdminUsers = () => {
       const filteredUsers = transformedAllUsers.filter(
         (user) => user.status === tabName,
       );
-      console.log(
-        `Tab change: Found ${filteredUsers.length} users for ${tabName} tab`,
-      );
+      //console.log(
+      //  `Tab change: Found ${filteredUsers.length} users for ${tabName} tab`,
+      //);
 
       // Update the displayed users
       setUsers(filteredUsers);
@@ -311,15 +311,15 @@ const AdminUsers = () => {
 
       // --- 1. Update Role (if changed) ---
       if (updatedUser.role !== originalEditingUser.role) {
-        console.log(
-          `Updating role for ${updatedUser.email} from ${originalEditingUser.role} to ${updatedUser.role} by admin: ${currentAdminEmail || "unknown"}`,
-        );
+        //console.log(
+        //  `Updating role for ${updatedUser.email} from ${originalEditingUser.role} to ${updatedUser.role} by admin: ${currentAdminEmail || "unknown"}`,
+        //);
         const roleResponse = await client.mutations.updateUserRole({
           email: updatedUser.email,
           role: updatedUser.role,
           adminEmail: currentAdminEmail || undefined,
         });
-        console.log("Update user role response:", roleResponse);
+        //console.log("Update user role response:", roleResponse);
         if (!roleResponse || !roleResponse.data) {
           updateError = `Failed to update role for ${updatedUser.email}.`;
         } else {
@@ -335,10 +335,10 @@ const AdminUsers = () => {
 
       if (profileChanged && !updateError) {
         // Only proceed if role update didn't fail
-        console.log(
-          `Updating profile for ${updatedUser.email} by admin: ${currentAdminEmail || "unknown"}`,
-          `Data: ${updatedUser.firstName}, ${updatedUser.lastName}, ${updatedUser.companyName}`,
-        );
+        //console.log(
+        //  `Updating profile for ${updatedUser.email} by admin: ${currentAdminEmail || "unknown"}`,
+        //  `Data: ${updatedUser.firstName}, ${updatedUser.lastName}, ${updatedUser.companyName}`,
+        //);
         const profileResponse = await client.mutations.updateUserProfile({
           email: updatedUser.email,
           firstName: updatedUser.firstName || "", // Send empty string if null/undefined
@@ -346,7 +346,7 @@ const AdminUsers = () => {
           companyName: updatedUser.companyName || "", // Send empty string if null/undefined
           adminEmail: currentAdminEmail || undefined,
         });
-        console.log("Update user profile response:", profileResponse);
+        //console.log("Update user profile response:", profileResponse);
         if (!profileResponse || !profileResponse.data) {
           updateError =
             (updateError ? updateError + " " : "") +
@@ -514,14 +514,8 @@ const AdminUsers = () => {
 
   // Listen for admin actions - always refresh automatically
   useEffect(() => {
-    const handleAdminAction = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      console.log(
-        "User management detected admin event:",
-        customEvent.detail.type,
-      );
-
-      // Silently refresh data without notifications
+    const handleAdminAction = () => {
+      
       setTimeout(async () => {
         setLoading(true);
         try {
@@ -563,7 +557,7 @@ const AdminUsers = () => {
 
     try {
       const response = await approveUser(email, currentAdminEmail || undefined);
-      console.log(`Approve user response for ${email}:`, response);
+      //console.log(`Approve user response for ${email}:`, response);
 
       if (response) {
         setSuccess(`User ${email} has been approved.`);
@@ -742,7 +736,7 @@ const AdminUsers = () => {
         email,
         currentAdminEmail || undefined,
       );
-      console.log(`Reactivate user response for ${email}:`, response);
+      //console.log(`Reactivate user response for ${email}:`, response);
 
       if (response) {
         setSuccess(`User ${email} has been reactivated.`);
@@ -789,7 +783,7 @@ const AdminUsers = () => {
 
     try {
       const response = await deleteUser(email, currentAdminEmail || undefined);
-      console.log(`Delete user response for ${email}:`, response);
+      //console.log(`Delete user response for ${email}:`, response);
 
       if (response.success) {
         setSuccess(response.message || `User ${email} has been deleted.`);

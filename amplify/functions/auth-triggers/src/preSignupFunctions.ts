@@ -103,20 +103,20 @@ export const userStatusOperations = {
     },
   ): Promise<boolean> => {
     try {
-      console.log(`[START] createPendingUserStatus for ${email}`);
+      //console.log(`[START] createPendingUserStatus for ${email}`);
       // Log the raw profileData argument received
-      console.log(
-        `[createPendingUserStatus] Received profileData argument:`,
-        JSON.stringify(profileData || {}, null, 2),
-      );
+      //console.log(
+      //  `[createPendingUserStatus] Received profileData argument:`,
+      //  JSON.stringify(profileData || {}, null, 2),
+      //);
 
       // Ensure profileData exists and provide fallbacks directly in the data object
       const fName = profileData?.firstName || undefined; // Use undefined as fallback
       const lName = profileData?.lastName || undefined;
       const cName = profileData?.companyName || undefined;
-      console.log(
-        `[createPendingUserStatus] Profile data received: firstName=${fName}, lastName=${lName}, companyName=${cName}`,
-      );
+      //console.log(
+      //  `[createPendingUserStatus] Profile data received: firstName=${fName}, lastName=${lName}, companyName=${cName}`,
+      //);
 
       // Set up user with pending status and profile data in UserStatus table
       const userStatusData: Partial<UserStatus> = {
@@ -141,10 +141,10 @@ export const userStatusOperations = {
       };
 
       // Log the data that will be written to DynamoDB
-      console.log(
-        `[createPendingUserStatus] UserStatus data to be written:`,
-        JSON.stringify(userStatusData),
-      );
+      //console.log(
+      //  `[createPendingUserStatus] UserStatus data to be written:`,
+      //  JSON.stringify(userStatusData),
+      //);
 
       // Get table name - try both environment variable formats to ensure compatibility
       const tableName =
@@ -152,14 +152,14 @@ export const userStatusOperations = {
         process.env.USER_STATUS_TABLE_NAME ||
         "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"; // Hardcoded fallback as last resort
 
-      console.log(
-        `[createPendingUserStatus] Using DynamoDB table: ${tableName}`,
-      );
+      //console.log(
+      //  `[createPendingUserStatus] Using DynamoDB table: ${tableName}`,
+      //);
 
       if (!tableName || tableName === "") {
-        console.error(
-          "❌ [createPendingUserStatus] USER_STATUS_TABLE environment variable is not set or is empty! Using fallback.",
-        );
+        //console.error(
+        //  "- [createPendingUserStatus] USER_STATUS_TABLE environment variable is not set or is empty! Using fallback.",
+        //);
         return false;
       }
 
@@ -170,42 +170,42 @@ export const userStatusOperations = {
           Item: userStatusData, // Pass the raw JS object here
         });
 
-        console.log(
-          `[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`,
-        );
+        //console.log(
+        //  `[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`,
+        //);
         await docClient.send(putCommand);
-        console.log(
-          `✅ [createPendingUserStatus] Successfully created UserStatus record for ${email} with pending status`,
-        );
+        //console.log(
+        //  `- [createPendingUserStatus] Successfully created UserStatus record for ${email} with pending status`,
+        //);
         return true;
       } catch (dbError: any) {
         // Log specific DynamoDB error details
-        console.error(
-          `❌ [createPendingUserStatus] DynamoDB error creating UserStatus for ${email}. Table: ${tableName}`,
-          dbError,
-        );
+        //console.error(
+        //  `- [createPendingUserStatus] DynamoDB error creating UserStatus for ${email}. Table: ${tableName}`,
+        //  dbError,
+        //);
         // Log more details if available
-        console.error(
-          `Error Details: Name: ${dbError?.name}, Code: ${dbError?.$metadata?.httpStatusCode || "N/A"}, Message: ${dbError?.message}, Full Error: ${JSON.stringify(dbError)}`,
-        );
+        //console.error(
+        //  `Error Details: Name: ${dbError?.name}, Code: ${dbError?.$metadata?.httpStatusCode || "N/A"}, Message: ${dbError?.message}, Full Error: ${JSON.stringify(dbError)}`,
+        //);
 
         // If we get a ResourceNotFoundException, the table might not exist
         if (
           dbError?.name === "ResourceNotFoundException" ||
           dbError?.__type?.includes("ResourceNotFoundException")
         ) {
-          console.error(
-            `Table "${tableName}" not found. Please check if the table exists and is accessible.`,
-          );
+          //console.error(
+          //  `Table "${tableName}" not found. Please check if the table exists and is accessible.`,
+          //);
         }
 
         return false;
       }
     } catch (error: any) {
-      console.error(
-        `❌ [createPendingUserStatus] Outer error for ${email}:`,
-        error,
-      );
+      //console.error(
+      //  `- [createPendingUserStatus] Outer error for ${email}:`,
+      //  error,
+      //);
       // If this is not critical for the sign-up flow, we can continue
       return false;
     }
@@ -224,11 +224,11 @@ export const userStatusOperations = {
         adminUrl: amplifyEnv.ADMIN_URL || process.env.ADMIN_URL || "#",
       });
 
-      console.log("Attempting to send admin notification email:", {
-        to: ADMIN_EMAIL,
-        from: FROM_EMAIL,
-        subject: "New User Registration - Action Required",
-      });
+      //console.log("Attempting to send admin notification email:", {
+      //  to: ADMIN_EMAIL,
+      //  from: FROM_EMAIL,
+      //  subject: "New User Registration - Action Required",
+      //});
 
       // Use direct SES sending instead of centralized function for better error visibility
       const command = new SendEmailCommand({
@@ -252,10 +252,10 @@ export const userStatusOperations = {
 
       try {
         const result = await sesClient.send(command);
-        console.log("SES send result:", JSON.stringify(result, null, 2));
-        console.log(
-          `Admin notification email sent successfully for new user: ${userEmail}`,
-        );
+        //console.log("SES send result:", JSON.stringify(result, null, 2));
+        //console.log(
+        //  `Admin notification email sent successfully for new user: ${userEmail}`,
+        //);
         return true;
       } catch (sesError) {
         console.error("SES Error details:", {
@@ -271,10 +271,10 @@ export const userStatusOperations = {
         return false;
       }
     } catch (error) {
-      console.error(
-        `Error notifying admin about new user ${userEmail}:`,
-        error,
-      );
+      //console.error(
+      //  `Error notifying admin about new user ${userEmail}:`,
+      //  error,
+      //);
       return false;
     }
   },
@@ -323,17 +323,17 @@ export const userStatusOperations = {
       try {
         const command = new SendEmailCommand(params);
         await sesClient.send(command);
-        console.log(`Application review email sent to user: ${userEmail}`);
+        //console.log(`Application review email sent to user: ${userEmail}`);
         return true;
       } catch (emailError) {
-        console.error("Error sending application review email:", emailError);
+        //console.error("Error sending application review email:", emailError);
         return false;
       }
     } catch (error) {
-      console.error(
-        `Error sending application review email to ${userEmail}:`,
-        error,
-      );
+      //console.error(
+      //  `Error sending application review email to ${userEmail}:`,
+      //  error,
+      //);
       return false;
     }
   },

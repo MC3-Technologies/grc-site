@@ -137,7 +137,7 @@ class InProgressAssessment extends Assessment {
 
       // First delete the database entry
       try {
-        console.log("Deleting database entry for assessment:", id);
+        //console.log("Deleting database entry for assessment:", id);
         const toBeDeletedAssessment = { id };
         const deleteResult =
           await this.client.models.InProgressAssessment.delete(
@@ -152,19 +152,19 @@ class InProgressAssessment extends Assessment {
           throw new Error(`Database deletion errors: ${errorMessages}`);
         }
 
-        console.log("Successfully deleted assessment database entry");
+        //console.log("Successfully deleted assessment database entry");
 
         // Only after database entry is deleted, delete the storage
         try {
-          console.log(
-            "Now deleting assessment from storage:",
-            assessmentData.storagePath,
-          );
+          //console.log(
+          //  "Now deleting assessment from storage:",
+          //  assessmentData.storagePath,
+          //);
           await remove({
             path: assessmentData.storagePath,
             options: { bucket: "assessmentStorage" },
           });
-          console.log("Successfully deleted assessment storage file");
+          //console.log("Successfully deleted assessment storage file");
         } catch (storageError) {
           console.error("Storage deletion error:", storageError);
           // Even if storage deletion fails, we've already deleted the database entry
@@ -180,7 +180,7 @@ class InProgressAssessment extends Assessment {
         );
       }
 
-      console.log("Assessment deletion completed successfully");
+      //console.log("Assessment deletion completed successfully");
     } catch (error) {
       console.error("Assessment deletion failed:", error);
       // Format the error message for better readability
@@ -516,18 +516,18 @@ class CompletedAssessment extends Assessment {
   // Delete assessment by id -> delete database entry and storage data
   public static deleteAssessment = async (id: string): Promise<void> => {
     try {
-      console.log(
-        `Starting deletion process for completed assessment ID: ${id}`,
-      );
+      //console.log(
+      //  `Starting deletion process for completed assessment ID: ${id}`,
+      //);
 
       // Get assessment data first to check ownership
       const assessmentData = await this.fetchAssessmentData(id);
-      console.log(
-        "Found completed assessment data:",
-        assessmentData.id,
-        "Owner:",
-        assessmentData.owner,
-      );
+      //console.log(
+      //  "Found completed assessment data:",
+      //  assessmentData.id,
+      //  "Owner:",
+      //  assessmentData.owner,
+      //);
 
       // Get current session identity and user sub
       const session = await fetchAuthSession();
@@ -535,7 +535,7 @@ class CompletedAssessment extends Assessment {
 
       // Check if user is admin
       const isAdmin = await this.isAdmin();
-      console.log("User has admin privileges:", isAdmin);
+      //console.log("User has admin privileges:", isAdmin);
 
       // Check ownership - only allow delete if user is admin or assessment owner
       if (!isAdmin && assessmentData.owner !== currentUserSub) {
@@ -547,7 +547,7 @@ class CompletedAssessment extends Assessment {
 
       // First delete the database entry
       try {
-        console.log("Deleting database entry for completed assessment:", id);
+        //console.log("Deleting database entry for completed assessment:", id);
         const toBeDeletedAssessment = { id };
         const deleteResult =
           await this.client.models.CompletedAssessment.delete(
@@ -562,19 +562,19 @@ class CompletedAssessment extends Assessment {
           throw new Error(`Database deletion errors: ${errorMessages}`);
         }
 
-        console.log("Successfully deleted completed assessment database entry");
+        //console.log("Successfully deleted completed assessment database entry");
 
         // Only after database entry is deleted, delete the storage
         try {
-          console.log(
-            "Now deleting completed assessment from storage:",
-            assessmentData.storagePath,
-          );
+          //console.log(
+          //  "Now deleting completed assessment from storage:",
+          //  assessmentData.storagePath,
+          //);
           await remove({
             path: assessmentData.storagePath,
             options: { bucket: "assessmentStorage" },
           });
-          console.log("Successfully deleted completed assessment storage file");
+          //console.log("Successfully deleted completed assessment storage file");
         } catch (storageError) {
           console.error("Storage deletion error:", storageError);
           // Even if storage deletion fails, we've already deleted the database entry
@@ -590,7 +590,7 @@ class CompletedAssessment extends Assessment {
         );
       }
 
-      console.log("Completed assessment deletion completed successfully");
+      //console.log("Completed assessment deletion completed successfully");
     } catch (error) {
       console.error("Completed assessment deletion failed:", error);
       // Format the error message for better readability
@@ -708,7 +708,8 @@ class CompletedAssessment extends Assessment {
       };
 
       // New assessment entry object
-      const { errors, data } =
+      //const { errors, data } =
+      const { errors } =
         await this.client.models.CompletedAssessment.create({
           id,
           name,
@@ -723,7 +724,7 @@ class CompletedAssessment extends Assessment {
       if (errors) {
         throw new Error(`Error creating new assessment: ${errors[0].message}`);
       }
-      console.log(`Successfully created new assessment: ${data}`);
+      //console.log(`Successfully created new assessment: ${data}`);
     } catch (e) {
       throw new Error(`${e}`);
     }
@@ -805,7 +806,7 @@ export async function saveAssessment({
       path: `assessments/${session.identityId}/in-progress/${file.name}`,
       data: file,
       options: { bucket: "assessmentStorage" },
-    });
+    }).result;
 
     return { success: true, message: "Assessment saved successfully" };
   } catch (error) {

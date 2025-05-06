@@ -25,7 +25,7 @@ export const cognitoOperations = {
       });
 
       await cognito.send(command);
-      console.log(`Disabled user ${username} in pool ${userPoolId}`);
+      //console.log(`Disabled user ${username} in pool ${userPoolId}`);
       return true;
     } catch (error) {
       console.error(`Error disabling user ${username}:`, error);
@@ -50,7 +50,7 @@ export const cognitoOperations = {
       });
 
       await cognito.send(command);
-      console.log(`Enabled user ${username} in pool ${userPoolId}`);
+      //console.log(`Enabled user ${username} in pool ${userPoolId}`);
       return true;
     } catch (error) {
       console.error(`Error enabling user ${username}:`, error);

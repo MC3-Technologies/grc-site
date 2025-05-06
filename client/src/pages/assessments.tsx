@@ -201,12 +201,12 @@ export function Assessments() {
 
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
-            console.log(`Mapped user ID ${userId} to email ${userEmail}`);
+            //console.log(`Mapped user ID ${userId} to email ${userEmail}`);
           }
         });
 
         setUserMap(userMapping);
-        console.log("User ID to email mapping created:", userMapping);
+        //console.log("User ID to email mapping created:", userMapping);
       } catch (error) {
         console.error("Error creating user mapping:", error);
       }
@@ -242,7 +242,7 @@ export function Assessments() {
         const userSub = userAttributes.sub || null;
         setCurrentUserEmail(userEmail);
         setCurrentUserSub(userSub);
-        console.log("Current user info:", { email: userEmail, sub: userSub });
+        //console.log("Current user info:", { email: userEmail, sub: userSub });
 
         // Removed admin check
 

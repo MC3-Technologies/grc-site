@@ -43,7 +43,7 @@ export const AdminEvents = {
 // Function to emit admin events
 export const emitAdminEvent = (eventType: string): boolean => {
   try {
-    console.log(`Emitting admin event: ${eventType}`);
+    //console.log(`Emitting admin event: ${eventType}`);
 
     // Create the event details
     const eventDetails = {
@@ -213,7 +213,7 @@ export const getMockUsers = (): User[] => {
 
 // Helper to filter mock users by status
 export const getFilteredMockUsers = (status: UserStatusType): User[] => {
-  console.log(`Filtering mock users by status: ${status}`);
+  //console.log(`Filtering mock users by status: ${status}`);
   return getMockUsers().filter((user) => {
     switch (status) {
       case "pending":
@@ -253,7 +253,7 @@ const safelyParseApiResponse = <T>(data: unknown): T | null => {
     return data as T;
   } catch (error) {
     console.warn("Error parsing API response:", error);
-    console.log("Raw response was:", data);
+    //console.log("Raw response was:", data);
     return null;
   }
 };
@@ -266,60 +266,60 @@ export const getUserStatus = (
   enabled: boolean,
   customStatus?: string | null,
 ): UserStatusType => {
-  console.log(
-    `getUserStatus called with: status=${status}, enabled=${enabled}, customStatus=${customStatus}`,
-  );
+  //console.log(
+  //  `getUserStatus called with: status=${status}, enabled=${enabled}, customStatus=${customStatus}`,
+  //);
 
   // First check for exact match on customStatus or status (to handle DynamoDB format)
   if (customStatus === "REJECTED" || status === "rejected") {
-    console.log("getUserStatus: returning 'rejected' (explicit match)");
+    //console.log("getUserStatus: returning 'rejected' (explicit match)");
     return "rejected";
   }
 
   if (customStatus === "SUSPENDED" || status === "suspended") {
-    console.log("getUserStatus: returning 'suspended' (explicit match)");
+    //console.log("getUserStatus: returning 'suspended' (explicit match)");
     return "suspended";
   }
 
   // If user is disabled but no custom status, treat as pending
   if (!enabled && !customStatus) {
-    console.log("getUserStatus: returning 'pending' (disabled user)");
+    //console.log("getUserStatus: returning 'pending' (disabled user)");
     return "pending";
   }
 
   // Check for active status from customStatus
   if (customStatus === "ACTIVE") {
-    console.log("getUserStatus: returning 'active' (explicit custom status)");
+    //console.log("getUserStatus: returning 'active' (explicit custom status)");
     return "active";
   }
 
   // Map Cognito status to our UI status
   if (status === "CONFIRMED" && enabled) {
-    console.log("getUserStatus: returning 'active' (confirmed and enabled)");
+    //console.log("getUserStatus: returning 'active' (confirmed and enabled)");
     return "active";
   } else if (
     ["FORCE_CHANGE_PASSWORD", "UNCONFIRMED", "RESET_REQUIRED"].includes(status)
   ) {
-    console.log(
-      "getUserStatus: returning 'pending' (password change/unconfirmed)",
-    );
+    //console.log(
+    //  "getUserStatus: returning 'pending' (password change/unconfirmed)",
+    //);
     return "pending";
   }
 
   // Check for active status from DynamoDB
   if (status === "active") {
-    console.log("getUserStatus: returning 'active' (explicit DynamoDB match)");
+    //console.log("getUserStatus: returning 'active' (explicit DynamoDB match)");
     return "active";
   }
 
   // Check for pending status from DynamoDB
   if (status === "pending") {
-    console.log("getUserStatus: returning 'pending' (explicit DynamoDB match)");
+    //console.log("getUserStatus: returning 'pending' (explicit DynamoDB match)");
     return "pending";
   }
 
   // Default to pending for any other status
-  console.log("getUserStatus: returning 'pending' (default fallback)");
+  //console.log("getUserStatus: returning 'pending' (default fallback)");
   return "pending";
 };
 
@@ -327,7 +327,7 @@ export const getUserStatus = (
  * Refresh user data cache by forcing a refetch
  */
 export const refreshUserData = async (): Promise<void> => {
-  console.log("Refreshing user data cache...");
+  //console.log("Refreshing user data cache...");
 
   // Clear all cached data
   clearUserCache();
@@ -353,7 +353,7 @@ export const fetchUsers = async (
   try {
     // Use the mockup data if configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log("Using mock data");
+      //console.log("Using mock data");
       return getMockUsers();
     }
 
@@ -361,7 +361,7 @@ export const fetchUsers = async (
     if (!forceRefresh) {
       const cachedUsers = getCachedUsers();
       if (cachedUsers) {
-        console.log("Using cached user data");
+        //console.log("Using cached user data");
         return cachedUsers;
       }
     }
@@ -646,9 +646,9 @@ export const suspendUser = async (
 ): Promise<boolean> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(
-        `Mock suspending user: ${email} by admin: ${adminEmail || "unknown"}`,
-      );
+      //console.log(
+      //  `Mock suspending user: ${email} by admin: ${adminEmail || "unknown"}`,
+      //);
       return true;
     }
 
@@ -804,7 +804,7 @@ export async function createTestUser(
 ): Promise<CreateUserResult> {
   try {
     const client = getClientSchema();
-    console.log("Creating user with params:", params);
+    //console.log("Creating user with params:", params);
 
     // Create mutation parameters including profile information
     const mutationParams = {
@@ -1554,15 +1554,15 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
       //);
 
       // Debug raw user status values before transformation
-      console.log(`User ${user.email} raw data:`, {
-        status: user.status,
-        enabled: user.enabled,
-        customStatus: user.customStatus,
-        attributes: user.attributes,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        companyName: user.companyName,
-      });
+      //console.log(`User ${user.email} raw data:`, {
+      //  status: user.status,
+      //  enabled: user.enabled,
+      //  customStatus: user.customStatus,
+      //  attributes: user.attributes,
+      //  firstName: user.firstName,
+      //  lastName: user.lastName,
+      //  companyName: user.companyName,
+      //});
 
       const transformedStatus = getUserStatus(
         user.status || "",

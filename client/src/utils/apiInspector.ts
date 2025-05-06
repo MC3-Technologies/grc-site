@@ -13,15 +13,15 @@ import { getClientSchema } from "../amplify/schema";
  */
 export async function inspectAdminStats() {
   try {
-    console.log("🔍 Fetching admin stats directly from API...");
-    const startTime = Date.now();
+    //console.log("- Fetching admin stats directly from API...");
+    //const startTime = Date.now();
 
     // Get client and make the request
     const client = getClientSchema();
     const response = await client.queries.getAdminStats({});
 
-    const endTime = Date.now();
-    console.log(`✅ API response received in ${endTime - startTime}ms`);
+    //const endTime = Date.now();
+    //console.log(`- API response received in ${endTime - startTime}ms`);
 
     // Log the raw response
     console.log("📦 Raw API response:", response);
@@ -65,23 +65,23 @@ export async function inspectAdminStats() {
               );
             });
           } else {
-            console.log("❌ No recent activities found in the response");
+            console.log("- No recent activities found in the response");
           }
         } else {
-          console.log("❌ No recentActivity property found in the response");
+          console.log("- No recentActivity property found in the response");
         }
 
         return parsedData;
       } catch (parseError) {
-        console.error("❌ Error parsing response data:", parseError);
+        console.error("- Error parsing response data:", parseError);
         return response.data;
       }
     } else {
-      console.log("❌ No data in the response");
+      console.log("- No data in the response");
       return response;
     }
   } catch (error) {
-    console.error("❌ Error fetching admin stats:", error);
+    console.error("- Error fetching admin stats:", error);
     return null;
   }
 }
@@ -100,7 +100,7 @@ export async function inspectRecentActivities() {
       Date.now() - 30 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
-    console.log(`🔍 Fetching audit logs from ${startDate} to ${endDate}...`);
+    console.log(`- Fetching audit logs from ${startDate} to ${endDate}...`);
 
     // Fetch recent audit logs
     const response = await client.queries.getAuditLogs({
@@ -146,15 +146,15 @@ export async function inspectRecentActivities() {
 
         return userLogs;
       } else {
-        console.log("❌ Response data is not an array");
+        console.log("- Response data is not an array");
         return logs;
       }
     } else {
-      console.log("❌ No data in the response");
+      console.log("- No data in the response");
       return [];
     }
   } catch (error) {
-    console.error("❌ Error fetching audit logs:", error);
+    console.error("- Error fetching audit logs:", error);
     return [];
   }
 }
