@@ -204,11 +204,11 @@ export default function AdminHome() {
           //logDebug(
           //  `After filtering and sorting: ${stats.recentActivity.length} activities`,
           //);
-          stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
+          // stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
             //logDebug(
             //  `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
             //);
-          });
+          // });
         } else {
           //logDebug("No activities found after filtering and sorting");
 
