@@ -106,7 +106,7 @@ export default function AdminHome() {
       await clearAdminStatsCache();
 
       //logDebug("Fetching admin statistics");
-      const stats = await fetchAdminStats(true); // Always force refresh from API
+      const stats = await fetchAdminStats(); // Always refresh from API
       //logDebug("Admin stats received from API");
 
       if (stats) {
@@ -221,7 +221,7 @@ export default function AdminHome() {
             setTimeout(() => {
               //logDebug("Retrying stat fetch due to missing activities");
               clearAdminStatsCache();
-              fetchAdminStats(true)
+              fetchAdminStats()
                 .then((retryStats) => {
                   if (
                     retryStats &&
@@ -289,7 +289,7 @@ export default function AdminHome() {
         // Schedule next auto-refresh - reduced from 5 min to 1 min to keep data fresh
         refreshTimeoutRef.current = setTimeout(() => {
           //logDebug("Auto-refresh triggered");
-          fetchStats(true);
+          fetchStats();
         }, 60000); // 1 minute refresh interval
       }
 
@@ -317,7 +317,7 @@ export default function AdminHome() {
 
       // Schedule a silent refresh instead of showing notification
       setTimeout(() => {
-        fetchStats(true);
+        fetchStats();
       }, 1500);
     };
 
@@ -357,7 +357,7 @@ export default function AdminHome() {
           //  "Tab became visible after 30+ seconds, checking for updates...",
           //);
           // Remove the data change detected code - instead just refresh silently
-          fetchStats(true);
+          fetchStats();
         }
       }
     };
@@ -412,7 +412,7 @@ export default function AdminHome() {
     setForceRefreshCounter((prev) => prev + 1);
 
     // Refresh the data
-    fetchStats(true)
+    fetchStats()
       .then(() => {
         setSuccess("Dashboard refreshed successfully");
         // Auto-dismiss success message after 3 seconds
@@ -435,7 +435,7 @@ export default function AdminHome() {
     // Set a very short delay before initial load to prevent blocking UI render
     // This ensures the parent component's loading state completes first
     setTimeout(() => {
-      fetchStats(true);
+      fetchStats();
     }, 100);
 
     // Set up event listener for admin actions with improved handling
@@ -462,7 +462,7 @@ export default function AdminHome() {
           // Force increment to trigger UI rerenders
           setForceRefreshCounter((prev) => prev + 1);
           // Always force refresh from API
-          fetchStats(true);
+          fetchStats();
         }, 1000);
       }
     };
@@ -472,7 +472,7 @@ export default function AdminHome() {
     // Add a listener for the special manual refresh event
     const handleManualRefresh = () => {
       //logDebug("Manual refresh event received");
-      fetchStats(true);
+      fetchStats();
     };
 
     document.addEventListener("manualRefresh", handleManualRefresh);
@@ -493,7 +493,7 @@ export default function AdminHome() {
   useEffect(() => {
     if (forceRefreshCounter > 0) {
       //logDebug(`Force refresh counter changed: ${forceRefreshCounter}`);
-      fetchStats(true);
+      fetchStats();
     }
   }, [forceRefreshCounter, fetchStats]);
 

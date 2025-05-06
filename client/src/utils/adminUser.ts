@@ -998,11 +998,9 @@ export const clearAdminStatsCache = (): void => {
 };
 
 // Fetch admin dashboard statistics
-export const fetchAdminStats = async (
-  forceRefresh: boolean = true,
-): Promise<AdminStats> => {
+export const fetchAdminStats = async (): Promise<AdminStats> => {
   try {
-    console.log("Fetching admin statistics, forceRefresh:", forceRefresh);
+    //console.log("Fetching admin statistics");
 
     // Always clear the cache when fetching admin stats to ensure fresh data
     clearAdminStatsCache();
@@ -1064,25 +1062,7 @@ export const fetchAdminStats = async (
         if (usersList.length > 0) {
           //console.log(`Secondary data source: Found ${usersList.length} users`);
 
-          // Count user statuses to compare with primary source
-          const userCounts = {
-            total: usersList.length,
-            active: usersList.filter(
-              (u) => u.status === "CONFIRMED" && u.enabled,
-            ).length,
-            pending: usersList.filter(
-              (u) =>
-                u.status === "FORCE_CHANGE_PASSWORD" &&
-                u.customStatus !== "REJECTED" &&
-                u.customStatus !== "SUSPENDED",
-            ).length,
-            rejected: usersList.filter((u) => u.customStatus === "REJECTED")
-              .length,
-            suspended: usersList.filter((u) => u.customStatus === "SUSPENDED")
-              .length,
-          };
-
-          console.log("Secondary source user counts:", userCounts);
+          // Secondary data verification logic removed (unused)
         }
       }
     } catch (usersFetchError) {
