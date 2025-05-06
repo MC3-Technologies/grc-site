@@ -275,13 +275,13 @@ describe("Admin User Management API", () => {
   describe("clearUserCache", () => {
     it("should clear user cache from localStorage", () => {
       // Setup - populate localStorage with mock cache
-      localStorageMock.setItem("admin_users_cache", JSON.stringify(mockUsers));
+      localStorageMock.setItem("userCache", JSON.stringify(mockUsers));
       localStorageMock.setItem(
-        "admin_users_cache_timestamp",
+        "userCacheTimestamp",
         Date.now().toString(),
       );
       localStorageMock.setItem(
-        "admin_users_cache_status_active",
+        "userCacheByStatus_active",
         JSON.stringify(mockActiveUsers),
       );
 
@@ -290,13 +290,13 @@ describe("Admin User Management API", () => {
 
       // Assert
       expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-        "admin_users_cache",
+        "userCache",
       );
       expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-        "admin_users_cache_timestamp",
+        "userCacheTimestamp",
       );
       expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-        "admin_users_cache_status_active",
+        "userCacheByStatus_active",
       );
     });
 
