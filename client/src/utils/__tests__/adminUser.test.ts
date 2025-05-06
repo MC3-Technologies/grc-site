@@ -276,10 +276,7 @@ describe("Admin User Management API", () => {
     it("should clear user cache from localStorage", () => {
       // Setup - populate localStorage with mock cache
       localStorageMock.setItem("userCache", JSON.stringify(mockUsers));
-      localStorageMock.setItem(
-        "userCacheTimestamp",
-        Date.now().toString(),
-      );
+      localStorageMock.setItem("userCacheTimestamp", Date.now().toString());
       localStorageMock.setItem(
         "userCacheByStatus_active",
         JSON.stringify(mockActiveUsers),
@@ -289,9 +286,7 @@ describe("Admin User Management API", () => {
       clearUserCache();
 
       // Assert
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith(
-        "userCache",
-      );
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith("userCache");
       expect(localStorageMock.removeItem).toHaveBeenCalledWith(
         "userCacheTimestamp",
       );

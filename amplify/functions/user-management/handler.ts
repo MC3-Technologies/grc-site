@@ -20,7 +20,6 @@ export type AppSyncEvent = AppSyncResolverEvent<any, any> & {
  * @returns The result of the operation
  */
 export const handler = async (event: AppSyncEvent): Promise<any> => {
-  
   log.info(
     "User management handler received event:",
     JSON.stringify(event, null, 2),

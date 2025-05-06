@@ -3,8 +3,8 @@ import { defineFunction } from "@aws-amplify/backend";
 
 // In Amplify Gen 2, API endpoints are injected at deployment time
 export const authTriggersFunction = defineFunction({
-  name: 'auth-triggers',
-  entry: './handler.ts',
+  name: "auth-triggers",
+  entry: "./handler.ts",
   environment: {
     // Define both variable names to ensure compatibility with different parts of the code
     USER_STATUS_TABLE:
@@ -22,8 +22,9 @@ export const authTriggersFunction = defineFunction({
     SES_CONFIGURATION_SET: process.env.SES_CONFIGURATION_SET || "",
     DEBUG_EMAIL: process.env.DEBUG_EMAIL || "false",
     // Add explicit mapping to user-management environment variable names
-    EMAIL_SENDER: process.env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
+    EMAIL_SENDER:
+      process.env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
     // Ensure the User Pool ID is available to the function
-    USER_POOL_ID: process.env.USER_POOL_ID || 'us-west-1_ZIDNJDzP5', // Default to persistent pool ID
+    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_ZIDNJDzP5", // Default to persistent pool ID
   },
 });

@@ -122,7 +122,7 @@ export const clearUserCache = (): void => {
       localStorage.removeItem(`${key}_timestamp`);
     });
 
-    console.log("User cache cleared successfully");
+    //console.log("User cache cleared successfully");
   } catch (error) {
     console.error("Error clearing user cache:", error);
   }
@@ -348,7 +348,7 @@ export const refreshUserData = async (): Promise<void> => {
 export const fetchUsers = async (
   forceRefresh: boolean = false,
 ): Promise<User[]> => {
-  console.log("Fetching users...");
+  //console.log("Fetching users...");
 
   try {
     // Use the mockup data if configured
@@ -367,26 +367,26 @@ export const fetchUsers = async (
     }
 
     // If we get here, we need to fetch from the API
-    console.log("Fetching users from API...");
+    //console.log("Fetching users from API...");
 
     // Use the same client pattern as other functions
     const client = getClientSchema();
-    console.log("Got client");
+    //console.log("Got client");
 
     const response = await client.queries.listUsers();
-    console.log("API response received:", response);
+    //console.log("API response received:", response);
 
     // Parse the response using the existing helper
     if (response && response.data) {
       const parsedData = safelyParseApiResponse<User[]>(response.data);
-      console.log("Parsed response data:", parsedData);
+      //console.log("Parsed response data:", parsedData);
 
       if (Array.isArray(parsedData)) {
         // Cache the fetched data
         cacheUsers(parsedData);
         return parsedData;
       } else {
-        console.warn("API returned data but not an array:", parsedData);
+        //console.warn("API returned data but not an array:", parsedData);
         return [];
       }
     }
@@ -408,11 +408,11 @@ export const fetchUsersByStatus = async (
   const normalizedStatus = status.toLowerCase() as UserStatusType;
 
   try {
-    console.log(`Fetching users with status: ${normalizedStatus}`);
+    //console.log(`Fetching users with status: ${normalizedStatus}`);
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log("Using mock filtered data");
+      //console.log("Using mock filtered data");
       return getFilteredMockUsers(normalizedStatus);
     }
 
@@ -420,7 +420,7 @@ export const fetchUsersByStatus = async (
     if (!forceRefresh) {
       const cachedUsers = getCachedUsersByStatus(normalizedStatus);
       if (cachedUsers) {
-        console.log(`Using cached user data for status: ${normalizedStatus}`);
+        //console.log(`Using cached user data for status: ${normalizedStatus}`);
         return cachedUsers;
       }
     }
@@ -432,18 +432,18 @@ export const fetchUsersByStatus = async (
     const response = await client.queries.getUsersByStatus({
       status: normalizedStatus,
     });
-    console.log("API response for getUsersByStatus:", response);
+    //console.log("API response for getUsersByStatus:", response);
 
     // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      console.log("Parsed status filtered data:", parsedData);
+      //console.log("Parsed status filtered data:", parsedData);
 
       if (Array.isArray(parsedData)) {
-        console.log(
-          `Raw data from getUsersByStatus(${normalizedStatus}):`,
-          parsedData,
-        );
+        //console.log(
+        //  `Raw data from getUsersByStatus(${normalizedStatus}):`,
+        //  parsedData,
+        //);
 
         let filteredData = parsedData.map((item) => {
           const mappedItem = {
@@ -457,14 +457,14 @@ export const fetchUsersByStatus = async (
             enabled: item.status !== "suspended" && item.status !== "rejected", // Derive this
           };
 
-          console.log(`Mapped item for ${item.email}:`, mappedItem);
+          //console.log(`Mapped item for ${item.email}:`, mappedItem);
           return mappedItem;
         });
 
-        console.log(
-          `After mapping, before filtering (${filteredData.length} items):`,
-          filteredData,
-        );
+        //console.log(
+        //  `After mapping, before filtering (${filteredData.length} items):`,
+        //  filteredData,
+        //);
 
         if (normalizedStatus === "pending") {
           filteredData = filteredData.filter((user) => {
@@ -474,9 +474,9 @@ export const fetchUsersByStatus = async (
               user.customStatus !== "SUSPENDED" &&
               user.status !== "suspended";
 
-            console.log(
-              `Filter pending: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
-            );
+            //console.log(
+            //  `Filter pending: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
+            //);
             return shouldInclude;
           });
         } else if (normalizedStatus === "rejected") {
@@ -484,9 +484,9 @@ export const fetchUsersByStatus = async (
             const shouldInclude =
               user.customStatus === "REJECTED" || user.status === "rejected";
 
-            console.log(
-              `Filter rejected: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
-            );
+            //console.log(
+            //  `Filter rejected: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
+            //);
             return shouldInclude;
           });
         } else if (normalizedStatus === "suspended") {
@@ -494,29 +494,29 @@ export const fetchUsersByStatus = async (
             const shouldInclude =
               user.customStatus === "SUSPENDED" || user.status === "suspended";
 
-            console.log(
-              `Filter suspended: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
-            );
+            //console.log(
+            //  `Filter suspended: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
+            //);
             return shouldInclude;
           });
         }
 
-        console.log(
-          `Final filtered data for ${normalizedStatus} (${filteredData.length} items):`,
-          filteredData,
-        );
+        //console.log(
+        //  `Final filtered data for ${normalizedStatus} (${filteredData.length} items):`,
+        //  filteredData,
+        //);
 
         // Cache the filtered results
         cacheUsersByStatus(normalizedStatus, filteredData);
 
         return filteredData;
       } else {
-        console.warn("API returned data but not an array:", parsedData);
+        //console.warn("API returned data but not an array:", parsedData);
       }
     }
 
     // If we reach here, something went wrong
-    console.error(`Failed to get users with status ${normalizedStatus}`);
+    //console.error(`Failed to get users with status ${normalizedStatus}`);
     return [];
   } catch (error) {
     console.error(
@@ -537,10 +537,10 @@ export const getUserDetails = async (email: string): Promise<User> => {
     }
 
     const client = getClientSchema();
-    console.log(`Fetching user details for ${email}`);
+    //console.log(`Fetching user details for ${email}`);
     const response = await client.queries.getUserDetails({ email });
 
-    console.log(`User details response for ${email}:`, response);
+    //console.log(`User details response for ${email}:`, response);
 
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
@@ -567,9 +567,9 @@ export const approveUser = async (
   try {
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(
-        `Mock approving user: ${email} by admin: ${adminEmail || "unknown"}`,
-      );
+      //console.log(
+      //  `Mock approving user: ${email} by admin: ${adminEmail || "unknown"}`,
+      //);
       return true;
     }
 
@@ -578,7 +578,7 @@ export const approveUser = async (
       email,
       adminEmail: adminEmail || "admin@example.com",
     });
-    console.log(`Approve user API response for ${email}:`, response);
+    //console.log(`Approve user API response for ${email}:`, response);
 
     // Parse response if needed
     if (response && response.data) {
@@ -606,14 +606,14 @@ export const rejectUser = async (
   try {
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(
-        `Mock rejecting user: ${email} by admin: ${adminEmail || "unknown"}`,
-      );
+      //console.log(
+      //  `Mock rejecting user: ${email} by admin: ${adminEmail || "unknown"}`,
+      //);
       return true;
     }
 
     const client = getClientSchema();
-    console.log(`Rejecting user ${email} with reason: ${reason || "None"}`);
+    //console.log(`Rejecting user ${email} with reason: ${reason || "None"}`);
 
     const response = await client.mutations.rejectUser({
       email,
@@ -621,7 +621,7 @@ export const rejectUser = async (
       adminEmail: adminEmail || "admin@example.com",
     });
 
-    console.log("Reject user API response:", response);
+    //console.log("Reject user API response:", response);
 
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
@@ -680,15 +680,15 @@ export const reactivateUser = async (
 ): Promise<boolean> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(
-        `Mock reactivating user: ${email} by admin: ${adminEmail || "unknown"}`,
-      );
+      //console.log(
+      //  `Mock reactivating user: ${email} by admin: ${adminEmail || "unknown"}`,
+      //);
       return true;
     }
 
-    console.log(
-      `Reactivating user ${email} by admin ${adminEmail || "unknown"}`,
-    );
+    //console.log(
+    //  `Reactivating user ${email} by admin ${adminEmail || "unknown"}`,
+    //);
 
     // Clear caches before the operation to ensure fresh data is fetched after
     clearUserCache();
@@ -700,7 +700,7 @@ export const reactivateUser = async (
       adminEmail: adminEmail || "admin@example.com",
     });
 
-    console.log(`Reactivation response for ${email}:`, response);
+    //console.log(`Reactivation response for ${email}:`, response);
 
     // Regardless of the result, wait a bit to ensure backend has processed the change
     await new Promise((resolve) => setTimeout(resolve, 800));
@@ -731,9 +731,9 @@ export const deleteUser = async (
 ): Promise<{ success: boolean; message: string }> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(
-        `Mock deleting user: ${email} by admin: ${adminEmail || "unknown"}`,
-      );
+      //console.log(
+      //  `Mock deleting user: ${email} by admin: ${adminEmail || "unknown"}`,
+      //);
       return {
         success: true,
         message: `User ${email} has been deleted (mock).`,
@@ -746,7 +746,7 @@ export const deleteUser = async (
       adminEmail: adminEmail || "admin@example.com", // Pass admin email to server
     });
 
-    console.log(`Delete user API response for ${email}:`, response);
+    //console.log(`Delete user API response for ${email}:`, response);
 
     // Parse response
     if (response && response.data) {
@@ -819,11 +819,11 @@ export async function createTestUser(
     };
 
     // Log the API call for debugging
-    console.log("Calling createUser mutation with:", mutationParams);
+    //console.log("Calling createUser mutation with:", mutationParams);
 
     const response = await client.mutations.createUser(mutationParams);
 
-    console.log("User creation API response:", response);
+    //console.log("User creation API response:", response);
 
     if (response && response.data) {
       // Clear caches to ensure fresh data
@@ -880,7 +880,7 @@ export const createUser = async (
   try {
     // If we're in mock mode for testing
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log(`Mock creating user: ${email} with role: ${role}`);
+      //console.log(`Mock creating user: ${email} with role: ${role}`);
       const status = skipEmailVerification
         ? "CONFIRMED"
         : "FORCE_CHANGE_PASSWORD";
@@ -901,13 +901,13 @@ export const createUser = async (
       };
     }
 
-    console.log(`Creating user with profile info:`, {
-      email,
-      role,
-      firstName,
-      lastName,
-      companyName,
-    });
+    //console.log(`Creating user with profile info:`, {
+    //   email,
+    //   role,
+    //   firstName,
+    //   lastName,
+    //   companyName,
+    //});
 
     // For real implementation, use createTestUser with parameters including profile info
     const result = await createTestUser({
@@ -984,14 +984,14 @@ export interface AdminStats {
 // Function to clear admin stats cache
 export const clearAdminStatsCache = (): void => {
   try {
-    console.log("Clearing admin stats cache");
+    //console.log("Clearing admin stats cache");
     localStorage.removeItem(ADMIN_STATS_CACHE_KEY);
     localStorage.removeItem(ADMIN_STATS_CACHE_TIMESTAMP_KEY);
 
     // Also clear user cache to ensure fresh data
     clearUserCache();
 
-    console.log("Admin stats and user cache cleared");
+    //console.log("Admin stats and user cache cleared");
   } catch (error) {
     console.error("Error clearing admin stats cache:", error);
   }
@@ -1009,7 +1009,7 @@ export const fetchAdminStats = async (
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log("Using mock statistics data");
+      //console.log("Using mock statistics data");
       // Create mock stats
       return {
         users: {
@@ -1035,18 +1035,18 @@ export const fetchAdminStats = async (
     const client = getClientSchema();
 
     // Add timestamp to ensure no caching at API level
-    const timestamp = Date.now();
-    console.log(`Requesting fresh admin stats at ${timestamp}`);
+    //const timestamp = Date.now();
+    //console.log(`Requesting fresh admin stats at ${timestamp}`);
 
     // Call the API with valid parameters only
     const response = await client.queries.getAdminStats({
       // Use empty object with no cache-busting parameter to avoid linter errors
     });
-    console.log("API response for getAdminStats:", response);
+    //console.log("API response for getAdminStats:", response);
 
     // For debugging, also try to fetch users directly to ensure data consistency
     try {
-      console.log("Fetching users as a secondary data source for verification");
+      //console.log("Fetching users as a secondary data source for verification");
       const usersResponse = await client.queries.listUsers({
         // Use empty object with no cache-busting parameter to avoid linter errors
       });
@@ -1062,7 +1062,7 @@ export const fetchAdminStats = async (
         }
 
         if (usersList.length > 0) {
-          console.log(`Secondary data source: Found ${usersList.length} users`);
+          //console.log(`Secondary data source: Found ${usersList.length} users`);
 
           // Count user statuses to compare with primary source
           const userCounts = {
@@ -1099,11 +1099,11 @@ export const fetchAdminStats = async (
       // Check if response.data is already an object or a string that needs parsing
       if (typeof response.data === "string") {
         parsedData = safelyParseApiResponse(response.data);
-        console.log("Parsed admin stats data:", parsedData);
+        //console.log("Parsed admin stats data:", parsedData);
       } else {
         // It's already an object
         parsedData = response.data;
-        console.log("Admin stats data (already an object):", parsedData);
+        //console.log("Admin stats data (already an object):", parsedData);
       }
 
       // Check if the returned data is already in the expected format
@@ -1137,34 +1137,34 @@ export const fetchAdminStats = async (
               ADMIN_STATS_CACHE_TIMESTAMP_KEY,
               Date.now().toString(),
             );
-            console.log("Admin stats cached with short expiry");
+            //console.log("Admin stats cached with short expiry");
           } catch (error) {
             console.error("Error caching admin stats:", error);
           }
 
           // Debug log for audit logs from the API response
-          {
-            interface ActivityItem {
-              action: string;
-              timestamp: string;
-            }
-            const statsData = parsedData as { recentActivity?: ActivityItem[] };
-            console.log(
-              "Full unfiltered API response for audit logs:",
-              statsData.recentActivity
-                ? statsData.recentActivity.map(
-                    (a) => `${a.action} - ${a.timestamp}`,
-                  )
-                : "No recent activity",
-            );
-          }
+          // {
+          //   interface ActivityItem {
+          //     action: string;
+          //     timestamp: string;
+          //   }
+          //   const statsData = parsedData as { recentActivity?: ActivityItem[] };
+          //   console.log(
+          //     "Full unfiltered API response for audit logs:",
+          //     statsData.recentActivity
+          //       ? statsData.recentActivity.map(
+          //           (a) => `${a.action} - ${a.timestamp}`,
+          //         )
+          //       : "No recent activity",
+          //   );
+          // }
 
           return adminStats;
         }
 
         // If parsedData is an array of users, we need to format it as stats
         if (Array.isArray(parsedData)) {
-          console.log("Received an array of users, formatting as stats");
+          //console.log("Received an array of users, formatting as stats");
           const users = parsedData as User[];
 
           const stats: AdminStats = {
@@ -1256,11 +1256,11 @@ export const fetchAuditLogs = async (
   },
 ): Promise<AuditLog[]> => {
   try {
-    console.log("Fetching audit logs with filters:", { dateRange, filters });
+    //console.log("Fetching audit logs with filters:", { dateRange, filters });
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log("Using mock audit log data");
+      //console.log("Using mock audit log data");
       const now = new Date();
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
@@ -1301,11 +1301,11 @@ export const fetchAuditLogs = async (
       dateRange: dateRange || undefined,
       filters: filters || undefined,
     });
-    console.log("API response for getAuditLogs:", response);
+    //console.log("API response for getAuditLogs:", response);
 
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      console.log("Parsed audit logs data:", parsedData);
+      //console.log("Parsed audit logs data:", parsedData);
       if (Array.isArray(parsedData)) {
         return parsedData.sort((a, b) => {
           const timeA = new Date(a.timestamp).getTime();
@@ -1361,9 +1361,9 @@ export const updateSystemSettings = async (
   error?: string;
 }> => {
   try {
-    console.log("Updating system settings:", settings);
+    //console.log("Updating system settings:", settings);
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      console.log("Simulating system settings update in mock mode");
+      //console.log("Simulating system settings update in mock mode");
       return {
         success: true,
         updatedCount: Array.isArray(settings) ? settings.length : 1,
@@ -1376,11 +1376,11 @@ export const updateSystemSettings = async (
       settings,
       updatedBy: updatedBy || "",
     });
-    console.log("API response for updateSystemSettingsConfig:", response);
+    //console.log("API response for updateSystemSettingsConfig:", response);
 
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      console.log("Parsed update settings response:", parsedData);
+      //console.log("Parsed update settings response:", parsedData);
       if (
         parsedData &&
         typeof parsedData === "object" &&
@@ -1412,11 +1412,11 @@ export const fetchSystemSettings =
     try {
       const client = getClientSchema();
       const response = await client.queries.getAllSystemSettings();
-      console.log("API response for getAllSystemSettings:", response);
+      //console.log("API response for getAllSystemSettings:", response);
 
       if (response.data) {
         const parsedData = safelyParseApiResponse(response.data);
-        console.log("Parsed system settings data:", parsedData);
+        //console.log("Parsed system settings data:", parsedData);
         if (parsedData && typeof parsedData === "object") {
           return parsedData as SystemSettingsResponse;
         }
@@ -1438,12 +1438,12 @@ const getCachedUsers = (): User[] | null => {
     const cacheTime = parseInt(timestamp, 10);
     const now = Date.now();
     if (now - cacheTime > CACHE_DURATION_MS) {
-      console.log("Cache expired, needs refresh");
+      //console.log("Cache expired, needs refresh");
       return null;
     }
 
     const users = JSON.parse(cachedData) as User[];
-    console.log(`Retrieved ${users.length} users from cache`);
+    //console.log(`Retrieved ${users.length} users from cache`);
     return users;
   } catch (error) {
     console.error("Error reading from cache:", error);
@@ -1461,15 +1461,15 @@ const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
     const timestamp = parseInt(cacheTimestamp, 10);
     const now = Date.now();
     if (now - timestamp > CACHE_DURATION_MS) {
-      console.log(`Cache for status ${status} has expired`);
+      //console.log(`Cache for status ${status} has expired`);
       return null;
     }
 
     const parsedData = JSON.parse(cachedData);
     if (Array.isArray(parsedData)) {
-      console.log(
-        `Retrieved ${parsedData.length} users from cache with status ${status}`,
-      );
+      //console.log(
+      //  `Retrieved ${parsedData.length} users from cache with status ${status}`,
+      //);
       return parsedData;
     }
     return null;
@@ -1483,7 +1483,7 @@ const cacheUsers = (users: User[]): void => {
   try {
     localStorage.setItem(USER_CACHE_KEY, JSON.stringify(users));
     localStorage.setItem(USER_CACHE_TIMESTAMP_KEY, Date.now().toString());
-    console.log(`Cached ${users.length} users`);
+    //console.log(`Cached ${users.length} users`);
   } catch (error) {
     console.error("Error writing to cache:", error);
   }
@@ -1494,7 +1494,7 @@ const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
     const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
     localStorage.setItem(key, JSON.stringify(users));
     localStorage.setItem(`${key}_timestamp`, Date.now().toString());
-    console.log(`Cached ${users.length} users with status ${status}`);
+    //console.log(`Cached ${users.length} users with status ${status}`);
   } catch (error) {
     console.error(`Error caching users with status ${status}:`, error);
   }
@@ -1507,7 +1507,7 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
     return [];
   }
 
-  console.log("transformUserData called with:", fetchedUsers);
+  //console.log("transformUserData called with:", fetchedUsers);
 
   // Helper function to determine user role
   const determineUserRole = (user: User): "user" | "admin" => {
@@ -1531,11 +1531,11 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
     const lastName = user.lastName || "";
     const companyName = user.companyName || "";
 
-    console.log(`User ${user.email} extracted profile:`, {
-      firstName,
-      lastName,
-      companyName,
-    });
+    //console.log(`User ${user.email} extracted profile:`, {
+    //  firstName,
+    //  lastName,
+    //  companyName,
+    //});
     return { firstName, lastName, companyName };
   };
 
@@ -1543,15 +1543,15 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
   const transformedUsers = fetchedUsers
     .map((user) => {
       if (!user || !user.email) {
-        console.warn("Invalid user object in response:", user);
+        //console.warn("Invalid user object in response:", user);
         return null;
       }
 
       // Log the raw user object received from fetchUsers before transformation
-      console.log(
-        `[transformUserData] Raw user data for ${user.email}:`,
-        JSON.stringify(user, null, 2),
-      );
+      //console.log(
+      //  `[transformUserData] Raw user data for ${user.email}:`,
+      //  JSON.stringify(user, null, 2),
+      //);
 
       // Debug raw user status values before transformation
       console.log(`User ${user.email} raw data:`, {
@@ -1588,6 +1588,6 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
     })
     .filter(Boolean) as UserData[]; // Remove any null entries
 
-  console.log("transformUserData result:", transformedUsers);
+  //console.log("transformUserData result:", transformedUsers);
   return transformedUsers;
 }

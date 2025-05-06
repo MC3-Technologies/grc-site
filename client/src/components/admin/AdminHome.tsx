@@ -102,36 +102,36 @@ export default function AdminHome() {
       setIsLoading(true);
 
       // Always clear cache before fetching to ensure fresh data
-      logDebug("Force refreshing admin stats and clearing cache");
+      //logDebug("Force refreshing admin stats and clearing cache");
       await clearAdminStatsCache();
 
-      logDebug("Fetching admin statistics");
+      //logDebug("Fetching admin statistics");
       const stats = await fetchAdminStats(true); // Always force refresh from API
-      logDebug("Admin stats received from API");
+      //logDebug("Admin stats received from API");
 
       if (stats) {
         // Log user stats specifically to debug
-        logDebug(`User stats received: ${JSON.stringify(stats.users)}`);
+        //logDebug(`User stats received: ${JSON.stringify(stats.users)}`);
 
-        logDebug(
-          `Raw recent activity count: ${stats.recentActivity?.length || 0}`,
-        );
+        //logDebug(
+        //  `Raw recent activity count: ${stats.recentActivity?.length || 0}`,
+        //);
 
         // Log ALL activities without filtering to debug what's actually coming from the API
         if (
           Array.isArray(stats.recentActivity) &&
           stats.recentActivity.length > 0
         ) {
-          logDebug("ALL activities from API response:");
-          stats.recentActivity.forEach((activity, idx) => {
-            logDebug(
-              `[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || "no-id"} - ID: ${activity.id?.substring(0, 8) || "no-id"}`,
-            );
-          });
+          //logDebug("ALL activities from API response:");
+          // stats.recentActivity.forEach((activity, idx) => {
+          //   //logDebug(
+          //   //  `[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || "no-id"} - ID: ${activity.id?.substring(0, 8) || "no-id"}`,
+          //   //);
+          // });
         } else {
-          logDebug(
-            "No activities received from API - this could indicate a backend issue",
-          );
+          //logDebug(
+          //  "No activities received from API - this could indicate a backend issue",
+          //);
         }
 
         // Ensure activity array is properly sorted by timestamp in descending order
@@ -143,9 +143,9 @@ export default function AdminHome() {
               if (!activity) return false;
 
               // Always log what we're processing
-              logDebug(
-                `Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || "unknown"}`,
-              );
+              //logDebug(
+              //  `Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || "unknown"}`,
+              //);
 
               // Include all valid activities - USER_STATUS_UPDATED no longer exists
               return true;
@@ -158,7 +158,7 @@ export default function AdminHome() {
                 activity.details?.email
               ) {
                 activity.resourceId = activity.details.email as string;
-                logDebug(`Fixed missing resourceId for ${activity.action}`);
+                //logDebug(`Fixed missing resourceId for ${activity.action}`);
               }
 
               // Special handling for USER_DELETED events which may have different formats
@@ -171,9 +171,9 @@ export default function AdminHome() {
                 activity.resourceId =
                   (activity.details.email as string) ||
                   (activity.details.userId as string);
-                logDebug(
-                  `Fixed USER_DELETED resourceId to: ${activity.resourceId}`,
-                );
+                //logDebug(
+                //  `Fixed USER_DELETED resourceId to: ${activity.resourceId}`,
+                //);
               }
 
               return activity;
@@ -185,41 +185,41 @@ export default function AdminHome() {
               return timeB - timeA;
             });
 
-          logDebug(
-            `After filtering and sorting: ${stats.recentActivity.length} activities`,
-          );
+          //logDebug(
+          //  `After filtering and sorting: ${stats.recentActivity.length} activities`,
+          //);
 
           // Log the first 3 activities for debugging
-          if (stats.recentActivity.length > 0) {
-            stats.recentActivity.slice(0, 3).forEach((activity, index) => {
-              logDebug(
-                `Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
-              );
-            });
-          }
+          // if (stats.recentActivity.length > 0) {
+          //   stats.recentActivity.slice(0, 3).forEach((activity, index) => {
+          //     //logDebug(
+          //       //`Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
+          //     //);
+          //   });
+          // }
         }
 
         // After filtering and sorting, log the final set of activities
         if (stats.recentActivity && stats.recentActivity.length > 0) {
-          logDebug(
-            `After filtering and sorting: ${stats.recentActivity.length} activities`,
-          );
+          //logDebug(
+          //  `After filtering and sorting: ${stats.recentActivity.length} activities`,
+          //);
           stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
-            logDebug(
-              `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
-            );
+            //logDebug(
+            //  `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
+            //);
           });
         } else {
-          logDebug("No activities found after filtering and sorting");
+          //logDebug("No activities found after filtering and sorting");
 
           // If we have no activities, schedule a retry with delay
           if (forceRefresh) {
-            logDebug(
-              "Scheduling retry in 5 seconds due to missing activities...",
-            );
+            //logDebug(
+            //  "Scheduling retry in 5 seconds due to missing activities...",
+            //);
             // Set a timeout for the retry
             setTimeout(() => {
-              logDebug("Retrying stat fetch due to missing activities");
+              //logDebug("Retrying stat fetch due to missing activities");
               clearAdminStatsCache();
               fetchAdminStats(true)
                 .then((retryStats) => {
@@ -228,23 +228,23 @@ export default function AdminHome() {
                     Array.isArray(retryStats.recentActivity) &&
                     retryStats.recentActivity.length > 0
                   ) {
-                    logDebug(
-                      `Retry successful, got ${retryStats.recentActivity.length} activities`,
-                    );
-                    
+                    //logDebug(
+                    //  `Retry successful, got ${retryStats.recentActivity.length} activities`,
+                    //);
+
                     // FIXED: Add timestamp and set state even on retry
                     const statsWithDebug = {
                       ...retryStats,
                       debugTimestamp: new Date().toISOString(),
                     };
-                    
+
                     // Set the admin stats with the retry data
                     setAdminStats(statsWithDebug as unknown as AdminStats);
                     lastRefreshTimeRef.current = new Date();
-                    logDebug("Stats updated in component state from retry");
+                    //logDebug("Stats updated in component state from retry");
                   } else {
-                    logDebug("Retry failed to get activities, using original data");
-                    
+                    //logDebug("Retry failed to get activities, using original data");
+
                     // Even if retry fails, still use the original data
                     if (stats) {
                       const statsWithDebug = {
@@ -252,14 +252,14 @@ export default function AdminHome() {
                         debugTimestamp: new Date().toISOString(),
                       };
                       setAdminStats(statsWithDebug as unknown as AdminStats);
-                      logDebug("Using original data after failed retry");
+                      //logDebug("Using original data after failed retry");
                     }
                   }
                   setIsLoading(false);
                 })
                 .catch((err) => {
-                  logDebug(`Error in retry fetch: ${err}`);
-                  
+                  console.log(`Error in retry fetch: ${err}`);
+
                   // Even on error, use the original data
                   if (stats) {
                     const statsWithDebug = {
@@ -267,9 +267,9 @@ export default function AdminHome() {
                       debugTimestamp: new Date().toISOString(),
                     };
                     setAdminStats(statsWithDebug as unknown as AdminStats);
-                    logDebug("Using original data after retry error");
+                    //logDebug("Using original data after retry error");
                   }
-                  
+
                   setIsLoading(false);
                 });
             }, 5000);
@@ -284,22 +284,22 @@ export default function AdminHome() {
 
         setAdminStats(statsWithDebug as unknown as AdminStats);
         lastRefreshTimeRef.current = new Date();
-        logDebug("Stats updated in component state");
+        //logDebug("Stats updated in component state");
 
         // Schedule next auto-refresh - reduced from 5 min to 1 min to keep data fresh
         refreshTimeoutRef.current = setTimeout(() => {
-          logDebug("Auto-refresh triggered");
+          //logDebug("Auto-refresh triggered");
           fetchStats(true);
         }, 60000); // 1 minute refresh interval
       }
-      
+
       // FIXED: Always set loading to false after processing, even if no stats
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching admin stats:", error);
-      logDebug(
-        `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      //logDebug(
+      //  `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`,
+      //);
       setIsLoading(false);
     }
   }, []);
@@ -326,7 +326,7 @@ export default function AdminHome() {
       const customEvent = event as CustomEvent;
       const eventType = customEvent.detail.type;
 
-      logDebug(`Admin action detected: ${eventType}`);
+      //logDebug(`Admin action detected: ${eventType}`);
       if (
         eventType === AdminEvents.USER_DELETED ||
         eventType === AdminEvents.USER_PROFILE_UPDATED ||
@@ -338,7 +338,7 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_CREATED ||
         eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
-        logDebug("Action requires refresh, initiating debounced refresh");
+        //logDebug("Action requires refresh, initiating debounced refresh");
         debouncedRefresh(eventType);
       }
     };
@@ -353,9 +353,9 @@ export default function AdminHome() {
           new Date().getTime() - lastRefreshTimeRef.current.getTime();
         if (timeSinceLastRefresh > 30000) {
           // 30 seconds since last refresh
-          logDebug(
-            "Tab became visible after 30+ seconds, checking for updates...",
-          );
+          //logDebug(
+          //  "Tab became visible after 30+ seconds, checking for updates...",
+          //);
           // Remove the data change detected code - instead just refresh silently
           fetchStats(true);
         }
@@ -374,9 +374,9 @@ export default function AdminHome() {
   }, [fetchStats, forceRefreshCounter]);
 
   // Function to add debug info
-  const logDebug = (message: string) => {
-    console.log(`DEBUG: ${message}`);
-  };
+  // const logDebug = (message: string) => {
+  //   console.log(`DEBUG: ${message}`);
+  // };
 
   // Function to navigate to different sections
   const navigateTo = (section: string, params?: string) => {
@@ -398,7 +398,7 @@ export default function AdminHome() {
 
   // Function for manual refresh with improved sequence
   const handleManualRefresh = useCallback(() => {
-    logDebug("Manual refresh requested");
+    //logDebug("Manual refresh requested");
 
     // Remove notification reset code
 
@@ -428,7 +428,7 @@ export default function AdminHome() {
 
   useEffect(() => {
     // Initial fetch
-    console.log("Admin dashboard mounting, clearing all caches");
+    //console.log("Admin dashboard mounting, clearing all caches");
     clearAdminStatsCache(); // Always clear cache on mount
     clearUserCache(); // Also clear user cache to ensure consistency
 
@@ -443,7 +443,7 @@ export default function AdminHome() {
       const customEvent = event as CustomEvent;
       const eventType = customEvent.detail.type;
 
-      logDebug(`Admin action detected: ${eventType}`);
+      //logDebug(`Admin action detected: ${eventType}`);
       if (
         eventType === AdminEvents.USER_DELETED ||
         eventType === AdminEvents.USER_PROFILE_UPDATED ||
@@ -455,7 +455,7 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_CREATED ||
         eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
-        logDebug(`Refreshing after admin action: ${eventType}`);
+        //logDebug(`Refreshing after admin action: ${eventType}`);
         // Add a small delay to ensure backend processing is complete
         setTimeout(() => {
           console.log(`Triggering refresh due to admin action: ${eventType}`);
@@ -471,7 +471,7 @@ export default function AdminHome() {
 
     // Add a listener for the special manual refresh event
     const handleManualRefresh = () => {
-      logDebug("Manual refresh event received");
+      //logDebug("Manual refresh event received");
       fetchStats(true);
     };
 
@@ -492,7 +492,7 @@ export default function AdminHome() {
   // Also refresh whenever force refresh counter changes
   useEffect(() => {
     if (forceRefreshCounter > 0) {
-      logDebug(`Force refresh counter changed: ${forceRefreshCounter}`);
+      //logDebug(`Force refresh counter changed: ${forceRefreshCounter}`);
       fetchStats(true);
     }
   }, [forceRefreshCounter, fetchStats]);

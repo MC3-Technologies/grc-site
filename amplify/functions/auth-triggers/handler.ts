@@ -26,23 +26,27 @@ const handlePreSignUp = async (event: any) => {
   // Extract user attributes, including profile data more robustly
   const userAttributes = event.request.userAttributes || {};
   const email = userAttributes.email;
-  const firstName = userAttributes.given_name || userAttributes["custom:firstName"]; // Check both standard and custom
-  const lastName = userAttributes.family_name || userAttributes["custom:lastName"]; // Check both standard and custom
+  const firstName =
+    userAttributes.given_name || userAttributes["custom:firstName"]; // Check both standard and custom
+  const lastName =
+    userAttributes.family_name || userAttributes["custom:lastName"]; // Check both standard and custom
   const companyName = userAttributes["custom:companyName"];
 
   // Ensure email exists before proceeding
   if (!email) {
-      console.error("Email not found in pre-signup event. Cannot create UserStatus record.");
-      // Optionally throw an error to prevent signup if email is mandatory
-      // throw new Error("Email is required for signup.");
-      return event; // Allow signup but log error
+    console.error(
+      "Email not found in pre-signup event. Cannot create UserStatus record.",
+    );
+    // Optionally throw an error to prevent signup if email is mandatory
+    // throw new Error("Email is required for signup.");
+    return event; // Allow signup but log error
   }
 
   const profileData = { firstName, lastName, companyName };
   console.log("Extracted profile data for pre-signup:", profileData);
 
   try {
-    // NOTE: Removed createPendingUserStatus call from PreSignUp. 
+    // NOTE: Removed createPendingUserStatus call from PreSignUp.
     // It will be handled on admin approval, not during signup triggers.
     // const result = await userStatusOperations.createPendingUserStatus(email, profileData);
     // if (!result) {
@@ -73,47 +77,64 @@ const handlePostConfirmation = async (event: any) => {
     const userAttributes = event.request.userAttributes || {};
     const email = userAttributes.email;
     const userPoolId = event.userPoolId;
-    
+
     if (!email) {
-        console.error("❌ Email not found in post-confirmation event. Cannot process.");
-        return event; // Exit gracefully
+      console.error(
+        "❌ Email not found in post-confirmation event. Cannot process.",
+      );
+      return event; // Exit gracefully
     }
-    
+
     // Get all possible sources of user attributes
-    const firstName = userAttributes["given_name"] || userAttributes["custom:firstName"] || '';
-    const lastName = userAttributes["family_name"] || userAttributes["custom:lastName"] || '';
-    const companyName = userAttributes["custom:companyName"] || '';
-    
+    const firstName =
+      userAttributes["given_name"] || userAttributes["custom:firstName"] || "";
+    const lastName =
+      userAttributes["family_name"] || userAttributes["custom:lastName"] || "";
+    const companyName = userAttributes["custom:companyName"] || "";
+
     // Log all extracted attributes to debug
     console.log("User attributes for DynamoDB record:", {
       email,
-      firstName, 
+      firstName,
       lastName,
       companyName,
-      allAttributes: userAttributes
+      allAttributes: userAttributes,
     });
-    
+
     // Create the profile data with all available attributes
     const profileData = {
       firstName,
       lastName,
-      companyName
+      companyName,
     };
 
     // Step 1: Create the user record in DynamoDB upon confirmation
-    console.log(`[PostConfirmation] Attempting to create initial DynamoDB record for user: ${email}`);
-    console.log(`[PostConfirmation] Passing profile data:`, JSON.stringify(profileData)); // Log data being passed
+    console.log(
+      `[PostConfirmation] Attempting to create initial DynamoDB record for user: ${email}`,
+    );
+    console.log(
+      `[PostConfirmation] Passing profile data:`,
+      JSON.stringify(profileData),
+    ); // Log data being passed
     try {
       // Ensure profileData object is passed as the second argument
-      const dbRecordCreated = await userStatusOperations.createPendingUserStatus(email, profileData); 
-        if (dbRecordCreated) {
-        console.log(`[PostConfirmation] ✅ Successfully created initial pending DynamoDB record for user: ${email}`);
-        } else {
-        console.warn(`[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`);
+      const dbRecordCreated =
+        await userStatusOperations.createPendingUserStatus(email, profileData);
+      if (dbRecordCreated) {
+        console.log(
+          `[PostConfirmation] ✅ Successfully created initial pending DynamoDB record for user: ${email}`,
+        );
+      } else {
+        console.warn(
+          `[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`,
+        );
         // Continue the process even if DB creation fails initially
       }
     } catch (dbError) {
-      console.error(`[PostConfirmation] ❌ Error creating initial DynamoDB record:`, dbError);
+      console.error(
+        `[PostConfirmation] ❌ Error creating initial DynamoDB record:`,
+        dbError,
+      );
       // Continue the process even if DB creation fails initially
     }
 

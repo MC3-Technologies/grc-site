@@ -18,11 +18,21 @@ try {
 }
 
 // --- Log resolved configuration ---
-console.log(`[AuthTriggerConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`);
-console.log(`[AuthTriggerConfig] Using UserStatus Table Name: ${process.env.USER_STATUS_TABLE || process.env.USER_STATUS_TABLE_NAME || 'UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE (Hardcoded Fallback!)'}`);
-console.log(`[AuthTriggerConfig] Using User Pool ID (from env): ${amplifyEnv.USER_POOL_ID || process.env.USER_POOL_ID || 'NOT SET IN ENV'}`); // Log pool ID if available
-console.log(`[AuthTriggerConfig] Resolved ADMIN_EMAIL: ${amplifyEnv.ADMIN_EMAIL || process.env.ADMIN_EMAIL || 'cmmc.support@mc3technologies.com'}`);
-console.log(`[AuthTriggerConfig] Resolved FROM_EMAIL: ${amplifyEnv.EMAIL_SENDER || process.env.EMAIL_SENDER || amplifyEnv.FROM_EMAIL || process.env.FROM_EMAIL || 'no-reply-grc@mc3technologies.com'}`);
+console.log(
+  `[AuthTriggerConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`,
+);
+console.log(
+  `[AuthTriggerConfig] Using UserStatus Table Name: ${process.env.USER_STATUS_TABLE || process.env.USER_STATUS_TABLE_NAME || "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE (Hardcoded Fallback!)"}`,
+);
+console.log(
+  `[AuthTriggerConfig] Using User Pool ID (from env): ${amplifyEnv.USER_POOL_ID || process.env.USER_POOL_ID || "NOT SET IN ENV"}`,
+); // Log pool ID if available
+console.log(
+  `[AuthTriggerConfig] Resolved ADMIN_EMAIL: ${amplifyEnv.ADMIN_EMAIL || process.env.ADMIN_EMAIL || "cmmc.support@mc3technologies.com"}`,
+);
+console.log(
+  `[AuthTriggerConfig] Resolved FROM_EMAIL: ${amplifyEnv.EMAIL_SENDER || process.env.EMAIL_SENDER || amplifyEnv.FROM_EMAIL || process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com"}`,
+);
 // --------------------------------
 
 // Initialize clients
@@ -95,14 +105,19 @@ export const userStatusOperations = {
     try {
       console.log(`[START] createPendingUserStatus for ${email}`);
       // Log the raw profileData argument received
-      console.log(`[createPendingUserStatus] Received profileData argument:`, JSON.stringify(profileData || {}, null, 2)); 
-      
+      console.log(
+        `[createPendingUserStatus] Received profileData argument:`,
+        JSON.stringify(profileData || {}, null, 2),
+      );
+
       // Ensure profileData exists and provide fallbacks directly in the data object
       const fName = profileData?.firstName || undefined; // Use undefined as fallback
       const lName = profileData?.lastName || undefined;
       const cName = profileData?.companyName || undefined;
-      console.log(`[createPendingUserStatus] Profile data received: firstName=${fName}, lastName=${lName}, companyName=${cName}`);
-      
+      console.log(
+        `[createPendingUserStatus] Profile data received: firstName=${fName}, lastName=${lName}, companyName=${cName}`,
+      );
+
       // Set up user with pending status and profile data in UserStatus table
       const userStatusData: Partial<UserStatus> = {
         id: email, // Partition Key
@@ -120,23 +135,31 @@ export const userStatusOperations = {
         rejectionReason: undefined,
         suspensionReason: undefined,
         approvedBy: undefined,
-        lastStatusChange: undefined, 
+        lastStatusChange: undefined,
         lastStatusChangeBy: undefined,
-        ttl: undefined 
+        ttl: undefined,
       };
 
       // Log the data that will be written to DynamoDB
-      console.log(`[createPendingUserStatus] UserStatus data to be written:`, JSON.stringify(userStatusData));
+      console.log(
+        `[createPendingUserStatus] UserStatus data to be written:`,
+        JSON.stringify(userStatusData),
+      );
 
       // Get table name - try both environment variable formats to ensure compatibility
-      const tableName = process.env.USER_STATUS_TABLE || 
-                        process.env.USER_STATUS_TABLE_NAME || 
-                        "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"; // Hardcoded fallback as last resort
-      
-      console.log(`[createPendingUserStatus] Using DynamoDB table: ${tableName}`);
+      const tableName =
+        process.env.USER_STATUS_TABLE ||
+        process.env.USER_STATUS_TABLE_NAME ||
+        "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"; // Hardcoded fallback as last resort
 
-      if (!tableName || tableName === '') {
-        console.error("❌ [createPendingUserStatus] USER_STATUS_TABLE environment variable is not set or is empty! Using fallback.");
+      console.log(
+        `[createPendingUserStatus] Using DynamoDB table: ${tableName}`,
+      );
+
+      if (!tableName || tableName === "") {
+        console.error(
+          "❌ [createPendingUserStatus] USER_STATUS_TABLE environment variable is not set or is empty! Using fallback.",
+        );
         return false;
       }
 
@@ -147,25 +170,42 @@ export const userStatusOperations = {
           Item: userStatusData, // Pass the raw JS object here
         });
 
-        console.log(`[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`);
+        console.log(
+          `[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`,
+        );
         await docClient.send(putCommand);
-        console.log(`✅ [createPendingUserStatus] Successfully created UserStatus record for ${email} with pending status`);
+        console.log(
+          `✅ [createPendingUserStatus] Successfully created UserStatus record for ${email} with pending status`,
+        );
         return true;
       } catch (dbError: any) {
         // Log specific DynamoDB error details
-        console.error(`❌ [createPendingUserStatus] DynamoDB error creating UserStatus for ${email}. Table: ${tableName}`, dbError);
+        console.error(
+          `❌ [createPendingUserStatus] DynamoDB error creating UserStatus for ${email}. Table: ${tableName}`,
+          dbError,
+        );
         // Log more details if available
-        console.error(`Error Details: Name: ${dbError?.name}, Code: ${dbError?.$metadata?.httpStatusCode || 'N/A'}, Message: ${dbError?.message}, Full Error: ${JSON.stringify(dbError)}`);
-        
+        console.error(
+          `Error Details: Name: ${dbError?.name}, Code: ${dbError?.$metadata?.httpStatusCode || "N/A"}, Message: ${dbError?.message}, Full Error: ${JSON.stringify(dbError)}`,
+        );
+
         // If we get a ResourceNotFoundException, the table might not exist
-        if (dbError?.name === 'ResourceNotFoundException' || dbError?.__type?.includes('ResourceNotFoundException')) {
-          console.error(`Table "${tableName}" not found. Please check if the table exists and is accessible.`);
+        if (
+          dbError?.name === "ResourceNotFoundException" ||
+          dbError?.__type?.includes("ResourceNotFoundException")
+        ) {
+          console.error(
+            `Table "${tableName}" not found. Please check if the table exists and is accessible.`,
+          );
         }
-        
+
         return false;
       }
     } catch (error: any) {
-      console.error(`❌ [createPendingUserStatus] Outer error for ${email}:`, error);
+      console.error(
+        `❌ [createPendingUserStatus] Outer error for ${email}:`,
+        error,
+      );
       // If this is not critical for the sign-up flow, we can continue
       return false;
     }
