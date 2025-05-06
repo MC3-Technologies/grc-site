@@ -312,7 +312,7 @@ export const userOperations = {
           let lastStatusChange: string | undefined = cognitoUser.UserLastModifiedDate?.toISOString(); // Default to Cognito modified date
 
           if (email) { // Only query DynamoDB if we have an email
-            try {
+          try {
               const dbResponse = await dynamodb.send(new GetItemCommand({ 
                   TableName: userStatusTableName, 
                   Key: marshall({ id: email }) 
@@ -466,7 +466,7 @@ export const userOperations = {
 
           } else {
               console.warn(`[approveUser] No UserAttributes found in Cognito response for ${email}.`);
-          }
+        }
       } catch (fetchError) {
           console.warn(`[approveUser] Could not fetch Cognito profile attributes for ${email} during approval:`, fetchError);
       }
@@ -779,7 +779,7 @@ export const userOperations = {
         } while (paginationToken);
 
         console.log(`[getAdminStats] Total users fetched from Cognito: ${allCognitoUsers.length}`);
-
+          
         // Count users based on Enabled status and custom:status attribute
         allCognitoUsers.forEach(user => {
           const attributes = user.Attributes?.reduce((acc, attr) => {
@@ -802,7 +802,7 @@ export const userOperations = {
             // This includes UNCONFIRMED, FORCE_CHANGE_PASSWORD, or even CONFIRMED but disabled post-confirmation
             else if (customStatus !== 'REJECTED') { // Exclude explicitly rejected users
               cognitoPending++;
-            }
+                }
             // Note: Rejected users aren't explicitly counted here based on Cognito status alone.
             // The total - active - pending - suspended gives an idea, but DynamoDB holds the explicit 'rejected' state if needed.
           }
@@ -838,10 +838,10 @@ export const userOperations = {
           dynamodb.send(new ScanCommand({ TableName: completedTableName })),
           dynamodb.send(new ScanCommand({ TableName: inProgressTableName }))
         ]);
-
+        
         const completedAssessments = (completedResponse.Items || []).map(item => unmarshall(item));
         const inProgressAssessments = (inProgressResponse.Items || []).map(item => unmarshall(item));
-
+        
         stats.assessments.completed = completedAssessments.length;
         stats.assessments.inProgress = inProgressAssessments.length;
         stats.assessments.total = stats.assessments.completed + stats.assessments.inProgress;

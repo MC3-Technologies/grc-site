@@ -106,9 +106,9 @@ const handlePostConfirmation = async (event: any) => {
     try {
       // Ensure profileData object is passed as the second argument
       const dbRecordCreated = await userStatusOperations.createPendingUserStatus(email, profileData); 
-      if (dbRecordCreated) {
+        if (dbRecordCreated) {
         console.log(`[PostConfirmation] ✅ Successfully created initial pending DynamoDB record for user: ${email}`);
-      } else {
+        } else {
         console.warn(`[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`);
         // Continue the process even if DB creation fails initially
       }

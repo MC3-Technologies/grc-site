@@ -217,6 +217,7 @@ export default function AdminHome() {
             logDebug(
               "Scheduling retry in 5 seconds due to missing activities...",
             );
+            // Set a timeout for the retry
             setTimeout(() => {
               logDebug("Retrying stat fetch due to missing activities");
               clearAdminStatsCache();
@@ -230,18 +231,48 @@ export default function AdminHome() {
                     logDebug(
                       `Retry successful, got ${retryStats.recentActivity.length} activities`,
                     );
-                    setAdminStats(retryStats as unknown as AdminStats);
+                    
+                    // FIXED: Add timestamp and set state even on retry
+                    const statsWithDebug = {
+                      ...retryStats,
+                      debugTimestamp: new Date().toISOString(),
+                    };
+                    
+                    // Set the admin stats with the retry data
+                    setAdminStats(statsWithDebug as unknown as AdminStats);
+                    lastRefreshTimeRef.current = new Date();
+                    logDebug("Stats updated in component state from retry");
                   } else {
-                    logDebug("Retry failed to get activities");
+                    logDebug("Retry failed to get activities, using original data");
+                    
+                    // Even if retry fails, still use the original data
+                    if (stats) {
+                      const statsWithDebug = {
+                        ...stats,
+                        debugTimestamp: new Date().toISOString(),
+                      };
+                      setAdminStats(statsWithDebug as unknown as AdminStats);
+                      logDebug("Using original data after failed retry");
+                    }
                   }
                   setIsLoading(false);
                 })
                 .catch((err) => {
                   logDebug(`Error in retry fetch: ${err}`);
+                  
+                  // Even on error, use the original data
+                  if (stats) {
+                    const statsWithDebug = {
+                      ...stats,
+                      debugTimestamp: new Date().toISOString(),
+                    };
+                    setAdminStats(statsWithDebug as unknown as AdminStats);
+                    logDebug("Using original data after retry error");
+                  }
+                  
                   setIsLoading(false);
                 });
             }, 5000);
-            return; // Exit early, we'll update state in the retry
           }
         }
 
@@ -261,6 +292,9 @@ export default function AdminHome() {
           fetchStats(true);
         }, 60000); // 1 minute refresh interval
       }
+      
+      // FIXED: Always set loading to false after processing, even if no stats
+      setIsLoading(false);
     } catch (error) {
       console.error("Error fetching admin stats:", error);
       logDebug(
@@ -398,7 +432,11 @@ export default function AdminHome() {
     clearAdminStatsCache(); // Always clear cache on mount
     clearUserCache(); // Also clear user cache to ensure consistency
 
-    fetchStats(true);
+    // Set a very short delay before initial load to prevent blocking UI render
+    // This ensures the parent component's loading state completes first
+    setTimeout(() => {
+      fetchStats(true);
+    }, 100);
 
     // Set up event listener for admin actions with improved handling
     const handleAdminAction = (event: Event) => {

@@ -52,11 +52,12 @@ export function AdminDashboard() {
         setCurrentUser(user);
       } catch (err) {
         console.error("Error fetching current user:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUser();
-    setLoading(false);
   }, []);
 
   // Render the active section content
