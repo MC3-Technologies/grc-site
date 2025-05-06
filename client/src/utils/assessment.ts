@@ -46,7 +46,7 @@ class Assessment {
         },
         //accessLevel: 'protected' // Specify access level here for identity-based rules
       }).result;
-      console.log("Assessment uploaded successfully", res);
+      //console.log("Assessment uploaded successfully", res);
       // Return path of uploaded blob
       return res.path;
     } catch (e) {
@@ -108,16 +108,16 @@ class InProgressAssessment extends Assessment {
   // Delete assessment by id -> delete database entry and storage data
   public static deleteAssessment = async (id: string): Promise<void> => {
     try {
-      console.log(`Starting deletion process for assessment ID: ${id}`);
+      //console.log(`Starting deletion process for assessment ID: ${id}`);
 
       // Get assessment data first to check ownership
       const assessmentData = await this.fetchAssessmentData(id);
-      console.log(
-        "Found assessment data:",
-        assessmentData.id,
-        "Owner:",
-        assessmentData.owner,
-      );
+      //console.log(
+      //  "Found assessment data:",
+      //  assessmentData.id,
+      //  "Owner:",
+      //  assessmentData.owner,
+      //);
 
       // Get current session identity and user sub
       const session = await fetchAuthSession();
@@ -125,7 +125,7 @@ class InProgressAssessment extends Assessment {
 
       // Check if user is admin
       const isAdmin = await this.isAdmin();
-      console.log("User has admin privileges:", isAdmin);
+      //console.log("User has admin privileges:", isAdmin);
 
       // Check ownership - only allow delete if user is admin or assessment owner
       if (!isAdmin && assessmentData.owner !== currentUserSub) {
@@ -388,7 +388,7 @@ class InProgressAssessment extends Assessment {
           `No data recieved from creating new assessment entry: ${errors}`,
         );
       }
-      console.log(`Successfully created new assessment: ${data}`);
+      //console.log(`Successfully created new assessment: ${data}`);
       return data.id;
     } catch (e) {
       throw new Error(`${e}`);

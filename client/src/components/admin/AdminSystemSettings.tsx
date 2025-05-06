@@ -189,7 +189,7 @@ export default function AdminSystemSettings({
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (error) {
               // Allow invalid JSON during editing, but don't update the value
-              console.log("Invalid JSON, not updating value");
+              //console.log("Invalid JSON, not updating value");
             }
           }}
           rows={8}

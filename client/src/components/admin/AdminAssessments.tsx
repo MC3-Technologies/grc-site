@@ -114,13 +114,13 @@ const AdminAssessments = () => {
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
             userOptions.push({ id: userId, email: userEmail });
-            console.log(`Mapped ID ${userId} to email ${userEmail}`);
+            //console.log(`Mapped ID ${userId} to email ${userEmail}`);
           }
         });
 
         setUserMap(userMapping);
         setUsers(userOptions);
-        console.log("User ID to Email mapping created:", userMapping);
+        //console.log("User ID to Email mapping created:", userMapping);
       } catch (error) {
         console.error("Error fetching user data:", error);
       }
@@ -177,7 +177,7 @@ const AdminAssessments = () => {
           if (currentUserMap[ownerId]) return currentUserMap[ownerId];
 
           // If no match, log and return owner ID (better than nothing)
-          console.log(`Could not find email for owner ID: ${ownerId}`);
+          //console.log(`Could not find email for owner ID: ${ownerId}`);
           return ownerId;
         };
 
@@ -300,9 +300,9 @@ const AdminAssessments = () => {
     if (!assessmentToDelete) return;
 
     const { id, status, name } = assessmentToDelete;
-    console.log(
-      `Attempting to delete ${status} assessment: ${name} (ID: ${id})`,
-    );
+    //console.log(
+    //  `Attempting to delete ${status} assessment: ${name} (ID: ${id})`,
+    //);
 
     try {
       if (status === "in-progress") {
@@ -316,7 +316,7 @@ const AdminAssessments = () => {
         prevAssessments.filter((assessment) => assessment.id !== id),
       );
 
-      console.log(`Successfully deleted assessment: ${name} (ID: ${id})`);
+      //console.log(`Successfully deleted assessment: ${name} (ID: ${id})`);
       setAlertMessage(`Assessment "${name}" has been permanently deleted.`);
       setAlertType("success");
     } catch (error) {

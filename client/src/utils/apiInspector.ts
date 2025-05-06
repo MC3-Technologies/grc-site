@@ -24,7 +24,7 @@ export async function inspectAdminStats() {
     //console.log(`- API response received in ${endTime - startTime}ms`);
 
     // Log the raw response
-    console.log("📦 Raw API response:", response);
+    //console.log("Raw API response:", response);
 
     if (response && response.data) {
       try {
@@ -41,34 +41,27 @@ export async function inspectAdminStats() {
           parsedData = response.data;
         }
 
-        console.log("🧩 Parsed data:", parsedData);
+        //console.log("Parsed data:", parsedData);
 
         // Check for recent activities
         if (parsedData && parsedData.recentActivity) {
-          console.log(
-            `📊 Recent activities count: ${parsedData.recentActivity.length}`,
-          );
+          //console.log(
+          //  `Recent activities count: ${parsedData.recentActivity.length}`,
+          //);
 
           if (parsedData.recentActivity.length > 0) {
-            console.log("📜 Recent activities (newest first):");
+            //console.log("Recent activities (newest first):");
             // Sort by timestamp (newest first) and display
-            const sortedActivities = [...parsedData.recentActivity].sort(
-              (a, b) =>
-                new Date(b.timestamp).getTime() -
-                new Date(a.timestamp).getTime(),
-            );
-
-            // Display the first 10 activities
-            sortedActivities.slice(0, 10).forEach((activity, index) => {
-              console.log(
-                `  ${index + 1}. [${activity.action}] ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId}`,
-              );
-            });
+            // const sortedActivities = [...parsedData.recentActivity].sort(
+            //   (a, b) =>
+            //     new Date(b.timestamp).getTime() -
+            //     new Date(a.timestamp).getTime(),
+            // );
           } else {
-            console.log("- No recent activities found in the response");
+            //console.log("- No recent activities found in the response");
           }
         } else {
-          console.log("- No recentActivity property found in the response");
+          //console.log("- No recentActivity property found in the response");
         }
 
         return parsedData;
@@ -77,7 +70,7 @@ export async function inspectAdminStats() {
         return response.data;
       }
     } else {
-      console.log("- No data in the response");
+      //console.log("- No data in the response");
       return response;
     }
   } catch (error) {
@@ -100,7 +93,7 @@ export async function inspectRecentActivities() {
       Date.now() - 30 * 24 * 60 * 60 * 1000,
     ).toISOString();
 
-    console.log(`- Fetching audit logs from ${startDate} to ${endDate}...`);
+    //console.log(`Fetching audit logs from ${startDate} to ${endDate}...`);
 
     // Fetch recent audit logs
     const response = await client.queries.getAuditLogs({
@@ -108,7 +101,7 @@ export async function inspectRecentActivities() {
       // No filters to get all logs
     });
 
-    console.log("📦 Raw audit logs response:", response);
+    //console.log("Raw audit logs response:", response);
 
     if (response && response.data) {
       let logs;
@@ -119,7 +112,7 @@ export async function inspectRecentActivities() {
       }
 
       if (Array.isArray(logs)) {
-        console.log(`📊 Found ${logs.length} audit logs`);
+        //console.log(`Found ${logs.length} audit logs`);
 
         // Sort by timestamp (newest first)
         const sortedLogs = [...logs].sort(
@@ -132,25 +125,25 @@ export async function inspectRecentActivities() {
           (log) => log.affectedResource === "user" && true, // Include all action types
         );
 
-        console.log(`📊 Found ${userLogs.length} user-related logs`);
+        //console.log(`Found ${userLogs.length} user-related logs`);
 
         // Display most recent 10
-        if (userLogs.length > 0) {
-          console.log("📜 Most recent user logs:");
-          userLogs.slice(0, 10).forEach((log, index) => {
-            console.log(
-              `  ${index + 1}. [${log.action}] ${log.timestamp} - ${log.resourceId}`,
-            );
-          });
-        }
+        // if (userLogs.length > 0) {
+        //   console.log("Most recent user logs:");
+        //   userLogs.slice(0, 10).forEach((log, index) => {
+        //     console.log(
+        //       `  ${index + 1}. [${log.action}] ${log.timestamp} - ${log.resourceId}`,
+        //     );
+        //   });
+        // }
 
         return userLogs;
       } else {
-        console.log("- Response data is not an array");
+        //console.log("- Response data is not an array");
         return logs;
       }
     } else {
-      console.log("- No data in the response");
+      //console.log("- No data in the response");
       return [];
     }
   } catch (error) {

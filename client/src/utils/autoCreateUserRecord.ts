@@ -25,24 +25,24 @@ export const ensureUserRecordExists = async (): Promise<boolean> => {
 
       if (response && response.data) {
         // User record exists in DynamoDB, no need to create
-        console.log(`User record found for ${currentUser.email}`);
+        //console.log(`User record found for ${currentUser.email}`);
         return true;
       }
     } catch {
       // User likely doesn't exist in DynamoDB, we'll create it
-      console.log(
-        `No user record found for ${currentUser.email}, creating one...`,
-      );
+      //console.log(
+      //  `No user record found for ${currentUser.email}, creating one...`,
+      //);
     }
 
     // Call the migration function to ensure user records are created in DynamoDB
     const createResponse = await client.mutations.migrateUsersToDynamoDB();
 
     if (createResponse && createResponse.data) {
-      console.log(`Successfully created record for ${currentUser.email}`);
+      //console.log(`Successfully created record for ${currentUser.email}`);
       return true;
     } else {
-      console.error(`Failed to create record for ${currentUser.email}`);
+      //console.error(`Failed to create record for ${currentUser.email}`);
       return false;
     }
   } catch (error) {

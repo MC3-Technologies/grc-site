@@ -71,7 +71,7 @@ try {
   cognito = getCognitoClient();
   ses = getSesClient();
   dynamodb = getDynamoDBClient();
-  console.log("AWS clients initialized successfully");
+  //console.log("AWS clients initialized successfully");
 } catch (error) {
   console.error("Error initializing AWS clients:", error);
 }
@@ -155,7 +155,7 @@ const getUserPoolId = (): string => {
   const userPoolId = env.USER_POOL_ID || process.env.USER_POOL_ID;
   if (!userPoolId)
     throw new Error("USER_POOL_ID environment variable is not set.");
-  console.log(`[Debug] Using UserPoolId: ${userPoolId}`);
+  //console.log(`[Debug] Using UserPoolId: ${userPoolId}`);
   return userPoolId;
 };
 
@@ -164,7 +164,7 @@ const getUserStatusTableName = (): string => {
     env.USER_STATUS_TABLE_NAME || process.env.USER_STATUS_TABLE_NAME;
   if (!tableName)
     throw new Error("USER_STATUS_TABLE_NAME environment variable is not set.");
-  console.log(`[Debug] Using UserStatus Table: ${tableName}`);
+  //console.log(`[Debug] Using UserStatus Table: ${tableName}`);
   return tableName;
 };
 
@@ -173,7 +173,7 @@ const getAuditLogTableName = (): string => {
     env.AUDIT_LOG_TABLE_NAME || process.env.AUDIT_LOG_TABLE_NAME;
   if (!tableName)
     throw new Error("AUDIT_LOG_TABLE_NAME environment variable is not set.");
-  console.log(`[Debug] Using AuditLog Table: ${tableName}`);
+  //console.log(`[Debug] Using AuditLog Table: ${tableName}`);
   return tableName;
 };
 
@@ -184,7 +184,7 @@ const getSystemSettingsTableName = (): string => {
     throw new Error(
       "SYSTEM_SETTINGS_TABLE_NAME environment variable is not set.",
     );
-  console.log(`[Debug] Using SystemSettings Table: ${tableName}`);
+  //console.log(`[Debug] Using SystemSettings Table: ${tableName}`);
   return tableName;
 };
 
@@ -196,7 +196,7 @@ const getCompletedAssessmentTableName = (): string => {
     throw new Error(
       "COMPLETED_ASSESSMENT_TABLE_NAME environment variable is not set.",
     );
-  console.log(`[Debug] Using CompletedAssessment Table: ${tableName}`);
+  //console.log(`[Debug] Using CompletedAssessment Table: ${tableName}`);
   return tableName;
 };
 
@@ -208,14 +208,14 @@ const getInProgressAssessmentTableName = (): string => {
     throw new Error(
       "IN_PROGRESS_ASSESSMENT_TABLE_NAME environment variable is not set.",
     );
-  console.log(`[Debug] Using InProgressAssessment Table: ${tableName}`);
+  //console.log(`[Debug] Using InProgressAssessment Table: ${tableName}`);
   return tableName;
 };
 
 // --- Log resolved configuration ---
-console.log(
-  `[UserManagementConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`,
-);
+//console.log(
+//  `[UserManagementConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`,
+//);
 try {
   // Call helper functions to log resolved names
   const poolId = getUserPoolId(); // Call once
@@ -225,23 +225,23 @@ try {
   const inProgressTable = getInProgressAssessmentTableName(); // Call once
   const settingsTable = getSystemSettingsTableName(); // Call once
 
-  console.log(`[UserManagementConfig] Resolved User Pool ID: ${poolId}`);
-  console.log(
-    `[UserManagementConfig] Resolved UserStatus Table: ${userStatusTable}`,
-  );
-  console.log(`[UserManagementConfig] Resolved AuditLog Table: ${auditTable}`);
-  console.log(
-    `[UserManagementConfig] Resolved CompletedAssessment Table: ${completedTable}`,
-  );
-  console.log(
-    `[UserManagementConfig] Resolved InProgressAssessment Table: ${inProgressTable}`,
-  );
-  console.log(
-    `[UserManagementConfig] Resolved SystemSettings Table: ${settingsTable}`,
-  );
-  console.log(
-    `[UserManagementConfig] Resolved EMAIL_SENDER: ${env.EMAIL_SENDER || process.env.EMAIL_SENDER || "Default Used"}`,
-  );
+  //console.log(`[UserManagementConfig] Resolved User Pool ID: ${poolId}`);
+  //console.log(
+  //  `[UserManagementConfig] Resolved UserStatus Table: ${userStatusTable}`,
+  //);
+  //console.log(`[UserManagementConfig] Resolved AuditLog Table: ${auditTable}`);
+  //console.log(
+  //  `[UserManagementConfig] Resolved CompletedAssessment Table: ${completedTable}`,
+  //);
+  //console.log(
+  //  `[UserManagementConfig] Resolved InProgressAssessment Table: ${inProgressTable}`,
+  //);
+  //console.log(
+  //  `[UserManagementConfig] Resolved SystemSettings Table: ${settingsTable}`,
+  //);
+  //console.log(
+  //  `[UserManagementConfig] Resolved EMAIL_SENDER: ${env.EMAIL_SENDER || process.env.EMAIL_SENDER || "Default Used"}`,
+  //);
 } catch (e) {
   console.error(
     "[UserManagementConfig] Error resolving resource names during logging:",
@@ -270,7 +270,7 @@ const sendEmailHelper = async ({
         "no-reply-grc@mc3technologies.com", // Fallback
     });
     await ses.send(command);
-    console.log(`Email sent successfully to ${to} with subject "${subject}"`);
+    //console.log(`Email sent successfully to ${to} with subject "${subject}"`);
     return true;
   } catch (error) {
     console.error(`Error sending email to ${to}:`, error);
@@ -321,7 +321,7 @@ const createAuditLogEntry = async (logEntry: Omit<AuditLog, "id">) => {
       Item: item,
     });
     await dynamodb.send(command);
-    console.log(`Audit log created with ID: ${id}`);
+    //console.log(`Audit log created with ID: ${id}`);
     return id;
   } catch (error) {
     console.error("Error creating audit log entry:", error);
@@ -338,9 +338,9 @@ export const userOperations = {
       const cognito = getCognitoClient();
       const dynamodb = getDynamoDBClient();
       const userStatusTableName = getUserStatusTableName();
-      console.log(
-        `[listUsers] Fetching users from Cognito pool: ${userPoolId}`,
-      );
+      //console.log(
+      //  `[listUsers] Fetching users from Cognito pool: ${userPoolId}`,
+      //);
 
       let allCognitoUsers: UserType[] = [];
       let paginationToken: string | undefined = undefined;
@@ -358,9 +358,9 @@ export const userOperations = {
         paginationToken = response.PaginationToken;
       } while (paginationToken);
 
-      console.log(
-        `[listUsers] Fetched ${allCognitoUsers.length} users from Cognito. Enriching with DynamoDB status from table: ${userStatusTableName}`,
-      );
+      //console.log(
+      //  `[listUsers] Fetched ${allCognitoUsers.length} users from Cognito. Enriching with DynamoDB status from table: ${userStatusTableName}`,
+      //);
 
       const enrichedUsers = await Promise.all(
         allCognitoUsers.map(async (cognitoUser) => {
@@ -443,7 +443,7 @@ export const userOperations = {
           };
         }),
       );
-      console.log(`[listUsers] Finished enriching users.`);
+      //console.log(`[listUsers] Finished enriching users.`);
       return JSON.stringify(enrichedUsers);
     } catch (error) {
       console.error("[listUsers] Error listing users:", error);
@@ -461,9 +461,9 @@ export const userOperations = {
       if (!status) throw new Error("Status parameter is required.");
 
       const requestedStatus = status.toLowerCase() as UserStatus["status"];
-      console.log(
-        `Querying DynamoDB UserStatus table for status: ${requestedStatus}`,
-      );
+      //console.log(
+      //  `Querying DynamoDB UserStatus table for status: ${requestedStatus}`,
+      //);
 
       const queryCommand = new QueryCommand({
         TableName: tableName,
@@ -489,9 +489,9 @@ export const userOperations = {
           companyName: parsed.companyName,
         };
       });
-      console.log(
-        `Found ${users.length} users in DynamoDB with status: ${requestedStatus}`,
-      );
+      //console.log(
+      //  `Found ${users.length} users in DynamoDB with status: ${requestedStatus}`,
+      //);
       return JSON.stringify(users);
     } catch (error) {
       console.error(`Error in getUsersByStatus (${status}):`, error);
@@ -562,7 +562,7 @@ export const userOperations = {
     // (Keep existing approveUser logic - already updated)
     try {
       const userPoolId = getUserPoolId();
-      console.log(`Approving user ${email} by admin: ${adminEmail}`);
+      //console.log(`Approving user ${email} by admin: ${adminEmail}`);
       await cognito.send(
         new AdminEnableUserCommand({ UserPoolId: userPoolId, Username: email }),
       );
@@ -595,10 +595,10 @@ export const userOperations = {
         );
         if (userDetailsResponse.UserAttributes) {
           // Log raw attributes fetched
-          console.log(
-            `[approveUser] Fetched attributes from Cognito for ${email}:`,
-            JSON.stringify(userDetailsResponse.UserAttributes),
-          );
+          //console.log(
+          //  `[approveUser] Fetched attributes from Cognito for ${email}:`,
+          //  JSON.stringify(userDetailsResponse.UserAttributes),
+          //);
 
           // Store fetched attributes for easier access and logging
           userDetailsResponse.UserAttributes.forEach((attr) => {
@@ -617,20 +617,20 @@ export const userOperations = {
           profileData.companyName = fetchedAttributes["custom:companyName"];
           profileData.role = fetchedAttributes["custom:role"] || "user"; // Get role, default to 'user'
 
-          console.log(
-            `[approveUser] Mapped profile data for ${email}:`,
-            JSON.stringify(profileData),
-          );
+          //console.log(
+          //  `[approveUser] Mapped profile data for ${email}:`,
+          //  JSON.stringify(profileData),
+          //);
         } else {
-          console.warn(
-            `[approveUser] No UserAttributes found in Cognito response for ${email}.`,
-          );
+          //console.warn(
+          //  `[approveUser] No UserAttributes found in Cognito response for ${email}.`,
+          //);
         }
       } catch (fetchError) {
-        console.warn(
-          `[approveUser] Could not fetch Cognito profile attributes for ${email} during approval:`,
-          fetchError,
-        );
+        //console.warn(
+        //  `[approveUser] Could not fetch Cognito profile attributes for ${email} during approval:`,
+        //  fetchError,
+        //);
       }
 
       // Fetch the existing DynamoDB record first
@@ -639,9 +639,9 @@ export const userOperations = {
       let registrationDateToKeep: string | undefined;
 
       try {
-        console.log(
-          `[approveUser] Fetching existing UserStatus record from table: ${userStatusTableName} for user: ${email}`,
-        );
+        //console.log(
+        //  `[approveUser] Fetching existing UserStatus record from table: ${userStatusTableName} for user: ${email}`,
+        //);
         const getResponse = await dynamodb.send(
           new GetItemCommand({
             TableName: userStatusTableName,
@@ -651,21 +651,21 @@ export const userOperations = {
         if (getResponse.Item) {
           existingUserStatus = unmarshall(getResponse.Item) as UserStatus;
           registrationDateToKeep = existingUserStatus.registrationDate; // Explicitly save registration date
-          console.log(
-            `[approveUser] Found existing DynamoDB record:`,
-            JSON.stringify(existingUserStatus),
-          );
+          //console.log(
+          //  `[approveUser] Found existing DynamoDB record:`,
+          //  JSON.stringify(existingUserStatus),
+          //);
         } else {
-          console.log(
-            `[approveUser] No existing DynamoDB record found for ${email}. Will create new one.`,
-          );
+          //console.log(
+          //  `[approveUser] No existing DynamoDB record found for ${email}. Will create new one.`,
+          //);
           registrationDateToKeep = new Date().toISOString(); // Use now if creating
         }
       } catch (getError) {
-        console.error(
-          `[approveUser] Error fetching existing UserStatus record for ${email}:`,
-          getError,
-        );
+        //console.error(
+        //  `[approveUser] Error fetching existing UserStatus record for ${email}:`,
+        //  getError,
+        //);
         registrationDateToKeep = new Date().toISOString(); // Fallback registration date
       }
 
@@ -701,10 +701,10 @@ export const userOperations = {
         ttl: undefined, // Remove TTL if reactivating/approving
       };
 
-      console.log(
-        `[approveUser] Merged data being written to DynamoDB:`,
-        JSON.stringify(userStatusUpdateData),
-      ); // Log the exact data
+      //console.log(
+      //  `[approveUser] Merged data being written to DynamoDB:`,
+      //  JSON.stringify(userStatusUpdateData),
+      //); // Log the exact data
 
       // Use PutItemCommand which creates or replaces the item
       await dynamodb.send(
@@ -713,9 +713,9 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }), // Restore marshall call
         }),
       );
-      console.log(
-        `[approveUser] Successfully wrote UserStatus record for ${email} to DynamoDB.`,
-      );
+      //console.log(
+      //  `[approveUser] Successfully wrote UserStatus record for ${email} to DynamoDB.`,
+      //);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -746,7 +746,7 @@ export const userOperations = {
     // (Keep existing rejectUser logic)
     try {
       const userPoolId = getUserPoolId();
-      console.log(`Rejecting user ${email} by admin: ${adminEmail}`);
+      //console.log(`Rejecting user ${email} by admin: ${adminEmail}`);
       await cognito.send(
         new AdminUpdateUserAttributesCommand({
           UserPoolId: userPoolId,
@@ -769,7 +769,7 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      console.log(`Updated UserStatus for ${email} to rejected.`);
+      //console.log(`Updated UserStatus for ${email} to rejected.`);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -805,7 +805,7 @@ export const userOperations = {
     // (Keep existing suspendUser logic)
     try {
       const userPoolId = getUserPoolId();
-      console.log(`Suspending user ${email} by admin: ${adminEmail}`);
+      //console.log(`Suspending user ${email} by admin: ${adminEmail}`);
       await cognito.send(
         new AdminDisableUserCommand({
           UserPoolId: userPoolId,
@@ -834,7 +834,7 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      console.log(`Updated UserStatus for ${email} to suspended.`);
+      //console.log(`Updated UserStatus for ${email} to suspended.`);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -869,7 +869,7 @@ export const userOperations = {
     // (Keep existing reactivateUser logic)
     try {
       const userPoolId = getUserPoolId();
-      console.log(`Reactivating user ${email} by admin: ${adminEmail}`);
+      //console.log(`Reactivating user ${email} by admin: ${adminEmail}`);
 
       let currentDbStatus: string | undefined;
       try {
@@ -911,7 +911,7 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      console.log(`Updated UserStatus for ${email} to active.`);
+      //console.log(`Updated UserStatus for ${email} to active.`);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -951,9 +951,9 @@ export const userOperations = {
     // (Keep existing createUser logic, correcting MessageActionType)
     try {
       const userPoolId = getUserPoolId();
-      console.log(
-        `Creating Cognito user ${email} with role ${role} by admin: ${performedBy}`,
-      );
+      //console.log(
+      //  `Creating Cognito user ${email} with role ${role} by admin: ${performedBy}`,
+      //);
       const tempPassword = generateSecurePassword();
       const userAttributes: AttributeType[] = [
         { Name: "email", Value: email },
@@ -1020,9 +1020,9 @@ export const userOperations = {
     // (Keep existing updateUserRole logic, correcting PutItemCommand)
     try {
       const userPoolId = getUserPoolId();
-      console.log(
-        `Updating role for user ${email} to ${role} by admin: ${adminEmail}`,
-      );
+      //console.log(
+      //  `Updating role for user ${email} to ${role} by admin: ${adminEmail}`,
+      //);
       let currentCognitoRole = "user";
       try {
         const userData = await cognito.send(
@@ -1077,7 +1077,7 @@ export const userOperations = {
           Item: marshall(updatedItem, { removeUndefinedValues: true }),
         }),
       ); // No merge option needed
-      console.log(`Updated role in DynamoDB for ${email} to ${role}`);
+      //console.log(`Updated role in DynamoDB for ${email} to ${role}`);
 
       const currentGroupName =
         currentCognitoRole === "admin" ? "GRC-Admin" : "Approved-Users";
@@ -1146,7 +1146,7 @@ export const userOperations = {
     // (Keep existing updateUserProfile logic, correcting PutItemCommand)
     try {
       const userPoolId = getUserPoolId();
-      console.log(`Updating profile for user ${email} by admin: ${adminEmail}`);
+      //console.log(`Updating profile for user ${email} by admin: ${adminEmail}`);
       const attributesToUpdateCognito: AttributeType[] = [];
       if (firstName !== undefined) {
         attributesToUpdateCognito.push({
@@ -1183,9 +1183,9 @@ export const userOperations = {
             UserAttributes: attributesToUpdateCognito,
           }),
         );
-        console.log(`Cognito profile attributes updated for ${email}`);
+        //console.log(`Cognito profile attributes updated for ${email}`);
       } else {
-        console.log("No Cognito profile attributes to update.");
+        //console.log("No Cognito profile attributes to update.");
       }
 
       const attributesToUpdateDynamo: Partial<UserStatus> = {
@@ -1225,9 +1225,9 @@ export const userOperations = {
             Item: marshall(updatedItem, { removeUndefinedValues: true }),
           }),
         ); // No merge option
-        console.log(`DynamoDB profile attributes updated for ${email}`);
+        //console.log(`DynamoDB profile attributes updated for ${email}`);
       } else {
-        console.log("No DynamoDB profile attributes to update.");
+        //console.log("No DynamoDB profile attributes to update.");
       }
 
       await createAuditLogEntry({
@@ -1252,7 +1252,7 @@ export const userOperations = {
   // Get admin dashboard statistics
   getAdminStats: async (): Promise<AdminStats> => {
     try {
-      console.log("[getAdminStats] Starting getAdminStats function");
+      //console.log("[getAdminStats] Starting getAdminStats function");
 
       // Initialize stats object
       const stats: AdminStats = {
@@ -1274,9 +1274,9 @@ export const userOperations = {
       let totalDynamoUsers = 0;
       const userStatusTableName = getUserStatusTableName();
       try {
-        console.log(
-          `[getAdminStats] Scanning UserStatus table for total count: ${userStatusTableName}`,
-        );
+        //console.log(
+        //  `[getAdminStats] Scanning UserStatus table for total count: ${userStatusTableName}`,
+        //);
         const scanCommand = new ScanCommand({
           TableName: userStatusTableName,
           Select: "COUNT", // Only get the count
@@ -1284,9 +1284,9 @@ export const userOperations = {
         const userStatusResponse = await dynamodb.send(scanCommand);
         totalDynamoUsers = userStatusResponse.Count || 0;
         stats.users.total = totalDynamoUsers;
-        console.log(
-          `[getAdminStats] Total users found in DynamoDB: ${totalDynamoUsers}`,
-        );
+        //console.log(
+        //  `[getAdminStats] Total users found in DynamoDB: ${totalDynamoUsers}`,
+        //);
       } catch (error) {
         console.error(
           `[getAdminStats] Error scanning UserStatus table (${userStatusTableName}) for total count:`,
@@ -1301,9 +1301,9 @@ export const userOperations = {
       let cognitoSuspended = 0;
       try {
         const userPoolId = getUserPoolId();
-        console.log(
-          `[getAdminStats] Fetching users from Cognito pool: ${userPoolId} for status counts.`,
-        );
+        //console.log(
+        //  `[getAdminStats] Fetching users from Cognito pool: ${userPoolId} for status counts.`,
+        //);
         let paginationToken: string | undefined = undefined;
         let allCognitoUsers: UserType[] = [];
 
@@ -1321,9 +1321,9 @@ export const userOperations = {
           paginationToken = cognitoResponse.PaginationToken;
         } while (paginationToken);
 
-        console.log(
-          `[getAdminStats] Total users fetched from Cognito: ${allCognitoUsers.length}`,
-        );
+        //console.log(
+        //  `[getAdminStats] Total users fetched from Cognito: ${allCognitoUsers.length}`,
+        //);
 
         // Count users based on Enabled status and custom:status attribute
         allCognitoUsers.forEach((user) => {
@@ -1365,9 +1365,9 @@ export const userOperations = {
         // However, the UI requirement might just want these specific counts
         // stats.users.rejected = stats.users.total - cognitoActive - cognitoPending - cognitoSuspended;
 
-        console.log(
-          `[getAdminStats] Calculated user counts from Cognito: Active=${cognitoActive}, Pending=${cognitoPending}, Suspended=${cognitoSuspended}`,
-        );
+        //console.log(
+        //  `[getAdminStats] Calculated user counts from Cognito: Active=${cognitoActive}, Pending=${cognitoPending}, Suspended=${cognitoSuspended}`,
+        //);
       } catch (cognitoError) {
         console.error(
           "[getAdminStats] Error fetching users from Cognito:",
@@ -1386,9 +1386,9 @@ export const userOperations = {
       try {
         const completedTableName = getCompletedAssessmentTableName();
         const inProgressTableName = getInProgressAssessmentTableName();
-        console.log(
-          `[getAdminStats] Fetching assessments. Completed: ${completedTableName}, InProgress: ${inProgressTableName}`,
-        );
+        //console.log(
+        //  `[getAdminStats] Fetching assessments. Completed: ${completedTableName}, InProgress: ${inProgressTableName}`,
+        //);
 
         const [completedResponse, inProgressResponse] = await Promise.all([
           dynamodb.send(new ScanCommand({ TableName: completedTableName })),
@@ -1419,7 +1419,7 @@ export const userOperations = {
                   100,
               )
             : 0;
-        console.log(`[getAdminStats] Assessment stats:`, stats.assessments);
+        //console.log(`[getAdminStats] Assessment stats:`, stats.assessments);
       } catch (error) {
         console.error(
           "[getAdminStats] Error fetching assessment statistics:",
@@ -1438,9 +1438,9 @@ export const userOperations = {
       // --- Get Recent Activities ---
       try {
         const auditLogTableName = getAuditLogTableName();
-        console.log(
-          `[getAdminStats] Fetching recent activity from: ${auditLogTableName}`,
-        );
+        //console.log(
+        //  `[getAdminStats] Fetching recent activity from: ${auditLogTableName}`,
+        //);
         const auditLogResponse = await dynamodb.send(
           new ScanCommand({
             TableName: auditLogTableName,
@@ -1457,15 +1457,15 @@ export const userOperations = {
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
         stats.recentActivity = activities.slice(0, 50); // Ensure limit
-        console.log(
-          `[getAdminStats] Fetched ${stats.recentActivity.length} recent activities.`,
-        );
+        //console.log(
+        //  `[getAdminStats] Fetched ${stats.recentActivity.length} recent activities.`,
+        //);
       } catch (error) {
         console.error("[getAdminStats] Error fetching recent activity:", error);
         stats.recentActivity = [];
       }
 
-      console.log("[getAdminStats] Final stats object:", stats);
+      //console.log("[getAdminStats] Final stats object:", stats);
       return stats;
     } catch (error) {
       console.error("[getAdminStats] General error in getAdminStats:", error);
@@ -1563,7 +1563,7 @@ export const userOperations = {
   getAllSystemSettings: async (): Promise<string> => {
     // (Keep existing getAllSystemSettings logic)
     try {
-      console.log("Fetching system settings");
+      //console.log("Fetching system settings");
       const command = new ScanCommand({
         TableName: getSystemSettingsTableName(),
       });
@@ -1598,7 +1598,7 @@ export const userOperations = {
   ): Promise<string> => {
     // (Keep existing updateSystemSettings logic)
     try {
-      console.log("Updating system settings:", settings);
+      //console.log("Updating system settings:", settings);
       const settingsArray = Array.isArray(settings) ? settings : [settings];
       const now = new Date().toISOString();
       const updatedSettings: SystemSetting[] = [];
@@ -1655,9 +1655,9 @@ export const userOperations = {
   ): Promise<{ success: boolean; message: string }> => {
     // (Keep existing deleteUser logic)
     try {
-      console.log(
-        `Attempting to delete user: ${email} by admin: ${adminEmail}`,
-      );
+      //console.log(
+      //  `Attempting to delete user: ${email} by admin: ${adminEmail}`,
+      //);
       const userPoolId = getUserPoolId();
       const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
       const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds;
@@ -1675,7 +1675,7 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       ); // Use PutItem, merge not needed
-      console.log(`Marked UserStatus for ${email} as deleted with TTL.`);
+      //console.log(`Marked UserStatus for ${email} as deleted with TTL.`);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -1697,12 +1697,12 @@ export const userOperations = {
             Username: email,
           }),
         );
-        console.log(`Successfully deleted Cognito user: ${email}`);
+        //console.log(`Successfully deleted Cognito user: ${email}`);
       } catch (cognitoDeleteError) {
-        console.error(
-          `Error deleting Cognito user ${email}:`,
-          cognitoDeleteError,
-        );
+        //console.error(
+        //  `Error deleting Cognito user ${email}:`,
+        //  cognitoDeleteError,
+        //);
       }
       return {
         success: true,
@@ -1724,7 +1724,7 @@ export const userOperations = {
     errors: number;
   }> => {
     try {
-      console.log("Starting user migration from Cognito to DynamoDB");
+      //console.log("Starting user migration from Cognito to DynamoDB");
       const userPoolId = getUserPoolId();
 
       // List all users from Cognito
@@ -1736,7 +1736,7 @@ export const userOperations = {
       const cognito = getCognitoClient();
       const response = await cognito.send(listCommand);
       const users = response.Users || [];
-      console.log(`Found ${users.length} users in Cognito`);
+      //console.log(`Found ${users.length} users in Cognito`);
 
       let successCount = 0;
       let errorCount = 0;
@@ -1794,9 +1794,9 @@ export const userOperations = {
           };
 
           // Write to DynamoDB
-          console.log(
-            `Writing user ${email} to DynamoDB with status ${status}`,
-          );
+          //console.log(
+          //  `Writing user ${email} to DynamoDB with status ${status}`,
+          //);
           await dynamodb.send(
             new PutItemCommand({
               TableName: getUserStatusTableName(),
@@ -1811,9 +1811,9 @@ export const userOperations = {
         }
       }
 
-      console.log(
-        `Migration complete: ${successCount} succeeded, ${errorCount} failed`,
-      );
+      //console.log(
+      //  `Migration complete: ${successCount} succeeded, ${errorCount} failed`,
+      //);
 
       // Create audit log entry
       await createAuditLogEntry({
@@ -1836,4 +1836,4 @@ export const userOperations = {
   },
 }; // End of userOperations object
 
-console.log("User operations module loaded.");
+//console.log("User operations module loaded.");

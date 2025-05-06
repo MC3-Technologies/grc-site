@@ -54,7 +54,7 @@ const mockUserGroups = new Map<string, Set<string>>();
 // Mock Cognito client
 export class CognitoIdentityProviderClient {
   constructor() {
-    console.log("Mock CognitoIdentityProviderClient initialized");
+    //console.log("Mock CognitoIdentityProviderClient initialized");
   }
 
   async send(command: Command): Promise<Record<string, unknown>> {

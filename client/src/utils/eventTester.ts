@@ -1,5 +1,5 @@
 // File: client/src/utils/eventTester.ts
-import { AdminEvents, emitAdminEvent } from "./adminUser";
+import { AdminEvents } from "./adminUser";
 
 /**
  * Utility to test the event system in isolation.
@@ -18,17 +18,18 @@ const registeredListeners: {
  * Test if events are being detected by registering a test listener
  */
 export function setupEventListener() {
-  console.log("📡 Setting up test event listeners...");
+  //console.log("Setting up test event listeners...");
 
   // Define our test handler
-  const handler = (event: Event) => {
-    const customEvent = event as CustomEvent;
-    console.log("🔔 EVENT RECEIVED:", {
-      type: customEvent.type,
-      detail: customEvent.detail,
-      target: event.target,
-      timestamp: new Date().toISOString(),
-    });
+  const handler = () => {
+    // When uncommented, this would process events:
+    // const customEvent = event as CustomEvent;
+    // console.log("EVENT RECEIVED:", {
+    //   type: customEvent.type,
+    //   detail: customEvent.detail,
+    //   target: event.target,
+    //   timestamp: new Date().toISOString(),
+    // });
   };
 
   // Register it on both document and window to catch all events
@@ -41,7 +42,7 @@ export function setupEventListener() {
     { target: window, type: "adminAction", listener: handler },
   );
 
-  console.log("- Test event listeners installed successfully");
+  //console.log("- Test event listeners installed successfully");
   return "Event listeners installed. Try emitting an event with emitTestEvent().";
 }
 
@@ -49,15 +50,15 @@ export function setupEventListener() {
  * Emit a test event to see if listeners pick it up
  */
 export function emitTestEvent(eventType = AdminEvents.USER_CREATED) {
-  console.log(`🔔 Attempting to emit test event: ${eventType}`);
+  //console.log(`Attempting to emit test event: ${eventType}`);
 
   try {
     // Use the actual emit function from adminUser
-    const result = emitAdminEvent(eventType);
-    console.log(`- Event emission result: ${result ? "Success" : "Failed"}`);
+    // const result = emitAdminEvent(eventType);
+    // console.log(`- Event emission result: ${result ? "Success" : "Failed"}`);
 
     // Also try a direct event dispatch as a fallback
-    console.log("🔔 Also trying direct event dispatch...");
+    //console.log("Also trying direct event dispatch...");
 
     const directEvent = new CustomEvent("adminAction", {
       detail: {
@@ -73,7 +74,7 @@ export function emitTestEvent(eventType = AdminEvents.USER_CREATED) {
     document.dispatchEvent(directEvent);
     window.dispatchEvent(directEvent);
 
-    console.log("- Direct event dispatch completed");
+    //console.log("- Direct event dispatch completed");
 
     return `Test event '${eventType}' emitted. Check the console for listener responses.`;
   } catch (error) {
@@ -86,7 +87,7 @@ export function emitTestEvent(eventType = AdminEvents.USER_CREATED) {
  * Clean up event listeners when done testing
  */
 export function cleanupEventListeners() {
-  console.log("🧹 Cleaning up test event listeners...");
+  //console.log("Cleaning up test event listeners...");
 
   registeredListeners.forEach(({ target, type, listener, options }) => {
     target.removeEventListener(type, listener, options);
@@ -95,7 +96,7 @@ export function cleanupEventListeners() {
   // Clear the array
   registeredListeners.length = 0;
 
-  console.log("- Event listeners removed");
+  //console.log("- Event listeners removed");
   return "All test event listeners have been removed.";
 }
 

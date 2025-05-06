@@ -24,11 +24,11 @@ const mockSentEmails: MockEmail[] = [];
 
 export class SESClient {
   constructor() {
-    console.log("Mock SESClient initialized");
+    //console.log("Mock SESClient initialized");
   }
 
   async send(command: Command): Promise<Record<string, unknown>> {
-    console.log("SES Mock: send command called", command);
+    //console.log("SES Mock: send command called", command);
     if (command instanceof SendEmailCommand) {
       return this.handleSendEmail(command);
     }
@@ -48,10 +48,10 @@ export class SESClient {
     };
 
     mockSentEmails.push(email);
-    console.log(
-      "SES Mock: Email pushed to mockSentEmails. Length:",
-      mockSentEmails.length,
-    );
+    //console.log(
+    //  "SES Mock: Email pushed to mockSentEmails. Length:",
+    //  mockSentEmails.length,
+    //);
 
     return {
       MessageId: `mock-message-id-${mockSentEmails.length}`,

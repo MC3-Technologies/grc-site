@@ -34,11 +34,11 @@ const AdminQuestionnaire = () => {
   const [pages, setPages] = useState<QuestionPage[]>(() => {
     const savedData = loadSavedQuestionnaire();
     if (savedData) {
-      console.log("Loaded saved questionnaire data from localStorage");
+      //console.log("Loaded saved questionnaire data from localStorage");
       return savedData;
     }
 
-    console.log("Using default questionnaire data");
+    //console.log("Using default questionnaire data");
     return surveyJson.pages.map((page: SurveyPage, index: number) => ({
       ...page,
       id: `page-${index}`,

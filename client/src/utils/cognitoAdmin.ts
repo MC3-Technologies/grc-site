@@ -70,13 +70,13 @@ const attributesToUser = (
 // List all users
 export const listAllUsers = async (): Promise<User[]> => {
   try {
-    console.log("Listing all users via Cognito SDK");
+    //console.log("Listing all users via Cognito SDK");
 
     // In development mode, return mock data
     if (process.env.NODE_ENV !== "production") {
-      console.log(
-        "DEVELOPMENT MODE: Using mock users instead of Cognito API call",
-      );
+      //console.log(
+      //  "DEVELOPMENT MODE: Using mock users instead of Cognito API call",
+      //);
       const { getMockUsers } = await import("./adminUser");
       return getMockUsers();
     }
@@ -89,7 +89,7 @@ export const listAllUsers = async (): Promise<User[]> => {
     });
 
     const response = await client.send(command);
-    console.log("Cognito response:", response);
+    //console.log("Cognito response:", response);
 
     if (!response.Users) {
       return [];
@@ -108,13 +108,13 @@ export const listAllUsers = async (): Promise<User[]> => {
 // Get users by status
 export const getUsersByStatus = async (status: string): Promise<User[]> => {
   try {
-    console.log(`Fetching users with status: ${status}`);
+    //console.log(`Fetching users with status: ${status}`);
 
     // In development mode, return mock data
     if (process.env.NODE_ENV !== "production") {
-      console.log(
-        "DEVELOPMENT MODE: Using filtered mock users instead of Cognito API call",
-      );
+      //console.log(
+      //  "DEVELOPMENT MODE: Using filtered mock users instead of Cognito API call",
+      //);
       const { getFilteredMockUsers } = await import("./adminUser");
       return getFilteredMockUsers(status as UserStatusType);
     }
@@ -187,13 +187,13 @@ export const getUsersByStatus = async (status: string): Promise<User[]> => {
 // Get user details by email
 export const getUserDetails = async (email: string): Promise<User> => {
   try {
-    console.log(`Fetching user details for: ${email}`);
+    //console.log(`Fetching user details for: ${email}`);
 
     // In development mode, return mock data
     if (process.env.NODE_ENV !== "production") {
-      console.log(
-        "DEVELOPMENT MODE: Using mock user instead of Cognito API call",
-      );
+      //console.log(
+      //  "DEVELOPMENT MODE: Using mock user instead of Cognito API call",
+      //);
       const { getMockUsers } = await import("./adminUser");
       const mockUsers = getMockUsers();
       const user = mockUsers.find((u) => u.email === email);
@@ -220,11 +220,11 @@ export const getUserDetails = async (email: string): Promise<User> => {
 // Approve user
 export const approveUser = async (email: string): Promise<boolean> => {
   try {
-    console.log(`Approving user: ${email}`);
+    //console.log(`Approving user: ${email}`);
 
     // In development mode, return success
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Simulating user approval");
+      //console.log("DEVELOPMENT MODE: Simulating user approval");
       return true;
     }
 
@@ -273,11 +273,11 @@ export const rejectUser = async (
   reason?: string,
 ): Promise<boolean> => {
   try {
-    console.log(`Rejecting user: ${email}`);
+    //console.log(`Rejecting user: ${email}`);
 
     // In development mode, return success
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Simulating user rejection");
+      //console.log("DEVELOPMENT MODE: Simulating user rejection");
       return true;
     }
 
@@ -319,11 +319,11 @@ export const suspendUser = async (
   reason?: string,
 ): Promise<boolean> => {
   try {
-    console.log(`Suspending user: ${email}`);
+    //console.log(`Suspending user: ${email}`);
 
     // In development mode, return success
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Simulating user suspension");
+      //console.log("DEVELOPMENT MODE: Simulating user suspension");
       return true;
     }
 
@@ -367,11 +367,11 @@ export const suspendUser = async (
 // Reactivate user
 export const reactivateUser = async (email: string): Promise<boolean> => {
   try {
-    console.log(`Reactivating user: ${email}`);
+    //console.log(`Reactivating user: ${email}`);
 
     // In development mode, return success
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Simulating user reactivation");
+      //console.log("DEVELOPMENT MODE: Simulating user reactivation");
       return true;
     }
 
@@ -423,11 +423,11 @@ export const createUser = async (
   sendEmail = true,
 ): Promise<CreateUserResult> => {
   try {
-    console.log(`Creating user: ${email} with role: ${role}`);
+    //console.log(`Creating user: ${email} with role: ${role}`);
 
     // In development mode, return success
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Simulating user creation");
+      //console.log("DEVELOPMENT MODE: Simulating user creation");
       return {
         success: true,
         user: {

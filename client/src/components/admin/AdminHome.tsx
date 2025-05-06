@@ -308,8 +308,8 @@ export default function AdminHome() {
   useEffect(() => {
     // Create a debounced handler function
     const timeout: NodeJS.Timeout | null = null;
-    const debouncedRefresh = (eventType: string) => {
-      console.log(`Debounced refresh triggered by: ${eventType}`);
+    const debouncedRefresh = () => {
+      //console.log(`Debounced refresh triggered by: ${eventType}`);
 
       if (timeout) {
         clearTimeout(timeout);
@@ -339,7 +339,7 @@ export default function AdminHome() {
         eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
         //logDebug("Action requires refresh, initiating debounced refresh");
-        debouncedRefresh(eventType);
+        debouncedRefresh();
       }
     };
 
@@ -458,7 +458,7 @@ export default function AdminHome() {
         //logDebug(`Refreshing after admin action: ${eventType}`);
         // Add a small delay to ensure backend processing is complete
         setTimeout(() => {
-          console.log(`Triggering refresh due to admin action: ${eventType}`);
+          //console.log(`Triggering refresh due to admin action: ${eventType}`);
           // Force increment to trigger UI rerenders
           setForceRefreshCounter((prev) => prev + 1);
           // Always force refresh from API
@@ -510,20 +510,20 @@ export default function AdminHome() {
     let timeout: NodeJS.Timeout | null = null;
     let isRefreshing = false;
 
-    return (event: CustomEvent) => {
-      console.log("✨ Debounced handler received event:", event.detail.type);
+    return () => {
+      //console.log("Debounced handler received event");
 
       // Clear any pending refreshes
       if (timeout) {
-        console.log("Cancelling previous pending refresh");
+        //console.log("Cancelling previous pending refresh");
         clearTimeout(timeout);
       }
 
       // If already refreshing, just schedule a final refresh
       if (isRefreshing) {
-        console.log("Already refreshing, scheduling final refresh only");
+        //console.log("Already refreshing, scheduling final refresh only");
         timeout = setTimeout(() => {
-          console.log("Executing final debounced refresh");
+          //console.log("Executing final debounced refresh");
           if (window.adminUser) {
             window.adminUser.clearAdminStatsCache();
           }
@@ -536,7 +536,7 @@ export default function AdminHome() {
 
       // Start a new refresh sequence
       isRefreshing = true;
-      console.log("Starting debounced refresh sequence");
+      //console.log("Starting debounced refresh sequence");
 
       // Clear cache immediately
       if (window.adminUser) {
@@ -545,7 +545,7 @@ export default function AdminHome() {
 
       // Set a delayed refresh
       timeout = setTimeout(() => {
-        console.log("Executing debounced refresh");
+        //console.log("Executing debounced refresh");
         // This would ideally call  fetchStats function directly
         // but we can use a workaround
         document.dispatchEvent(new CustomEvent("manualRefresh"));

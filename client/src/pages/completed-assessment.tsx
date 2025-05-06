@@ -196,12 +196,12 @@ export function CompletedAssessmentView() {
 
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
-            console.log(`Mapped user ID ${userId} to email ${userEmail}`);
+            //console.log(`Mapped user ID ${userId} to email ${userEmail}`);
           }
         });
 
         setUserMap(userMapping);
-        console.log("User ID to email mapping created:", userMapping);
+        //console.log("User ID to email mapping created:", userMapping);
       } catch (error) {
         console.error("Error creating user mapping:", error);
       }
@@ -258,7 +258,7 @@ export function CompletedAssessmentView() {
     if (userMap[ownerId]) return userMap[ownerId];
 
     // If no match, log and return owner ID (better than nothing)
-    console.log(`Could not find email for owner ID: ${ownerId}`);
+    //console.log(`Could not find email for owner ID: ${ownerId}`);
     return ownerId;
   };
 

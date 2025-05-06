@@ -9,7 +9,7 @@ function App() {
     const setupQuestionnaire = async () => {
       try {
         await initializeVersioning();
-        console.log("Questionnaire versioning initialized successfully");
+        //console.log("Questionnaire versioning initialized successfully");
       } catch (error) {
         console.error("Error initializing questionnaire versioning:", error);
       }

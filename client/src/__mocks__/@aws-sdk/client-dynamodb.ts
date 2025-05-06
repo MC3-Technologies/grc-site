@@ -37,7 +37,7 @@ const mockTables = new Map<string, DynamoDBItem[]>();
 
 export class DynamoDBClient {
   constructor() {
-    console.log("Mock DynamoDBClient initialized");
+    //console.log("Mock DynamoDBClient initialized");
   }
 
   async send(command: Command): Promise<Record<string, unknown>> {
