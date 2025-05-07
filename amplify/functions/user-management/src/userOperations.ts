@@ -451,6 +451,43 @@ export const userOperations = {
     }
   },
 
+  // Get all users from UserStatus table
+  getAllUsers: async (): Promise<string> => {
+    try {
+      const tableName = getUserStatusTableName();
+      const dynamodb = getDynamoDBClient();
+      console.log(`Scanning DynamoDB UserStatus table for all users`);
+
+      const scanCommand = new ScanCommand({
+        TableName: tableName,
+      });
+      const response = await dynamodb.send(scanCommand);
+
+      const users = (response.Items || []).map((item) => {
+        const parsed = unmarshall(item) as UserStatus;
+        return {
+          email: parsed.email,
+          status: parsed.status,
+          role: parsed.role || "user",
+          created: parsed.registrationDate,
+          lastModified: parsed.lastStatusChange,
+          enabled:
+            parsed.status !== "suspended" && parsed.status !== "rejected",
+          firstName: parsed.firstName,
+          lastName: parsed.lastName,
+          companyName: parsed.companyName,
+        };
+      });
+      console.log(`Found ${users.length} total users in DynamoDB UserStatus table`);
+      return JSON.stringify(users);
+    } catch (error) {
+      console.error(`Error in getAllUsers:`, error);
+      return JSON.stringify({
+        error: `Failed to retrieve all users`,
+      });
+    }
+  },
+
   // Get users by status (Uses DynamoDB UserStatus table GSI)
   getUsersByStatus: async (status: string): Promise<string> => {
     // (Keep reverted logic using DynamoDB GSI)
@@ -805,7 +842,7 @@ export const userOperations = {
     // (Keep existing suspendUser logic)
     try {
       const userPoolId = getUserPoolId();
-      //console.log(`Suspending user ${email} by admin: ${adminEmail}`);
+      console.log(`Suspending user ${email} by admin: ${adminEmail}`);
       await cognito.send(
         new AdminDisableUserCommand({
           UserPoolId: userPoolId,
@@ -820,21 +857,54 @@ export const userOperations = {
         }),
       );
 
-      const userStatusUpdateData: Partial<UserStatus> = {
+      // First, get the existing user data from DynamoDB
+      let existingUserStatus: Partial<UserStatus> = {};
+      try {
+        const userStatusTableName = getUserStatusTableName();
+        const getResponse = await dynamodb.send(
+          new GetItemCommand({
+            TableName: userStatusTableName,
+            Key: marshall({ id: email }),
+          }),
+        );
+        if (getResponse.Item) {
+          existingUserStatus = unmarshall(getResponse.Item) as UserStatus;
+          console.log(`Found existing DynamoDB record for suspension:`, JSON.stringify(existingUserStatus));
+        } else {
+          console.log(`No existing DynamoDB record found for ${email}. Will create new one.`);
+        }
+      } catch (getError) {
+        console.error(`Error fetching existing UserStatus record for ${email}:`, getError);
+      }
+
+      const userStatusUpdateData: UserStatus = {
+        // Required fields
         id: email,
-        email,
+        email: email,
         status: "suspended",
+        role: existingUserStatus.role || "user", // Preserve role
+        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
+        // Preserve metadata fields
+        firstName: existingUserStatus.firstName,
+        lastName: existingUserStatus.lastName,
+        companyName: existingUserStatus.companyName,
+        // Add suspension reason
         suspensionReason: reason,
+        // Preserve other fields
+        lastLogin: existingUserStatus.lastLogin,
+        notes: existingUserStatus.notes,
+        approvedBy: existingUserStatus.approvedBy,
       };
+
       await dynamodb.send(
         new PutItemCommand({
           TableName: getUserStatusTableName(),
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      //console.log(`Updated UserStatus for ${email} to suspended.`);
+      console.log(`Updated UserStatus for ${email} to suspended with preserved metadata.`);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -869,20 +939,30 @@ export const userOperations = {
     // (Keep existing reactivateUser logic)
     try {
       const userPoolId = getUserPoolId();
-      //console.log(`Reactivating user ${email} by admin: ${adminEmail}`);
+      console.log(`Reactivating user ${email} by admin: ${adminEmail}`);
 
+      // Get the existing user data from DynamoDB
+      let existingUserStatus: Partial<UserStatus> = {};
       let currentDbStatus: string | undefined;
       try {
+        const userStatusTableName = getUserStatusTableName();
         const dbResponse = await dynamodb.send(
           new GetItemCommand({
-            TableName: getUserStatusTableName(),
+            TableName: userStatusTableName,
             Key: marshall({ id: email }),
           }),
         );
-        if (dbResponse.Item)
-          currentDbStatus = (unmarshall(dbResponse.Item) as UserStatus).status;
+        if (dbResponse.Item) {
+          existingUserStatus = unmarshall(dbResponse.Item) as UserStatus;
+          currentDbStatus = existingUserStatus.status;
+          console.log(`Found existing DynamoDB record for reactivation:`, JSON.stringify(existingUserStatus));
+        } else {
+          console.log(`No existing DynamoDB record found for ${email}. Will create new one.`);
+          currentDbStatus = "unknown";
+        }
       } catch (err) {
         console.warn(`Could not get current DB status for ${email}`);
+        currentDbStatus = "unknown";
       }
 
       await cognito.send(
@@ -896,22 +976,35 @@ export const userOperations = {
         }),
       );
 
-      const userStatusUpdateData: Partial<UserStatus> = {
+      const userStatusUpdateData: UserStatus = {
+        // Required fields
         id: email,
-        email,
+        email: email,
         status: "active",
+        role: existingUserStatus.role || "user", // Preserve role
+        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
+        // Preserve metadata fields
+        firstName: existingUserStatus.firstName,
+        lastName: existingUserStatus.lastName,
+        companyName: existingUserStatus.companyName,
+        // Clear suspension/rejection reasons
         suspensionReason: undefined,
         rejectionReason: undefined,
+        // Preserve other fields
+        lastLogin: existingUserStatus.lastLogin,
+        notes: existingUserStatus.notes,
+        approvedBy: existingUserStatus.approvedBy,
       };
+
       await dynamodb.send(
         new PutItemCommand({
           TableName: getUserStatusTableName(),
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      //console.log(`Updated UserStatus for ${email} to active.`);
+      console.log(`Updated UserStatus for ${email} to active with preserved metadata.`);
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),

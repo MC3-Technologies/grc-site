@@ -85,6 +85,12 @@ const schema = a
       .authorization((allow) => [allow.groups(["GRC-Admin"])])
       .handler(a.handler.function(userManagementFunction)),
 
+    getAllUsers: a
+      .query()
+      .returns(a.json())
+      .authorization((allow) => [allow.groups(["GRC-Admin"])])
+      .handler(a.handler.function(userManagementFunction)),
+
     getUsersByStatus: a
       .query()
       .arguments({

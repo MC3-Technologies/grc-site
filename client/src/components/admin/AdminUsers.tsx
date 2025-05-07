@@ -12,8 +12,12 @@ import {
   UserStatusType,
   UserData,
   transformUserData,
-  getClientSchema,
+  clearUserCache,
+  clearAdminStatsCache,
+  AdminEvents,
+  emitAdminEvent
 } from "../../utils/adminUser";
+import { getClientSchema } from "../../amplify/schema";
 import { getCurrentUser } from "../../amplify/auth";
 import Spinner from "../Spinner";
 
@@ -314,6 +318,11 @@ const AdminUsers = () => {
         //console.log(
         //  `Updating role for ${updatedUser.email} from ${originalEditingUser.role} to ${updatedUser.role} by admin: ${currentAdminEmail || "unknown"}`,
         //);
+        
+        // First, clear caches to ensure fresh data
+        clearUserCache();
+        clearAdminStatsCache();
+        
         const roleResponse = await client.mutations.updateUserRole({
           email: updatedUser.email,
           role: updatedUser.role,
@@ -324,6 +333,15 @@ const AdminUsers = () => {
           updateError = `Failed to update role for ${updatedUser.email}.`;
         } else {
           roleUpdated = true;
+          
+          // Force update role in UI by explicitly emitting the event
+          emitAdminEvent(AdminEvents.USER_ROLE_UPDATED);
+          
+          // Force a more aggressive cache clear by directly hitting refresh
+          setTimeout(() => {
+            // This immediate refresh helps update UI when roles change
+            refreshUserData();
+          }, 200);
         }
       }
 
@@ -375,22 +393,27 @@ const AdminUsers = () => {
 
       // Refresh data if any update was successful
       if (roleUpdated || profileUpdated) {
-        await refreshUserData();
+        // Wait a bit longer for role updates to ensure backend processes complete
+        const delay = roleUpdated ? 1000 : 500;
+        
+        setTimeout(async () => {
+          await refreshUserData();
 
-        // Get all users from listUsers
-        const allFetchedUsers = await fetchUsers(true);
-        const transformedAllUsers = transformUserData(allFetchedUsers);
+          // Get all users from listUsers with force=true to ensure fresh data
+          const allFetchedUsers = await fetchUsers(true);
+          const transformedAllUsers = transformUserData(allFetchedUsers);
 
-        // Update all users counter
-        setAllUsers(transformedAllUsers);
+          // Update all users counter
+          setAllUsers(transformedAllUsers);
 
-        // Filter based on active tab
-        const filteredUsers = transformedAllUsers.filter(
-          (user) => user.status === activeTab,
-        );
-        setUsers(filteredUsers);
+          // Filter based on active tab
+          const filteredUsers = transformedAllUsers.filter(
+            (user) => user.status === activeTab,
+          );
+          setUsers(filteredUsers);
 
-        setLastRefreshTime(new Date());
+          setLastRefreshTime(new Date());
+        }, delay);
       } else {
         setError(`Failed to update role for ${updatedUser.email}`);
       }

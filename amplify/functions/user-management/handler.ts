@@ -41,6 +41,7 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
   // Define known operations to handle
   const knownOperations = [
     "listUsers",
+    "getAllUsers",
     "getUsersByStatus",
     "getUserDetails",
     "getAdminStats",
@@ -61,6 +62,9 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
     switch (fieldName) {
       case "listUsers":
         return await userOperations.listUsers();
+
+      case "getAllUsers":
+        return await userOperations.getAllUsers();
 
       case "getUsersByStatus":
         return await userOperations.getUsersByStatus(event.arguments?.status);

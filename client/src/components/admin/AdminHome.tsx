@@ -6,6 +6,7 @@ import {
   AdminEvents,
   clearAdminStatsCache,
   clearUserCache,
+  getAllUserCounts,
 } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
@@ -102,41 +103,25 @@ export default function AdminHome() {
       setIsLoading(true);
 
       // Always clear cache before fetching to ensure fresh data
-      //logDebug("Force refreshing admin stats and clearing cache");
       await clearAdminStatsCache();
 
-      //logDebug("Fetching admin statistics");
+      // Get accurate user counts directly from DynamoDB
+      const userCounts = await getAllUserCounts();
+      console.log("Dashboard direct counts:", userCounts);
+
+      // Fetch the rest of the admin stats
       const stats = await fetchAdminStats(); // Always refresh from API
-      //logDebug("Admin stats received from API");
-
+      
       if (stats) {
-        // Log user stats specifically to debug
-        //logDebug(`User stats received: ${JSON.stringify(stats.users)}`);
-
-        //logDebug(
-        //  `Raw recent activity count: ${stats.recentActivity?.length || 0}`,
-        //);
-
-        // Log ALL activities without filtering to debug what's actually coming from the API
-        if (
-          Array.isArray(stats.recentActivity) &&
-          stats.recentActivity.length > 0
-        ) {
-          //logDebug("ALL activities from API response:");
-          // stats.recentActivity.forEach((activity, idx) => {
-          //   //logDebug(
-          //   //  `[${idx}] ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || "no-id"} - ID: ${activity.id?.substring(0, 8) || "no-id"}`,
-          //   //);
-          // });
-        } else {
-          //logDebug(
-          //  "No activities received from API - this could indicate a backend issue",
-          //);
+        // Override stats with direct count data for maximum accuracy
+        if (userCounts) {
+          stats.users = userCounts;
+          console.log("Updated dashboard with direct counts:", stats.users);
         }
 
-        // Ensure activity array is properly sorted by timestamp in descending order
-        if (Array.isArray(stats.recentActivity)) {
-          // Create a new array instead of trying to modify the original
+        // Process activities
+        if (Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0) {
+          // Ensure activity array is properly sorted by timestamp in descending order
           stats.recentActivity = [...stats.recentActivity]
             // Only filter out invalid activities (null/undefined)
             .filter((activity) => {
@@ -308,14 +293,45 @@ export default function AdminHome() {
   useEffect(() => {
     // Create a debounced handler function
     const timeout: NodeJS.Timeout | null = null;
-    const debouncedRefresh = () => {
-      //console.log(`Debounced refresh triggered by: ${eventType}`);
+    const debouncedRefresh = (eventType: string) => {
+      console.log(`Debounced refresh triggered by: ${eventType}`);
 
       if (timeout) {
         clearTimeout(timeout);
       }
 
-      // Schedule a silent refresh instead of showing notification
+      // For critical status change events, refresh immediately without debounce
+      if (
+        eventType === AdminEvents.USER_SUSPENDED ||
+        eventType === AdminEvents.USER_REACTIVATED ||
+        eventType === AdminEvents.USER_REJECTED ||
+        eventType === AdminEvents.USER_APPROVED ||
+        eventType === "FORCE_DASHBOARD_SYNC"
+      ) {
+        console.log(`Immediate refresh for critical user status change: ${eventType}`);
+        
+        // Always clear cache first
+        if (window.adminUser) {
+          window.adminUser.clearAdminStatsCache();
+          window.adminUser.clearUserCache();
+        }
+        
+        // Force refresh with slight delay to allow backend to fully process
+        setTimeout(() => {
+          console.log(`Executing high-priority refresh for: ${eventType}`);
+          fetchStats(true); // Force true refresh
+          
+          // Double-check the refresh with a second call after short delay
+          setTimeout(() => {
+            console.log(`Double-checking refresh for: ${eventType}`);
+            fetchStats(true);
+          }, 1500);
+        }, 500);
+        
+        return;
+      }
+
+      // For other events, use debounce
       setTimeout(() => {
         fetchStats();
       }, 1500);
@@ -326,7 +342,7 @@ export default function AdminHome() {
       const customEvent = event as CustomEvent;
       const eventType = customEvent.detail.type;
 
-      //logDebug(`Admin action detected: ${eventType}`);
+      console.log(`Admin action detected: ${eventType}`);
       if (
         eventType === AdminEvents.USER_DELETED ||
         eventType === AdminEvents.USER_PROFILE_UPDATED ||
@@ -338,8 +354,8 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_CREATED ||
         eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
-        //logDebug("Action requires refresh, initiating debounced refresh");
-        debouncedRefresh();
+        console.log("Action requires refresh, initiating immediate or debounced refresh");
+        debouncedRefresh(eventType);
       }
     };
 

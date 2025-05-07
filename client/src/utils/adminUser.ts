@@ -1,6 +1,10 @@
 // File: client/src/utils/adminUser.ts
 import { getClientSchema } from "../amplify/schema";
+//import { getAmplify } from "../amplify/amplify";
 //import { useState, useEffect } from "react";
+
+// Re-export getClientSchema so it can be imported from this module
+export { getClientSchema };
 
 // Define AdminUser interface to match the one in types.d.ts
 interface AdminUser {
@@ -9,9 +13,6 @@ interface AdminUser {
   clearAdminStatsCache: () => void;
   clearUserCache: () => void;
 }
-
-// Export the getClientSchema for use in components
-export { getClientSchema };
 
 // Set this to false to use real data from the API
 const USE_MOCK_DATA = false;
@@ -427,25 +428,101 @@ export const fetchUsersByStatus = async (
 
     // Get the authenticated client
     const client = getClientSchema();
-
-    // Call the API with the normalized status parameter
+    
+    // ===== SPECIAL HANDLING FOR PENDING USERS =====
+    // For pending users, we adopt a different strategy since there's a potential
+    // mismatch between Cognito and DynamoDB due to user pool configuration issues
+    if (normalizedStatus === "pending") {
+      console.log("Fetching ALL users for pending status check");
+      
+      // First get all users from Cognito to ensure we have the most up-to-date list
+      const allUsersResponse = await client.queries.listUsers();
+      let allUsers: User[] = [];
+      
+      if (allUsersResponse && allUsersResponse.data) {
+        const parsedAllUsers = safelyParseApiResponse<User[]>(allUsersResponse.data);
+        if (Array.isArray(parsedAllUsers)) {
+          allUsers = parsedAllUsers;
+          console.log(`Retrieved ${allUsers.length} total users from Cognito`);
+        }
+      }
+      
+      // Now fetch pending users from the UserStatus table
+      const pendingUsersResponse = await client.queries.getUsersByStatus({
+        status: normalizedStatus,
+      });
+      
+      let pendingUsersFromDynamo: User[] = [];
+      if (pendingUsersResponse && pendingUsersResponse.data) {
+        const parsedData = safelyParseApiResponse(pendingUsersResponse.data);
+        if (Array.isArray(parsedData)) {
+          pendingUsersFromDynamo = parsedData.map((item) => ({
+            email: item.email,
+            status: item.status,
+            customStatus: item.status.toUpperCase(),
+            role: item.role || "user",
+            created: item.registrationDate || new Date().toISOString(),
+            lastModified: item.lastStatusChange || new Date().toISOString(),
+            enabled: item.status !== "suspended" && item.status !== "rejected",
+            firstName: item.firstName,
+            lastName: item.lastName,
+            companyName: item.companyName
+          }));
+          
+          console.log(`Retrieved ${pendingUsersFromDynamo.length} pending users from DynamoDB`);
+        }
+      }
+      
+      // Create a set of emails already in the DynamoDB table
+      const pendingEmailsInDynamoDB = new Set(pendingUsersFromDynamo.map(user => user.email));
+      
+      // Find Cognito users that should be considered pending (disabled users not in other statuses)
+      const pendingUsersFromCognito = allUsers
+        .filter(user => {
+          // Only include users not already in DynamoDB and are disabled (pending)
+          return !pendingEmailsInDynamoDB.has(user.email) && 
+                 !user.enabled && 
+                 user.status !== "rejected" && 
+                 user.customStatus !== "REJECTED" &&
+                 user.status !== "suspended" &&
+                 user.customStatus !== "SUSPENDED";
+        })
+        .map(user => ({
+          email: user.email,
+          status: "pending" as UserStatusType,
+          customStatus: "PENDING",
+          role: user.role || "user",
+          created: user.created || new Date().toISOString(),
+          lastModified: user.lastModified || new Date().toISOString(),
+          enabled: false,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          companyName: user.companyName
+        }));
+      
+      console.log(`Found ${pendingUsersFromCognito.length} additional pending users from Cognito`);
+      
+      // Combine both sources of pending users
+      const combinedPendingUsers = [...pendingUsersFromDynamo, ...pendingUsersFromCognito];
+      console.log(`Combined total: ${combinedPendingUsers.length} pending users`);
+      
+      // Cache the combined results
+      cacheUsersByStatus(normalizedStatus, combinedPendingUsers);
+      
+      return combinedPendingUsers;
+    }
+    
+    // Normal handling for non-pending status types
     const response = await client.queries.getUsersByStatus({
       status: normalizedStatus,
     });
-    //console.log("API response for getUsersByStatus:", response);
-
+    
     // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
-      //console.log("Parsed status filtered data:", parsedData);
 
       if (Array.isArray(parsedData)) {
-        //console.log(
-        //  `Raw data from getUsersByStatus(${normalizedStatus}):`,
-        //  parsedData,
-        //);
-
-        let filteredData = parsedData.map((item) => {
+        const filteredData = parsedData.map((item) => {
           const mappedItem = {
             email: item.email,
             status: item.status,
@@ -457,66 +534,30 @@ export const fetchUsersByStatus = async (
             enabled: item.status !== "suspended" && item.status !== "rejected", // Derive this
           };
 
-          //console.log(`Mapped item for ${item.email}:`, mappedItem);
           return mappedItem;
         });
 
-        //console.log(
-        //  `After mapping, before filtering (${filteredData.length} items):`,
-        //  filteredData,
-        //);
-
-        if (normalizedStatus === "pending") {
-          filteredData = filteredData.filter((user) => {
-            const shouldInclude =
-              user.customStatus !== "REJECTED" &&
-              user.status !== "rejected" &&
-              user.customStatus !== "SUSPENDED" &&
-              user.status !== "suspended";
-
-            //console.log(
-            //  `Filter pending: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
-            //);
-            return shouldInclude;
-          });
-        } else if (normalizedStatus === "rejected") {
-          filteredData = filteredData.filter((user) => {
-            const shouldInclude =
-              user.customStatus === "REJECTED" || user.status === "rejected";
-
-            //console.log(
-            //  `Filter rejected: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
-            //);
-            return shouldInclude;
-          });
+        // Further filtering based on status
+        let resultData = filteredData;
+        
+        if (normalizedStatus === "rejected") {
+          resultData = filteredData.filter((user) => 
+            user.customStatus === "REJECTED" || user.status === "rejected"
+          );
         } else if (normalizedStatus === "suspended") {
-          filteredData = filteredData.filter((user) => {
-            const shouldInclude =
-              user.customStatus === "SUSPENDED" || user.status === "suspended";
-
-            //console.log(
-            //  `Filter suspended: ${user.email} included? ${shouldInclude} (status=${user.status}, customStatus=${user.customStatus})`,
-            //);
-            return shouldInclude;
-          });
+          resultData = filteredData.filter((user) => 
+            user.customStatus === "SUSPENDED" || user.status === "suspended"
+          );
         }
 
-        //console.log(
-        //  `Final filtered data for ${normalizedStatus} (${filteredData.length} items):`,
-        //  filteredData,
-        //);
-
         // Cache the filtered results
-        cacheUsersByStatus(normalizedStatus, filteredData);
-
-        return filteredData;
-      } else {
-        //console.warn("API returned data but not an array:", parsedData);
+        cacheUsersByStatus(normalizedStatus, resultData);
+        return resultData;
       }
     }
 
     // If we reach here, something went wrong
-    //console.error(`Failed to get users with status ${normalizedStatus}`);
+    console.error(`Failed to get users with status ${normalizedStatus}`);
     return [];
   } catch (error) {
     console.error(
@@ -606,14 +647,15 @@ export const rejectUser = async (
   try {
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      //console.log(
-      //  `Mock rejecting user: ${email} by admin: ${adminEmail || "unknown"}`,
-      //);
       return true;
     }
 
+    // Clear caches before operation to ensure fresh data
+    clearUserCache();
+    clearAdminStatsCache();
+
+    console.log(`Rejecting user ${email} with reason: ${reason || "None provided"}`);
     const client = getClientSchema();
-    //console.log(`Rejecting user ${email} with reason: ${reason || "None"}`);
 
     const response = await client.mutations.rejectUser({
       email,
@@ -621,14 +663,38 @@ export const rejectUser = async (
       adminEmail: adminEmail || "admin@example.com",
     });
 
-    //console.log("Reject user API response:", response);
+    // Wait for backend processing
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
     if (result) {
-      clearUserCache();
-      clearAdminStatsCache();
+      console.log(`Successfully rejected user: ${email}`);
+      
+      // Emit event immediately
       emitAdminEvent(AdminEvents.USER_REJECTED);
+      
+      // Force a refresh of data after rejection
+      setTimeout(async () => {
+        // Explicitly fetch the updated user counts to ensure the dashboard shows correct data
+        const updatedCounts = await getAllUserCounts();
+        console.log("Updated user counts after rejection:", updatedCounts);
+        
+        // Force a refresh of all user data
+        await refreshUserData();
+        
+        // Double-check that we have the latest stats for the dashboard with a slight delay
+        setTimeout(async () => {
+          await fetchAdminStats();
+          
+          // Trigger a special event for dashboard refresh
+          document.dispatchEvent(new CustomEvent("adminAction", {
+            detail: { type: "FORCE_DASHBOARD_SYNC" },
+            bubbles: true,
+          }));
+        }, 500);
+      }, 1000);
+      
       return true;
     }
     return false;
@@ -646,12 +712,15 @@ export const suspendUser = async (
 ): Promise<boolean> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      //console.log(
-      //  `Mock suspending user: ${email} by admin: ${adminEmail || "unknown"}`,
-      //);
       return true;
     }
 
+    // Clear caches before the operation to ensure fresh data is fetched after
+    clearUserCache();
+    clearAdminStatsCache();
+
+    console.log(`Suspending user ${email} by admin ${adminEmail || "unknown"}`);
+    
     const client = getClientSchema();
     const response = await client.mutations.suspendUser({
       email,
@@ -659,11 +728,37 @@ export const suspendUser = async (
       adminEmail: adminEmail || "admin@example.com",
     });
 
+    // Regardless of the result, wait a bit to ensure backend has processed the change
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     const result = safelyParseApiResponse(response.data);
     if (result) {
-      clearUserCache();
-      clearAdminStatsCache();
+      console.log(`Successfully suspended user: ${email}`);
+      
+      // Emit event to notify listeners
       emitAdminEvent(AdminEvents.USER_SUSPENDED);
+      
+      // Force a refresh of data after suspension
+      setTimeout(async () => {
+        // Explicitly fetch the updated user counts to ensure the dashboard shows correct data
+        const updatedCounts = await getAllUserCounts();
+        console.log("Updated user counts after suspension:", updatedCounts);
+        
+        // Force a refresh of all user data
+        await refreshUserData();
+        
+        // Double-check that we have the latest stats for the dashboard with a slight delay
+        setTimeout(async () => {
+          await fetchAdminStats();
+          
+          // Trigger a special event for dashboard refresh
+          document.dispatchEvent(new CustomEvent("adminAction", {
+            detail: { type: "FORCE_DASHBOARD_SYNC" },
+            bubbles: true,
+          }));
+        }, 500);
+      }, 1000);
+
       return true;
     }
     return false;
@@ -680,40 +775,51 @@ export const reactivateUser = async (
 ): Promise<boolean> => {
   try {
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      //console.log(
-      //  `Mock reactivating user: ${email} by admin: ${adminEmail || "unknown"}`,
-      //);
       return true;
     }
-
-    //console.log(
-    //  `Reactivating user ${email} by admin ${adminEmail || "unknown"}`,
-    //);
 
     // Clear caches before the operation to ensure fresh data is fetched after
     clearUserCache();
     clearAdminStatsCache();
 
+    console.log(`Reactivating user ${email} by admin ${adminEmail || "unknown"}`);
+    
     const client = getClientSchema();
     const response = await client.mutations.reactivateUser({
       email,
       adminEmail: adminEmail || "admin@example.com",
     });
 
-    //console.log(`Reactivation response for ${email}:`, response);
-
     // Regardless of the result, wait a bit to ensure backend has processed the change
     await new Promise((resolve) => setTimeout(resolve, 800));
 
     const result = safelyParseApiResponse(response.data);
     if (result) {
-      // Emit event after a brief delay to ensure client-side state is updated
-      setTimeout(() => {
-        emitAdminEvent(AdminEvents.USER_REACTIVATED);
-      }, 100);
-
-      // Force a manual refresh of the cache after operation
-      await refreshUserData();
+      console.log(`Successfully reactivated user: ${email}`);
+      
+      // Emit event to notify listeners
+      emitAdminEvent(AdminEvents.USER_REACTIVATED);
+      
+      // Force a refresh of data after reactivation
+      setTimeout(async () => {
+        // Explicitly fetch the updated user counts to ensure the dashboard shows correct data
+        const updatedCounts = await getAllUserCounts();
+        console.log("Updated user counts after reactivation:", updatedCounts);
+        
+        // Force a refresh of all user data
+        await refreshUserData();
+        
+        // Double-check that we have the latest stats for the dashboard with a slight delay
+        setTimeout(async () => {
+          await fetchAdminStats();
+          
+          // Trigger a special event for dashboard refresh
+          document.dispatchEvent(new CustomEvent("adminAction", {
+            detail: { type: "FORCE_DASHBOARD_SYNC" },
+            bubbles: true,
+          }));
+        }, 500);
+      }, 1000);
 
       return true;
     }
@@ -997,18 +1103,138 @@ export const clearAdminStatsCache = (): void => {
   }
 };
 
-// Fetch admin dashboard statistics
+// Add a new function to directly query all users by status from DynamoDB
+export const getAllUserCounts = async (): Promise<{ 
+  total: number;
+  active: number; 
+  pending: number;
+  rejected: number;
+  suspended: number;
+}> => {
+  try {
+    console.log("Getting all user counts directly for dashboard");
+    
+    // Initialize counts object
+    const counts = {
+      total: 0,
+      active: 0,
+      pending: 0,
+      rejected: 0,
+      suspended: 0
+    };
+    
+    const client = getClientSchema();
+    
+    // First, get ALL users to ensure total count is accurate
+    try {
+      const allUsersResponse = await client.queries.getAllUsers();
+      if (allUsersResponse?.data) {
+        const allUsers = safelyParseApiResponse(allUsersResponse.data);
+        if (Array.isArray(allUsers)) {
+          counts.total = allUsers.length;
+          console.log(`GetAllUserCounts: Found ${counts.total} total users`);
+        }
+      }
+    } catch (error) {
+      console.error("Error counting all users:", error);
+      // If we can't get all users, try to calculate from statuses
+      counts.total = 0; // Reset to recalculate below
+    }
+    
+    // Query each status separately for maximum reliability
+    try {
+      // Get active users
+      const activeResponse = await client.queries.getUsersByStatus({
+        status: "active"
+      });
+      if (activeResponse?.data) {
+        const activeUsers = safelyParseApiResponse(activeResponse.data);
+        if (Array.isArray(activeUsers)) {
+          counts.active = activeUsers.length;
+          console.log(`GetAllUserCounts: Found ${counts.active} active users`);
+        }
+      }
+    } catch (error) {
+      console.error("Error counting active users:", error);
+    }
+    
+    try {
+      // Get pending users
+      const pendingResponse = await client.queries.getUsersByStatus({
+        status: "pending"
+      });
+      if (pendingResponse?.data) {
+        const pendingUsers = safelyParseApiResponse(pendingResponse.data);
+        if (Array.isArray(pendingUsers)) {
+          counts.pending = pendingUsers.length;
+          console.log(`GetAllUserCounts: Found ${counts.pending} pending users`);
+        }
+      }
+    } catch (error) {
+      console.error("Error counting pending users:", error);
+    }
+    
+    try {
+      // Get rejected users
+      const rejectedResponse = await client.queries.getUsersByStatus({
+        status: "rejected"
+      });
+      if (rejectedResponse?.data) {
+        const rejectedUsers = safelyParseApiResponse(rejectedResponse.data);
+        if (Array.isArray(rejectedUsers)) {
+          counts.rejected = rejectedUsers.length;
+          console.log(`GetAllUserCounts: Found ${counts.rejected} rejected users`);
+        }
+      }
+    } catch (error) {
+      console.error("Error counting rejected users:", error);
+    }
+    
+    try {
+      // Get suspended users
+      const suspendedResponse = await client.queries.getUsersByStatus({
+        status: "suspended"
+      });
+      if (suspendedResponse?.data) {
+        const suspendedUsers = safelyParseApiResponse(suspendedResponse.data);
+        if (Array.isArray(suspendedUsers)) {
+          counts.suspended = suspendedUsers.length;
+          console.log(`GetAllUserCounts: Found ${counts.suspended} suspended users`);
+        }
+      }
+    } catch (error) {
+      console.error("Error counting suspended users:", error);
+    }
+    
+    // If we failed to get total directly, calculate it as sum of all status counts
+    if (counts.total === 0) {
+      counts.total = counts.active + counts.pending + counts.rejected + counts.suspended;
+      console.log(`GetAllUserCounts: Total users calculated from statuses: ${counts.total}`);
+    }
+    
+    return counts;
+  } catch (error) {
+    console.error("Error getting all user counts:", error);
+    return {
+      total: 0,
+      active: 0,
+      pending: 0,
+      rejected: 0,
+      suspended: 0
+    };
+  }
+};
+
+// Modify fetchAdminStats to use the new function
 export const fetchAdminStats = async (): Promise<AdminStats> => {
   try {
-    //console.log("Fetching admin statistics");
+    console.log("Fetching admin statistics with direct user count query");
 
     // Always clear the cache when fetching admin stats to ensure fresh data
     clearAdminStatsCache();
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
-      //console.log("Using mock statistics data");
-      // Create mock stats
       return {
         users: {
           total: 10,
@@ -1032,58 +1258,20 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
     // Get the authenticated client
     const client = getClientSchema();
 
-    // Add timestamp to ensure no caching at API level
-    //const timestamp = Date.now();
-    //console.log(`Requesting fresh admin stats at ${timestamp}`);
+    // IMPORTANT: Always get fresh user counts directly - this is critical for accurate dashboard display
+    const dbUserStats = await getAllUserCounts();
+    console.log("Direct user stats for dashboard:", dbUserStats);
 
-    // Call the API with valid parameters only
-    const response = await client.queries.getAdminStats({
-      // Use empty object with no cache-busting parameter to avoid linter errors
-    });
-    //console.log("API response for getAdminStats:", response);
-
-    // For debugging, also try to fetch users directly to ensure data consistency
-    try {
-      //console.log("Fetching users as a secondary data source for verification");
-      const usersResponse = await client.queries.listUsers({
-        // Use empty object with no cache-busting parameter to avoid linter errors
-      });
-
-      if (usersResponse && usersResponse.data) {
-        let usersList: User[] = [];
-
-        // Parse the users data if needed
-        if (typeof usersResponse.data === "string") {
-          usersList = safelyParseApiResponse(usersResponse.data) as User[];
-        } else if (Array.isArray(usersResponse.data)) {
-          usersList = usersResponse.data;
-        }
-
-        if (usersList.length > 0) {
-          //console.log(`Secondary data source: Found ${usersList.length} users`);
-
-          // Secondary data verification logic removed (unused)
-        }
-      }
-    } catch (usersFetchError) {
-      console.error(
-        "Error fetching users for verification (non-critical):",
-        usersFetchError,
-      );
-    }
-
+    // Now call the regular getAdminStats query for other data
+    const response = await client.queries.getAdminStats({});
+    
     // Process the data depending on its type
     if (response.data) {
       let parsedData: unknown;
-
-      // Check if response.data is already an object or a string that needs parsing
       if (typeof response.data === "string") {
         parsedData = safelyParseApiResponse(response.data);
-        //console.log("Parsed admin stats data:", parsedData);
       } else {
-        // It's already an object
         parsedData = response.data;
-        //console.log("Admin stats data (already an object):", parsedData);
       }
 
       // Check if the returned data is already in the expected format
@@ -1096,6 +1284,9 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
           "recentActivity" in parsedData
         ) {
           const adminStats = parsedData as AdminStats;
+          
+          // IMPORTANT: Always override with our direct user counts
+          adminStats.users = dbUserStats;
 
           // If recent activity exists, ensure it's properly sorted
           if (Array.isArray(adminStats.recentActivity)) {
@@ -1107,7 +1298,7 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
             );
           }
 
-          // Cache the stats data - but with a very short expiry to ensure fresh data on next fetch
+          // Cache the stats data
           try {
             localStorage.setItem(
               ADMIN_STATS_CACHE_KEY,
@@ -1117,54 +1308,17 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
               ADMIN_STATS_CACHE_TIMESTAMP_KEY,
               Date.now().toString(),
             );
-            //console.log("Admin stats cached with short expiry");
           } catch (error) {
             console.error("Error caching admin stats:", error);
           }
-
-          // Debug log for audit logs from the API response
-          // {
-          //   interface ActivityItem {
-          //     action: string;
-          //     timestamp: string;
-          //   }
-          //   const statsData = parsedData as { recentActivity?: ActivityItem[] };
-          //   console.log(
-          //     "Full unfiltered API response for audit logs:",
-          //     statsData.recentActivity
-          //       ? statsData.recentActivity.map(
-          //           (a) => `${a.action} - ${a.timestamp}`,
-          //         )
-          //       : "No recent activity",
-          //   );
-          // }
 
           return adminStats;
         }
 
         // If parsedData is an array of users, we need to format it as stats
         if (Array.isArray(parsedData)) {
-          //console.log("Received an array of users, formatting as stats");
-          const users = parsedData as User[];
-
           const stats: AdminStats = {
-            users: {
-              total: users.length,
-              active: users.filter(
-                (u: User) => u.status === "CONFIRMED" && u.enabled,
-              ).length,
-              pending: users.filter(
-                (u: User) =>
-                  u.status === "FORCE_CHANGE_PASSWORD" &&
-                  u.customStatus !== "REJECTED" &&
-                  u.customStatus !== "SUSPENDED",
-              ).length,
-              rejected: users.filter((u: User) => u.customStatus === "REJECTED")
-                .length,
-              suspended: users.filter(
-                (u: User) => u.customStatus === "SUSPENDED",
-              ).length,
-            },
+            users: dbUserStats, // Use the directly queried user stats 
             assessments: {
               total: 0,
               inProgress: 0,
@@ -1181,10 +1335,10 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
       }
     }
 
-    // If we reach here, something went wrong
-    console.error("Failed to get admin statistics");
+    // If we reach here, something went wrong - return stats with just the DynamoDB user counts
+    console.error("Failed to get admin statistics, returning user stats only");
     return {
-      users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
+      users: dbUserStats,
       assessments: {
         total: 0,
         inProgress: 0,
@@ -1211,6 +1365,182 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
     };
   }
 };
+
+// Cache helpers
+const getCachedUsers = (): User[] | null => {
+  try {
+    const cachedData = localStorage.getItem(USER_CACHE_KEY);
+    const timestamp = localStorage.getItem(USER_CACHE_TIMESTAMP_KEY);
+    if (!cachedData || !timestamp) return null;
+
+    const cacheTime = parseInt(timestamp, 10);
+    const now = Date.now();
+    if (now - cacheTime > CACHE_DURATION_MS) {
+      //console.log("Cache expired, needs refresh");
+      return null;
+    }
+
+    const users = JSON.parse(cachedData) as User[];
+    //console.log(`Retrieved ${users.length} users from cache`);
+    return users;
+  } catch (error) {
+    console.error("Error reading from cache:", error);
+    return null;
+  }
+};
+
+const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
+  try {
+    const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
+    const cachedData = localStorage.getItem(key);
+    const cacheTimestamp = localStorage.getItem(`${key}_timestamp`);
+    if (!cachedData || !cacheTimestamp) return null;
+
+    const timestamp = parseInt(cacheTimestamp, 10);
+    const now = Date.now();
+    if (now - timestamp > CACHE_DURATION_MS) {
+      //console.log(`Cache for status ${status} has expired`);
+      return null;
+    }
+
+    const parsedData = JSON.parse(cachedData);
+    if (Array.isArray(parsedData)) {
+      //console.log(
+      //  `Retrieved ${parsedData.length} users from cache with status ${status}`,
+      //);
+      return parsedData;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error reading cache for status ${status}:`, error);
+    return null;
+  }
+};
+
+const cacheUsers = (users: User[]): void => {
+  try {
+    localStorage.setItem(USER_CACHE_KEY, JSON.stringify(users));
+    localStorage.setItem(USER_CACHE_TIMESTAMP_KEY, Date.now().toString());
+    //console.log(`Cached ${users.length} users`);
+  } catch (error) {
+    console.error("Error writing to cache:", error);
+  }
+};
+
+const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
+  try {
+    const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
+    localStorage.setItem(key, JSON.stringify(users));
+    localStorage.setItem(`${key}_timestamp`, Date.now().toString());
+    //console.log(`Cached ${users.length} users with status ${status}`);
+  } catch (error) {
+    console.error(`Error caching users with status ${status}:`, error);
+  }
+};
+
+// Define the transformUserData function (proper export)
+export function transformUserData(fetchedUsers: User[]): UserData[] {
+  if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
+    console.error("Invalid user data received:", fetchedUsers);
+    return [];
+  }
+
+  //console.log("transformUserData called with:", fetchedUsers);
+
+  // Helper function to determine user role
+  const determineUserRole = (user: User): "user" | "admin" => {
+    // If user has a role property directly from DynamoDB, prioritize it
+    if (user.role === "admin") {
+      // This is the role from DynamoDB, it takes precedence
+      console.log(`User ${user.email} has role 'admin' from DynamoDB`);
+      return "admin";
+    } else if (user.role === "user") {
+      console.log(`User ${user.email} has role 'user' from DynamoDB`);
+      return "user";
+    }
+    
+    // If no role in DynamoDB, check Cognito groups as fallback
+    if (user.attributes?.["cognito:groups"]) {
+      try {
+        const groups = JSON.parse(user.attributes["cognito:groups"]);
+        if (Array.isArray(groups) && groups.includes("GRC-Admin")) {
+          console.log(`User ${user.email} has admin role from Cognito groups`);
+          return "admin";
+        }
+      } catch {
+        console.warn("Failed to parse groups from user attributes");
+      }
+    }
+
+    // Check for custom role attribute as last fallback
+    return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
+  };
+  
+  // Simplified helper function to extract user profile data
+  const extractUserProfileData = (user: User) => {
+    // Directly use the properties expected from the updated listUsers backend function
+    const firstName = user.firstName || "";
+    const lastName = user.lastName || "";
+    const companyName = user.companyName || "";
+
+    //console.log(`User ${user.email} extracted profile:`, {
+    //  firstName,
+    //  lastName,
+    //  companyName,
+    //});
+    return { firstName, lastName, companyName };
+  };
+
+  // Transform the API data
+  const transformedUsers = fetchedUsers
+    .map((user) => {
+      if (!user || !user.email) {
+        //console.warn("Invalid user object in response:", user);
+        return null;
+      }
+
+      // Log the raw user object received from fetchUsers before transformation
+      console.log(
+        `[transformUserData] Raw user data for ${user.email}:`,
+        JSON.stringify({
+          email: user.email,
+          status: user.status,
+          enabled: user.enabled,
+          role: user.role, // This should come from DynamoDB
+          customStatus: user.customStatus,
+        }, null, 2)
+      );
+
+      const transformedStatus = getUserStatus(
+        user.status || "",
+        Boolean(user.enabled),
+        user.customStatus || undefined,
+      );
+
+      // Extract user profile information
+      const profileData = extractUserProfileData(user);
+      
+      // Get the role (prioritizing DynamoDB over Cognito)
+      const userRole = determineUserRole(user);
+
+      return {
+        email: user.attributes?.email || user.email,
+        status: transformedStatus,
+        role: userRole,
+        created: user.created,
+        lastLogin: user.lastModified,
+        enabled: user.enabled,
+        customStatus: user.customStatus,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        companyName: profileData.companyName,
+      };
+    })
+    .filter(Boolean) as UserData[]; // Remove any null entries
+
+  //console.log("transformUserData result:", transformedUsers);
+  return transformedUsers;
+}
 
 // Define a type for audit log details
 export type AuditLogDetails = Record<string, string | number | boolean | null>;
@@ -1408,166 +1738,31 @@ export const fetchSystemSettings =
     }
   };
 
-// Cache helpers
-const getCachedUsers = (): User[] | null => {
+// Add a new function to fetch all users via API
+export const fetchAllUsers = async (): Promise<User[]> => {
   try {
-    const cachedData = localStorage.getItem(USER_CACHE_KEY);
-    const timestamp = localStorage.getItem(USER_CACHE_TIMESTAMP_KEY);
-    if (!cachedData || !timestamp) return null;
-
-    const cacheTime = parseInt(timestamp, 10);
-    const now = Date.now();
-    if (now - cacheTime > CACHE_DURATION_MS) {
-      //console.log("Cache expired, needs refresh");
-      return null;
+    console.log("Fetching all users from DynamoDB");
+    
+    // Only use mock data if explicitly configured
+    if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
+      return getMockUsers();
     }
-
-    const users = JSON.parse(cachedData) as User[];
-    //console.log(`Retrieved ${users.length} users from cache`);
-    return users;
-  } catch (error) {
-    console.error("Error reading from cache:", error);
-    return null;
-  }
-};
-
-const getCachedUsersByStatus = (status: UserStatusType): User[] | null => {
-  try {
-    const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
-    const cachedData = localStorage.getItem(key);
-    const cacheTimestamp = localStorage.getItem(`${key}_timestamp`);
-    if (!cachedData || !cacheTimestamp) return null;
-
-    const timestamp = parseInt(cacheTimestamp, 10);
-    const now = Date.now();
-    if (now - timestamp > CACHE_DURATION_MS) {
-      //console.log(`Cache for status ${status} has expired`);
-      return null;
+    
+    const client = getClientSchema();
+    const response = await client.queries.getAllUsers();
+    
+    if (response.data) {
+      const parsedData = safelyParseApiResponse(response.data);
+      if (Array.isArray(parsedData)) {
+        console.log(`Received ${parsedData.length} users from API`);
+        return parsedData;
+      }
     }
-
-    const parsedData = JSON.parse(cachedData);
-    if (Array.isArray(parsedData)) {
-      //console.log(
-      //  `Retrieved ${parsedData.length} users from cache with status ${status}`,
-      //);
-      return parsedData;
-    }
-    return null;
+    
+    console.error("Failed to get all users from API");
+    return [];
   } catch (error) {
-    console.error(`Error reading cache for status ${status}:`, error);
-    return null;
-  }
-};
-
-const cacheUsers = (users: User[]): void => {
-  try {
-    localStorage.setItem(USER_CACHE_KEY, JSON.stringify(users));
-    localStorage.setItem(USER_CACHE_TIMESTAMP_KEY, Date.now().toString());
-    //console.log(`Cached ${users.length} users`);
-  } catch (error) {
-    console.error("Error writing to cache:", error);
-  }
-};
-
-const cacheUsersByStatus = (status: UserStatusType, users: User[]): void => {
-  try {
-    const key = `${USER_CACHE_BY_STATUS_PREFIX}${status}`;
-    localStorage.setItem(key, JSON.stringify(users));
-    localStorage.setItem(`${key}_timestamp`, Date.now().toString());
-    //console.log(`Cached ${users.length} users with status ${status}`);
-  } catch (error) {
-    console.error(`Error caching users with status ${status}:`, error);
-  }
-};
-
-// Define the transformUserData function (proper export)
-export function transformUserData(fetchedUsers: User[]): UserData[] {
-  if (!fetchedUsers || !Array.isArray(fetchedUsers)) {
-    console.error("Invalid user data received:", fetchedUsers);
+    console.error("Error fetching all users:", error);
     return [];
   }
-
-  //console.log("transformUserData called with:", fetchedUsers);
-
-  // Helper function to determine user role
-  const determineUserRole = (user: User): "user" | "admin" => {
-    if (user.attributes?.["cognito:groups"]) {
-      try {
-        const groups = JSON.parse(user.attributes["cognito:groups"]);
-        if (Array.isArray(groups) && groups.includes("GRC-Admin")) {
-          return "admin";
-        }
-      } catch {
-        console.warn("Failed to parse groups from user attributes");
-      }
-    }
-
-    return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
-  };
-  // Simplified helper function to extract user profile data
-  const extractUserProfileData = (user: User) => {
-    // Directly use the properties expected from the updated listUsers backend function
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-    const companyName = user.companyName || "";
-
-    //console.log(`User ${user.email} extracted profile:`, {
-    //  firstName,
-    //  lastName,
-    //  companyName,
-    //});
-    return { firstName, lastName, companyName };
-  };
-
-  // Transform the API data
-  const transformedUsers = fetchedUsers
-    .map((user) => {
-      if (!user || !user.email) {
-        //console.warn("Invalid user object in response:", user);
-        return null;
-      }
-
-      // Log the raw user object received from fetchUsers before transformation
-      //console.log(
-      //  `[transformUserData] Raw user data for ${user.email}:`,
-      //  JSON.stringify(user, null, 2),
-      //);
-
-      // Debug raw user status values before transformation
-      //console.log(`User ${user.email} raw data:`, {
-      //  status: user.status,
-      //  enabled: user.enabled,
-      //  customStatus: user.customStatus,
-      //  attributes: user.attributes,
-      //  firstName: user.firstName,
-      //  lastName: user.lastName,
-      //  companyName: user.companyName,
-      //});
-
-      const transformedStatus = getUserStatus(
-        user.status || "",
-        Boolean(user.enabled),
-        user.customStatus || undefined,
-      );
-
-      // Extract user profile information
-      const profileData = extractUserProfileData(user);
-
-      return {
-        email: user.attributes?.email || user.email,
-        status: transformedStatus,
-        role: determineUserRole(user),
-        created: user.created,
-        lastLogin: user.lastModified,
-        enabled: user.enabled,
-        customStatus: user.customStatus,
-        firstName: profileData.firstName,
-        lastName: profileData.lastName,
-        companyName: profileData.companyName,
-      };
-    })
-    .filter(Boolean) as UserData[]; // Remove any null entries
-
-  //console.log("transformUserData result:", transformedUsers);
-  return transformedUsers;
-}
+};
