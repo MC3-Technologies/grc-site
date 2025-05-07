@@ -1137,73 +1137,62 @@ export const getAllUserCounts = async (): Promise<{
       }
     } catch (error) {
       console.error("Error counting all users:", error);
-      // If we can't get all users, try to calculate from statuses
       counts.total = 0; // Reset to recalculate below
     }
     
     // Query each status separately for maximum reliability
-    try {
-      // Get active users
-      const activeResponse = await client.queries.getUsersByStatus({
-        status: "active"
-      });
-      if (activeResponse?.data) {
-        const activeUsers = safelyParseApiResponse(activeResponse.data);
-        if (Array.isArray(activeUsers)) {
-          counts.active = activeUsers.length;
-          console.log(`GetAllUserCounts: Found ${counts.active} active users`);
-        }
+    // Using Promise.allSettled to fetch counts concurrently and handle individual errors
+    const statusPromises = [
+      client.queries.getUsersByStatus({ status: "active" }),
+      client.queries.getUsersByStatus({ status: "pending" }),
+      client.queries.getUsersByStatus({ status: "rejected" }), // <-- Added rejected query
+      client.queries.getUsersByStatus({ status: "suspended" })
+    ];
+    
+    const results = await Promise.allSettled(statusPromises);
+    
+    // Process Active Users
+    if (results[0].status === 'fulfilled' && results[0].value.data) {
+      const activeUsers = safelyParseApiResponse(results[0].value.data);
+      if (Array.isArray(activeUsers)) {
+        counts.active = activeUsers.length;
+        console.log(`GetAllUserCounts: Found ${counts.active} active users`);
       }
-    } catch (error) {
-      console.error("Error counting active users:", error);
+    } else if (results[0].status === 'rejected') {
+      console.error("Error counting active users:", results[0].reason);
     }
     
-    try {
-      // Get pending users
-      const pendingResponse = await client.queries.getUsersByStatus({
-        status: "pending"
-      });
-      if (pendingResponse?.data) {
-        const pendingUsers = safelyParseApiResponse(pendingResponse.data);
-        if (Array.isArray(pendingUsers)) {
-          counts.pending = pendingUsers.length;
-          console.log(`GetAllUserCounts: Found ${counts.pending} pending users`);
-        }
+    // Process Pending Users
+    if (results[1].status === 'fulfilled' && results[1].value.data) {
+      const pendingUsers = safelyParseApiResponse(results[1].value.data);
+      if (Array.isArray(pendingUsers)) {
+        counts.pending = pendingUsers.length;
+        console.log(`GetAllUserCounts: Found ${counts.pending} pending users`);
       }
-    } catch (error) {
-      console.error("Error counting pending users:", error);
+    } else if (results[1].status === 'rejected') {
+      console.error("Error counting pending users:", results[1].reason);
+    }
+
+    // Process Rejected Users
+    if (results[2].status === 'fulfilled' && results[2].value.data) {
+      const rejectedUsers = safelyParseApiResponse(results[2].value.data);
+      if (Array.isArray(rejectedUsers)) {
+        counts.rejected = rejectedUsers.length;
+        console.log(`GetAllUserCounts: Found ${counts.rejected} rejected users`);
+      }
+    } else if (results[2].status === 'rejected') {
+      console.error("Error counting rejected users:", results[2].reason);
     }
     
-    try {
-      // Get rejected users
-      const rejectedResponse = await client.queries.getUsersByStatus({
-        status: "rejected"
-      });
-      if (rejectedResponse?.data) {
-        const rejectedUsers = safelyParseApiResponse(rejectedResponse.data);
-        if (Array.isArray(rejectedUsers)) {
-          counts.rejected = rejectedUsers.length;
-          console.log(`GetAllUserCounts: Found ${counts.rejected} rejected users`);
-        }
+    // Process Suspended Users
+    if (results[3].status === 'fulfilled' && results[3].value.data) {
+      const suspendedUsers = safelyParseApiResponse(results[3].value.data);
+      if (Array.isArray(suspendedUsers)) {
+        counts.suspended = suspendedUsers.length;
+        console.log(`GetAllUserCounts: Found ${counts.suspended} suspended users`);
       }
-    } catch (error) {
-      console.error("Error counting rejected users:", error);
-    }
-    
-    try {
-      // Get suspended users
-      const suspendedResponse = await client.queries.getUsersByStatus({
-        status: "suspended"
-      });
-      if (suspendedResponse?.data) {
-        const suspendedUsers = safelyParseApiResponse(suspendedResponse.data);
-        if (Array.isArray(suspendedUsers)) {
-          counts.suspended = suspendedUsers.length;
-          console.log(`GetAllUserCounts: Found ${counts.suspended} suspended users`);
-        }
-      }
-    } catch (error) {
-      console.error("Error counting suspended users:", error);
+    } else if (results[3].status === 'rejected') {
+      console.error("Error counting suspended users:", results[3].reason);
     }
     
     // If we failed to get total directly, calculate it as sum of all status counts
