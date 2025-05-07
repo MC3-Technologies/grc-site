@@ -440,6 +440,8 @@ export const userOperations = {
             lastName: finalLastName,
             companyName: finalCompanyName,
             cognitoStatus: cognitoUser.UserStatus, // Include Cognito status for reference
+            id: attributes["sub"], // Add the Cognito sub as a top-level 'id'
+            attributes: attributes, // Include the full attributes map from Cognito
           };
         }),
       );

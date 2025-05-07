@@ -3,7 +3,7 @@ import {
   CompletedAssessment,
   InProgressAssessment,
 } from "../../utils/assessment";
-import { fetchUsers } from "../../utils/adminUser";
+import { fetchUsers, User as AdminUserType } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 import {
   redirectToInProgressAssessment,
@@ -103,13 +103,16 @@ const AdminAssessments = () => {
         const userMapping: Record<string, string> = {};
         const userOptions: UserOption[] = [];
 
-        fetchedUsers.forEach((user) => {
-          // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
-          const userId = user.attributes?.sub || user.email;
-          // The actual email is in user.attributes.email or user.email if it's an email
+        fetchedUsers.forEach((user: AdminUserType) => {
+          // The ID should now primarily come from user.id (which is attributes.sub from lambda)
+          // Fallback to user.attributes?.sub for safety, then user.email (which might be ID or email)
+          const userId = user.id || user.attributes?.sub || user.email;
+          
+          // The actual email is best from user.attributes.email
+          // Fallback to user.email (top-level) only if it looks like an email
           const userEmail =
             user.attributes?.email ||
-            (user.email.includes("@") ? user.email : null);
+            (user.email && user.email.includes("@") ? user.email : null);
 
           if (userId && userEmail) {
             userMapping[userId] = userEmail;
