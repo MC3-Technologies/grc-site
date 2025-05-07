@@ -15,6 +15,11 @@ export const auth = defineAuth({
     },
   },
 
+  multifactor: {
+    mode: "REQUIRED",
+    totp: true,
+  },
+
   userAttributes: {
     "custom:role": {
       dataType: "String",
