@@ -3,7 +3,12 @@
 @tailwind utilities;
 
 [data-amplify-authenticator] {
-  @apply w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700;
+  @apply w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-xl xl:p-0 dark:bg-gray-800 dark:border-gray-700;
+  color: black;
+}
+
+.dark [data-amplify-authenticator] {
+  color: white;
 }
 
 [data-amplify-container] {
@@ -20,6 +25,79 @@
 
 [data-amplify-form] {
   @apply dark:bg-gray-800 bg-white;
+}
+
+/* Style for TOTP setup secret code text to adapt to dark/light mode */
+.amplify-authenticator__section--totpsetup p,
+[data-amplify-authenticator] [data-amplify-router-content="setupTOTP"] p,
+[data-amplify-authenticator] div[role="main"] p {
+  @apply text-black dark:text-white !important;
+}
+
+/* Target the secret code element specifically */
+[data-amplify-authenticator] div[role="main"] p + div,
+[data-amplify-authenticator] [role="main"] code,
+[data-amplify-authenticator] [role="main"] pre,
+[data-amplify-authenticator] .amplify-text--code,
+[data-amplify-authenticator] .amplify-totpsetup__secretcode,
+[data-amplify-authenticator] code,
+[data-amplify-authenticator] pre {
+  color: black !important;
+}
+
+/* Dark mode specific override */
+.dark [data-amplify-authenticator] div[role="main"] p + div,
+.dark [data-amplify-authenticator] [role="main"] code,
+.dark [data-amplify-authenticator] [role="main"] pre,
+.dark [data-amplify-authenticator] .amplify-text--code,
+.dark [data-amplify-authenticator] .amplify-totpsetup__secretcode,
+.dark [data-amplify-authenticator] code,
+.dark [data-amplify-authenticator] pre {
+  color: white !important;
+}
+
+/* Target the secret code specifically with all possible selectors */
+[data-amplify-authenticator] code, 
+[data-amplify-authenticator] pre,
+[data-amplify-authenticator] [class*="secret"],
+[data-amplify-authenticator] [class*="code"],
+[data-amplify-authenticator] [class*="totp"] {
+  color: black !important;
+}
+
+.dark [data-amplify-authenticator] code,
+.dark [data-amplify-authenticator] pre,
+.dark [data-amplify-authenticator] [class*="secret"],
+.dark [data-amplify-authenticator] [class*="code"],
+.dark [data-amplify-authenticator] [class*="totp"] {
+  color: white !important;
+}
+
+/* Target any direct text that doesn't have a container element */
+[data-amplify-authenticator] > *:not([class]):not([id]),
+[data-amplify-authenticator] > div > *:not([class]):not([id]) {
+  color: black !important;
+}
+
+.dark [data-amplify-authenticator] > *:not([class]):not([id]),
+.dark [data-amplify-authenticator] > div > *:not([class]):not([id]) {
+  color: white !important;
+}
+
+/* Target the TOTP setup container - this is needed because some browsers don't support partial attribute selectors */
+div[data-amplify-section="totp-setup"] *:not(button):not(a):not(svg):not(input) {
+  color: black !important;
+}
+
+.dark div[data-amplify-section="totp-setup"] *:not(button):not(a):not(svg):not(input) {
+  color: white !important;
+}
+
+/* Ensure specific form elements within aren't affected */
+div[data-amplify-section="totp-setup"] button,
+div[data-amplify-section="totp-setup"] a,
+div[data-amplify-section="totp-setup"] input {
+  /* Keep existing styling */
 }
 
 .amplify-alert__dismiss,
@@ -77,4 +155,94 @@
 
 .amplify-button.amplify-field-group__control.amplify-button--primary {
   @apply w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800;
+}
+
+/* Style the COPY button and its SVG icon to adapt to dark/light mode */
+[data-amplify-authenticator] svg,
+[data-amplify-authenticator] svg path,
+[data-amplify-authenticator] svg rect,
+[data-amplify-authenticator] button svg {
+  fill: black !important;
+  color: black !important;
+  stroke: black !important;
+}
+
+.dark [data-amplify-authenticator] svg,
+.dark [data-amplify-authenticator] svg path,
+.dark [data-amplify-authenticator] svg rect,
+.dark [data-amplify-authenticator] button svg {
+  fill: white !important;
+  color: white !important;
+  stroke: white !important;
+}
+
+/* Override for primary buttons to keep their original styling */
+[data-amplify-authenticator] .amplify-button--primary svg,
+[data-amplify-authenticator] .amplify-button--primary svg path,
+[data-amplify-authenticator] .amplify-button--primary svg rect {
+  fill: white !important;
+  color: white !important;
+  stroke: white !important;
+}
+
+/* More specific targeting for the COPY icon */
+[data-amplify-authenticator] [data-amplify-copy] svg,
+[data-amplify-authenticator] [data-amplify-section="totp-setup"] ~ div svg,
+[data-amplify-authenticator] button[aria-label="Copy"] svg,
+[data-amplify-authenticator] button.amplify-copy-button svg,
+[data-amplify-authenticator] .amplify-totpsetup__secretcode + button svg,
+[data-amplify-authenticator] .amplify-field__show-password + div button svg {
+  fill: black !important;
+  color: black !important;
+  stroke: black !important;
+}
+
+.dark [data-amplify-authenticator] [data-amplify-copy] svg,
+.dark [data-amplify-authenticator] [data-amplify-section="totp-setup"] ~ div svg,
+.dark [data-amplify-authenticator] button[aria-label="Copy"] svg,
+.dark [data-amplify-authenticator] button.amplify-copy-button svg,
+.dark [data-amplify-authenticator] .amplify-totpsetup__secretcode + button svg,
+.dark [data-amplify-authenticator] .amplify-field__show-password + div button svg {
+  fill: white !important;
+  color: white !important;
+  stroke: white !important;
+}
+
+/* Style the COPY text label itself */
+[data-amplify-authenticator] [data-amplify-section="totp-setup"] + div,
+[data-amplify-authenticator] span:not([class]):not([id]),
+[data-amplify-authenticator] div:not([class]):not([id]) {
+  color: black !important;
+}
+
+.dark [data-amplify-authenticator] [data-amplify-section="totp-setup"] + div,
+.dark [data-amplify-authenticator] span:not([class]):not([id]),
+.dark [data-amplify-authenticator] div:not([class]):not([id]) {
+  color: white !important;
+}
+
+/* Target any text or element inside the authenticator that might contain "COPY" */
+[data-amplify-authenticator] *:not(input):not(button):not(a) {
+  color: black !important;
+}
+
+.dark [data-amplify-authenticator] *:not(input):not(button):not(a) {
+  color: white !important;
+}
+
+/* Additional targetings for the COPY text specifically */
+[data-amplify-authenticator] span,
+[data-amplify-authenticator] p {
+  color: inherit !important;
+}
+
+/* Direct styling for the clipboard icon */
+[data-amplify-authenticator] img[src*="clipboard"],
+[data-amplify-authenticator] svg[viewBox="0 0 24 24"] {
+  filter: brightness(0) saturate(100%) !important;
+}
+
+.dark [data-amplify-authenticator] img[src*="clipboard"],
+.dark [data-amplify-authenticator] svg[viewBox="0 0 24 24"] {
+  filter: brightness(0) saturate(100%) invert(1) !important;
 }
