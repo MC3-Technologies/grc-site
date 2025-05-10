@@ -1214,10 +1214,68 @@ export const getAllUserCounts = async (): Promise<{
   }
 };
 
+// Add a new function to directly query all assessment counts
+export const getAllAssessmentCounts = async (): Promise<{ 
+  total: number;
+  inProgress: number;
+  completed: number;
+  compliant: number;
+  nonCompliant: number;
+}> => {
+  try {
+    console.log("Getting all assessment counts directly for dashboard");
+    
+    // Initialize counts object
+    const counts = {
+      total: 0,
+      inProgress: 0,
+      completed: 0,
+      compliant: 0,
+      nonCompliant: 0
+    };
+    
+    // Import assessment utility classes
+    const { InProgressAssessment, CompletedAssessment } = await import('./assessment');
+    
+    // Fetch assessments from both tables concurrently for efficiency
+    const [inProgressAssessments, completedAssessments] = await Promise.all([
+      InProgressAssessment.fetchAllAssessments(),
+      CompletedAssessment.fetchAllCompletedAssessments()
+    ]);
+    
+    // Count in-progress assessments
+    counts.inProgress = inProgressAssessments.length;
+    console.log(`GetAllAssessmentCounts: Found ${counts.inProgress} in-progress assessments`);
+    
+    // Count completed assessments
+    counts.completed = completedAssessments.length;
+    console.log(`GetAllAssessmentCounts: Found ${counts.completed} completed assessments`);
+    
+    // Count compliant and non-compliant assessments
+    counts.compliant = completedAssessments.filter(a => a.isCompliant === true).length;
+    counts.nonCompliant = completedAssessments.filter(a => a.isCompliant === false).length;
+    
+    // Calculate total assessments
+    counts.total = counts.inProgress + counts.completed;
+    console.log(`GetAllAssessmentCounts: Total assessments: ${counts.total}`);
+    
+    return counts;
+  } catch (error) {
+    console.error("Error getting assessment counts:", error);
+    return {
+      total: 0,
+      inProgress: 0,
+      completed: 0,
+      compliant: 0,
+      nonCompliant: 0
+    };
+  }
+};
+
 // Modify fetchAdminStats to use the new function
 export const fetchAdminStats = async (): Promise<AdminStats> => {
   try {
-    console.log("Fetching admin statistics with direct user count query");
+    console.log("Fetching admin statistics with direct count queries");
 
     // Always clear the cache when fetching admin stats to ensure fresh data
     clearAdminStatsCache();
@@ -1247,9 +1305,13 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
     // Get the authenticated client
     const client = getClientSchema();
 
-    // IMPORTANT: Always get fresh user counts directly - this is critical for accurate dashboard display
+    // IMPORTANT: Always get fresh counts directly - this is critical for accurate dashboard display
     const dbUserStats = await getAllUserCounts();
     console.log("Direct user stats for dashboard:", dbUserStats);
+    
+    // NEW: Get direct assessment counts
+    const dbAssessmentStats = await getAllAssessmentCounts();
+    console.log("Direct assessment stats for dashboard:", dbAssessmentStats);
 
     // Now call the regular getAdminStats query for other data
     const response = await client.queries.getAdminStats({});
@@ -1274,8 +1336,18 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
         ) {
           const adminStats = parsedData as AdminStats;
           
-          // IMPORTANT: Always override with our direct user counts
+          // IMPORTANT: Always override with our direct counts
           adminStats.users = dbUserStats;
+          adminStats.assessments = dbAssessmentStats;
+          
+          // Recalculate compliance rate based on direct counts
+          adminStats.complianceRate = 
+            adminStats.assessments.completed > 0
+              ? Math.round(
+                  (adminStats.assessments.compliant / adminStats.assessments.completed) *
+                    100
+                )
+              : 0;
 
           // If recent activity exists, ensure it's properly sorted
           if (Array.isArray(adminStats.recentActivity)) {
@@ -1308,14 +1380,10 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
         if (Array.isArray(parsedData)) {
           const stats: AdminStats = {
             users: dbUserStats, // Use the directly queried user stats 
-            assessments: {
-              total: 0,
-              inProgress: 0,
-              completed: 0,
-              compliant: 0,
-              nonCompliant: 0,
-            },
-            complianceRate: 0,
+            assessments: dbAssessmentStats, // NEW: Use directly queried assessment stats
+            complianceRate: dbAssessmentStats.completed > 0
+              ? Math.round((dbAssessmentStats.compliant / dbAssessmentStats.completed) * 100)
+              : 0,
             recentActivity: [],
           };
 
@@ -1324,18 +1392,14 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
       }
     }
 
-    // If we reach here, something went wrong - return stats with just the DynamoDB user counts
-    console.error("Failed to get admin statistics, returning user stats only");
+    // If we reach here, something went wrong - return stats with just the direct count data
+    console.error("Failed to get admin statistics, returning direct stats only");
     return {
       users: dbUserStats,
-      assessments: {
-        total: 0,
-        inProgress: 0,
-        completed: 0,
-        compliant: 0,
-        nonCompliant: 0,
-      },
-      complianceRate: 0,
+      assessments: dbAssessmentStats,
+      complianceRate: dbAssessmentStats.completed > 0
+        ? Math.round((dbAssessmentStats.compliant / dbAssessmentStats.completed) * 100)
+        : 0,
       recentActivity: [],
     };
   } catch (error) {

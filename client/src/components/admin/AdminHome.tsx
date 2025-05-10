@@ -7,6 +7,7 @@ import {
   clearAdminStatsCache,
   clearUserCache,
   getAllUserCounts,
+  getAllAssessmentCounts,
 } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
@@ -93,7 +94,7 @@ export default function AdminHome() {
   ].filter((action) => action !== "USER_STATUS_UPDATED");
 
   // Function to fetch stats with improved error handling and debugging
-  const fetchStats = useCallback(async (forceRefresh = true) => {
+  const fetchStats = useCallback(async () => {
     try {
       // Clear any pending refresh
       if (refreshTimeoutRef.current) {
@@ -105,162 +106,19 @@ export default function AdminHome() {
       // Always clear cache before fetching to ensure fresh data
       await clearAdminStatsCache();
 
-      // Get accurate user counts directly from DynamoDB
-      const userCounts = await getAllUserCounts();
-      console.log("Dashboard direct counts:", userCounts);
+      // Get accurate counts directly from DynamoDB
+      await Promise.all([
+        getAllUserCounts(),
+        getAllAssessmentCounts()
+      ]);
+      
+      //console.log("Dashboard direct user counts:", userCounts);
+      //console.log("Dashboard direct assessment counts:", assessmentCounts);
 
-      // Fetch the rest of the admin stats
-      const stats = await fetchAdminStats(); // Always refresh from API
+      // Fetch the admin stats - includes direct counts internally
+      const stats = await fetchAdminStats();
       
       if (stats) {
-        // Override stats with direct count data for maximum accuracy
-        if (userCounts) {
-          stats.users = userCounts;
-          console.log("Updated dashboard with direct counts:", stats.users);
-        }
-
-        // Process activities
-        if (Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0) {
-          // Ensure activity array is properly sorted by timestamp in descending order
-          stats.recentActivity = [...stats.recentActivity]
-            // Only filter out invalid activities (null/undefined)
-            .filter((activity) => {
-              if (!activity) return false;
-
-              // Always log what we're processing
-              //logDebug(
-              //  `Processing activity for display: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource}/${activity.resourceId || activity.details?.email || "unknown"}`,
-              //);
-
-              // Include all valid activities - USER_STATUS_UPDATED no longer exists
-              return true;
-            })
-            .map((activity) => {
-              // Ensure resourceId is set to email when available for consistency
-              if (
-                activity.affectedResource === "user" &&
-                !activity.resourceId &&
-                activity.details?.email
-              ) {
-                activity.resourceId = activity.details.email as string;
-                //logDebug(`Fixed missing resourceId for ${activity.action}`);
-              }
-
-              // Special handling for USER_DELETED events which may have different formats
-              if (
-                activity.action === "USER_DELETED" &&
-                !activity.resourceId &&
-                activity.details?.userId
-              ) {
-                // Try to use email from details if available
-                activity.resourceId =
-                  (activity.details.email as string) ||
-                  (activity.details.userId as string);
-                //logDebug(
-                //  `Fixed USER_DELETED resourceId to: ${activity.resourceId}`,
-                //);
-              }
-
-              return activity;
-            })
-            .sort((a, b) => {
-              // Sort by timestamp descending (newest first)
-              const timeA = new Date(a.timestamp).getTime();
-              const timeB = new Date(b.timestamp).getTime();
-              return timeB - timeA;
-            });
-
-          //logDebug(
-          //  `After filtering and sorting: ${stats.recentActivity.length} activities`,
-          //);
-
-          // Log the first 3 activities for debugging
-          // if (stats.recentActivity.length > 0) {
-          //   stats.recentActivity.slice(0, 3).forEach((activity, index) => {
-          //     //logDebug(
-          //       //`Activity ${index}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
-          //     //);
-          //   });
-          // }
-        }
-
-        // After filtering and sorting, log the final set of activities
-        if (stats.recentActivity && stats.recentActivity.length > 0) {
-          //logDebug(
-          //  `After filtering and sorting: ${stats.recentActivity.length} activities`,
-          //);
-          // stats.recentActivity.slice(0, 5).forEach((activity, idx) => {
-            //logDebug(
-            //  `Activity ${idx}: ${activity.action} - ${activity.timestamp} - ${activity.affectedResource} - ${activity.resourceId}`,
-            //);
-          // });
-        } else {
-          //logDebug("No activities found after filtering and sorting");
-
-          // If we have no activities, schedule a retry with delay
-          if (forceRefresh) {
-            //logDebug(
-            //  "Scheduling retry in 5 seconds due to missing activities...",
-            //);
-            // Set a timeout for the retry
-            setTimeout(() => {
-              //logDebug("Retrying stat fetch due to missing activities");
-              clearAdminStatsCache();
-              fetchAdminStats()
-                .then((retryStats) => {
-                  if (
-                    retryStats &&
-                    Array.isArray(retryStats.recentActivity) &&
-                    retryStats.recentActivity.length > 0
-                  ) {
-                    //logDebug(
-                    //  `Retry successful, got ${retryStats.recentActivity.length} activities`,
-                    //);
-
-                    // FIXED: Add timestamp and set state even on retry
-                    const statsWithDebug = {
-                      ...retryStats,
-                      debugTimestamp: new Date().toISOString(),
-                    };
-
-                    // Set the admin stats with the retry data
-                    setAdminStats(statsWithDebug as unknown as AdminStats);
-                    lastRefreshTimeRef.current = new Date();
-                    //logDebug("Stats updated in component state from retry");
-                  } else {
-                    //logDebug("Retry failed to get activities, using original data");
-
-                    // Even if retry fails, still use the original data
-                    if (stats) {
-                      const statsWithDebug = {
-                        ...stats,
-                        debugTimestamp: new Date().toISOString(),
-                      };
-                      setAdminStats(statsWithDebug as unknown as AdminStats);
-                      //logDebug("Using original data after failed retry");
-                    }
-                  }
-                  setIsLoading(false);
-                })
-                .catch((err) => {
-                  console.log(`Error in retry fetch: ${err}`);
-
-                  // Even on error, use the original data
-                  if (stats) {
-                    const statsWithDebug = {
-                      ...stats,
-                      debugTimestamp: new Date().toISOString(),
-                    };
-                    setAdminStats(statsWithDebug as unknown as AdminStats);
-                    //logDebug("Using original data after retry error");
-                  }
-
-                  setIsLoading(false);
-                });
-            }, 5000);
-          }
-        }
-
         // Add debugging timestamp to help identify when data was last processed
         const statsWithDebug = {
           ...stats,
@@ -269,25 +127,20 @@ export default function AdminHome() {
 
         setAdminStats(statsWithDebug as unknown as AdminStats);
         lastRefreshTimeRef.current = new Date();
-        //logDebug("Stats updated in component state");
 
         // Schedule next auto-refresh - reduced from 5 min to 1 min to keep data fresh
         refreshTimeoutRef.current = setTimeout(() => {
-          //logDebug("Auto-refresh triggered");
           fetchStats();
         }, 60000); // 1 minute refresh interval
       }
 
-      // FIXED: Always set loading to false after processing, even if no stats
+      // Always set loading to false after processing, even if no stats
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching admin stats:", error);
-      //logDebug(
-      //  `Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`,
-      //);
       setIsLoading(false);
     }
-  }, []);
+  }, []); 
 
   // Improved event handling with a single debounced handler
   useEffect(() => {
@@ -318,13 +171,13 @@ export default function AdminHome() {
         
         // Force refresh with slight delay to allow backend to fully process
         setTimeout(() => {
-          console.log(`Executing high-priority refresh for: ${eventType}`);
-          fetchStats(true); // Force true refresh
+          //console.log(`Executing high-priority refresh for: ${eventType}`);
+          fetchStats();
           
           // Double-check the refresh with a second call after short delay
           setTimeout(() => {
-            console.log(`Double-checking refresh for: ${eventType}`);
-            fetchStats(true);
+            //console.log(`Double-checking refresh for: ${eventType}`);
+            fetchStats();
           }, 1500);
         }, 500);
         
@@ -415,8 +268,6 @@ export default function AdminHome() {
   // Function for manual refresh with improved sequence
   const handleManualRefresh = useCallback(() => {
     //logDebug("Manual refresh requested");
-
-    // Remove notification reset code
 
     // Set loading state
     setIsLoading(true);
