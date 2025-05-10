@@ -107,17 +107,14 @@ export default function AdminHome() {
       await clearAdminStatsCache();
 
       // Get accurate counts directly from DynamoDB
-      await Promise.all([
-        getAllUserCounts(),
-        getAllAssessmentCounts()
-      ]);
-      
+      await Promise.all([getAllUserCounts(), getAllAssessmentCounts()]);
+
       //console.log("Dashboard direct user counts:", userCounts);
       //console.log("Dashboard direct assessment counts:", assessmentCounts);
 
       // Fetch the admin stats - includes direct counts internally
       const stats = await fetchAdminStats();
-      
+
       if (stats) {
         // Add debugging timestamp to help identify when data was last processed
         const statsWithDebug = {
@@ -140,7 +137,7 @@ export default function AdminHome() {
       console.error("Error fetching admin stats:", error);
       setIsLoading(false);
     }
-  }, []); 
+  }, []);
 
   // Improved event handling with a single debounced handler
   useEffect(() => {
@@ -161,26 +158,28 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_APPROVED ||
         eventType === "FORCE_DASHBOARD_SYNC"
       ) {
-        console.log(`Immediate refresh for critical user status change: ${eventType}`);
-        
+        console.log(
+          `Immediate refresh for critical user status change: ${eventType}`,
+        );
+
         // Always clear cache first
         if (window.adminUser) {
           window.adminUser.clearAdminStatsCache();
           window.adminUser.clearUserCache();
         }
-        
+
         // Force refresh with slight delay to allow backend to fully process
         setTimeout(() => {
           //console.log(`Executing high-priority refresh for: ${eventType}`);
           fetchStats();
-          
+
           // Double-check the refresh with a second call after short delay
           setTimeout(() => {
             //console.log(`Double-checking refresh for: ${eventType}`);
             fetchStats();
           }, 1500);
         }, 500);
-        
+
         return;
       }
 
@@ -207,7 +206,9 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_CREATED ||
         eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
-        console.log("Action requires refresh, initiating immediate or debounced refresh");
+        console.log(
+          "Action requires refresh, initiating immediate or debounced refresh",
+        );
         debouncedRefresh(eventType);
       }
     };
@@ -1209,10 +1210,7 @@ const getActionBadgeStyle = (action: string): string => {
     return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300";
   }
   // Pending/Registration actions - blue
-  else if (
-    action.includes("PENDING") ||
-    action.includes("REGISTRATION")
-  ) {
+  else if (action.includes("PENDING") || action.includes("REGISTRATION")) {
     return "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300";
   }
   // Update actions - purple - handle both USER_PROFILE_UPDATED and USER_UPDATED
@@ -1481,7 +1479,8 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
             <span className="block text-xs text-gray-500 dark:text-gray-400">
               Registered on{" "}
               {safeTimeDisplay(
-                (activity.details.registrationDate as string) || activity.timestamp,
+                (activity.details.registrationDate as string) ||
+                  activity.timestamp,
               )}
             </span>
           </span>

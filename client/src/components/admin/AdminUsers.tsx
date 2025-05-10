@@ -15,7 +15,7 @@ import {
   clearUserCache,
   clearAdminStatsCache,
   AdminEvents,
-  emitAdminEvent
+  emitAdminEvent,
 } from "../../utils/adminUser";
 import { getClientSchema } from "../../amplify/schema";
 import { getCurrentUser } from "../../amplify/auth";
@@ -318,11 +318,11 @@ const AdminUsers = () => {
         //console.log(
         //  `Updating role for ${updatedUser.email} from ${originalEditingUser.role} to ${updatedUser.role} by admin: ${currentAdminEmail || "unknown"}`,
         //);
-        
+
         // First, clear caches to ensure fresh data
         clearUserCache();
         clearAdminStatsCache();
-        
+
         const roleResponse = await client.mutations.updateUserRole({
           email: updatedUser.email,
           role: updatedUser.role,
@@ -333,10 +333,10 @@ const AdminUsers = () => {
           updateError = `Failed to update role for ${updatedUser.email}.`;
         } else {
           roleUpdated = true;
-          
+
           // Force update role in UI by explicitly emitting the event
           emitAdminEvent(AdminEvents.USER_ROLE_UPDATED);
-          
+
           // Force a more aggressive cache clear by directly hitting refresh
           setTimeout(() => {
             // This immediate refresh helps update UI when roles change
@@ -395,7 +395,7 @@ const AdminUsers = () => {
       if (roleUpdated || profileUpdated) {
         // Wait a bit longer for role updates to ensure backend processes complete
         const delay = roleUpdated ? 1000 : 500;
-        
+
         setTimeout(async () => {
           await refreshUserData();
 
@@ -538,7 +538,6 @@ const AdminUsers = () => {
   // Listen for admin actions - always refresh automatically
   useEffect(() => {
     const handleAdminAction = () => {
-      
       setTimeout(async () => {
         setLoading(true);
         try {

@@ -480,7 +480,9 @@ export const userOperations = {
           companyName: parsed.companyName,
         };
       });
-      console.log(`Found ${users.length} total users in DynamoDB UserStatus table`);
+      console.log(
+        `Found ${users.length} total users in DynamoDB UserStatus table`,
+      );
       return JSON.stringify(users);
     } catch (error) {
       console.error(`Error in getAllUsers:`, error);
@@ -806,12 +808,20 @@ export const userOperations = {
         );
         if (getResponse.Item) {
           existingUserStatus = unmarshall(getResponse.Item) as UserStatus;
-          console.log(`[rejectUser] Found existing DynamoDB record:`, JSON.stringify(existingUserStatus));
+          console.log(
+            `[rejectUser] Found existing DynamoDB record:`,
+            JSON.stringify(existingUserStatus),
+          );
         } else {
-          console.log(`[rejectUser] No existing DynamoDB record found for ${email}. Creating new one.`);
+          console.log(
+            `[rejectUser] No existing DynamoDB record found for ${email}. Creating new one.`,
+          );
         }
       } catch (getError) {
-        console.error(`[rejectUser] Error fetching existing UserStatus record for ${email}:`, getError);
+        console.error(
+          `[rejectUser] Error fetching existing UserStatus record for ${email}:`,
+          getError,
+        );
         // Continue even if fetch fails, will create a new record
       }
 
@@ -824,7 +834,8 @@ export const userOperations = {
         email: email,
         status: "rejected", // Set status to rejected
         role: existingUserStatus.role || "user", // Preserve role or default
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(), // Preserve registration date
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(), // Preserve registration date
         lastStatusChange: new Date().toISOString(), // Always update this
         lastStatusChangeBy: adminEmail, // Always update this
         rejectionReason: reason, // Add/update rejection reason
@@ -839,14 +850,15 @@ export const userOperations = {
         ttl: undefined, // Ensure TTL is removed if user was previously marked for deletion
       };
 
-
       await dynamodb.send(
         new PutItemCommand({
           TableName: userStatusTableName,
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      console.log(`Updated UserStatus for ${email} to rejected with preserved metadata.`); // Updated log message
+      console.log(
+        `Updated UserStatus for ${email} to rejected with preserved metadata.`,
+      ); // Updated log message
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -909,12 +921,20 @@ export const userOperations = {
         );
         if (getResponse.Item) {
           existingUserStatus = unmarshall(getResponse.Item) as UserStatus;
-          console.log(`Found existing DynamoDB record for suspension:`, JSON.stringify(existingUserStatus));
+          console.log(
+            `Found existing DynamoDB record for suspension:`,
+            JSON.stringify(existingUserStatus),
+          );
         } else {
-          console.log(`No existing DynamoDB record found for ${email}. Will create new one.`);
+          console.log(
+            `No existing DynamoDB record found for ${email}. Will create new one.`,
+          );
         }
       } catch (getError) {
-        console.error(`Error fetching existing UserStatus record for ${email}:`, getError);
+        console.error(
+          `Error fetching existing UserStatus record for ${email}:`,
+          getError,
+        );
       }
 
       const userStatusUpdateData: UserStatus = {
@@ -923,7 +943,8 @@ export const userOperations = {
         email: email,
         status: "suspended",
         role: existingUserStatus.role || "user", // Preserve role
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
         // Preserve metadata fields
@@ -944,7 +965,9 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      console.log(`Updated UserStatus for ${email} to suspended with preserved metadata.`);
+      console.log(
+        `Updated UserStatus for ${email} to suspended with preserved metadata.`,
+      );
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -995,9 +1018,14 @@ export const userOperations = {
         if (dbResponse.Item) {
           existingUserStatus = unmarshall(dbResponse.Item) as UserStatus;
           currentDbStatus = existingUserStatus.status;
-          console.log(`Found existing DynamoDB record for reactivation:`, JSON.stringify(existingUserStatus));
+          console.log(
+            `Found existing DynamoDB record for reactivation:`,
+            JSON.stringify(existingUserStatus),
+          );
         } else {
-          console.log(`No existing DynamoDB record found for ${email}. Will create new one.`);
+          console.log(
+            `No existing DynamoDB record found for ${email}. Will create new one.`,
+          );
           currentDbStatus = "unknown";
         }
       } catch (err) {
@@ -1022,7 +1050,8 @@ export const userOperations = {
         email: email,
         status: "active",
         role: existingUserStatus.role || "user", // Preserve role
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
         // Preserve metadata fields
@@ -1044,7 +1073,9 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       );
-      console.log(`Updated UserStatus for ${email} to active with preserved metadata.`);
+      console.log(
+        `Updated UserStatus for ${email} to active with preserved metadata.`,
+      );
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -1083,7 +1114,8 @@ export const userOperations = {
   ): Promise<{ success: boolean; user?: any; error?: string }> => {
     try {
       const userPoolId = getUserPoolId();
-      console.log( // Keep log
+      console.log(
+        // Keep log
         `Creating Cognito user ${email} with role ${role} by admin: ${performedBy}`,
       );
       const tempPassword = generateSecurePassword();
@@ -1121,7 +1153,7 @@ export const userOperations = {
       if (!user) {
         throw new Error("Cognito user creation did not return a user object.");
       }
-      
+
       console.log(`Successfully created Cognito user: ${email}`); // Keep log
 
       // Explicitly create the DynamoDB UserStatus record with 'pending' status
@@ -1148,12 +1180,20 @@ export const userOperations = {
             Item: marshall(userStatusData, { removeUndefinedValues: true }),
           }),
         );
-        console.log(`Successfully created DynamoDB UserStatus record for ${email} with status 'pending'.`); // Keep log
+        console.log(
+          `Successfully created DynamoDB UserStatus record for ${email} with status 'pending'.`,
+        ); // Keep log
       } catch (dbError) {
-         console.error(`Error creating DynamoDB UserStatus record for ${email}:`, dbError);
-         // Decide if we should rollback Cognito user or just log the error
-         // For now, log and continue, but indicate potential inconsistency
-         return { success: false, error: `Cognito user created, but failed to create DynamoDB record: ${(dbError as Error).message}` };
+        console.error(
+          `Error creating DynamoDB UserStatus record for ${email}:`,
+          dbError,
+        );
+        // Decide if we should rollback Cognito user or just log the error
+        // For now, log and continue, but indicate potential inconsistency
+        return {
+          success: false,
+          error: `Cognito user created, but failed to create DynamoDB record: ${(dbError as Error).message}`,
+        };
       }
 
       // DynamoDB record creation is handled by trigger - REMOVE THIS COMMENT, we now handle it above
@@ -1824,7 +1864,8 @@ export const userOperations = {
   ): Promise<{ success: boolean; message: string }> => {
     // (Keep existing deleteUser logic)
     try {
-      console.log( // Keep console log
+      console.log(
+        // Keep console log
         `Attempting to delete user: ${email} by admin: ${adminEmail}`,
       );
       const userPoolId = getUserPoolId();
@@ -1841,18 +1882,26 @@ export const userOperations = {
         );
         if (getResponse.Item) {
           existingUserStatus = unmarshall(getResponse.Item) as UserStatus;
-          console.log(`[deleteUser] Found existing DynamoDB record:`, JSON.stringify(existingUserStatus));
+          console.log(
+            `[deleteUser] Found existing DynamoDB record:`,
+            JSON.stringify(existingUserStatus),
+          );
         } else {
-          console.log(`[deleteUser] No existing DynamoDB record found for ${email}. Proceeding with deletion mark.`);
+          console.log(
+            `[deleteUser] No existing DynamoDB record found for ${email}. Proceeding with deletion mark.`,
+          );
         }
       } catch (getError) {
-        console.error(`[deleteUser] Error fetching existing UserStatus record for ${email}:`, getError);
+        console.error(
+          `[deleteUser] Error fetching existing UserStatus record for ${email}:`,
+          getError,
+        );
         // Continue even if fetch fails, we still want to mark as deleted
       }
 
       const thirtyDaysInSeconds = 30 * 24 * 60 * 60;
       const ttl = Math.floor(Date.now() / 1000) + thirtyDaysInSeconds;
-      
+
       // Prepare merged data for DynamoDB update
       const userStatusUpdateData: UserStatus = {
         // Merge existing data
@@ -1862,7 +1911,8 @@ export const userOperations = {
         email: email,
         status: "deleted", // Set status to deleted
         role: existingUserStatus.role || "user", // Preserve role or default
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(), // Preserve registration date
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(), // Preserve registration date
         lastStatusChange: new Date().toISOString(), // Always update this
         lastStatusChangeBy: adminEmail, // Always update this
         ttl, // Set the TTL for automatic deletion
@@ -1883,7 +1933,9 @@ export const userOperations = {
           Item: marshall(userStatusUpdateData, { removeUndefinedValues: true }),
         }),
       ); // Use PutItem with merged data
-      console.log(`Marked UserStatus for ${email} as deleted with TTL and preserved metadata.`); // Updated log
+      console.log(
+        `Marked UserStatus for ${email} as deleted with TTL and preserved metadata.`,
+      ); // Updated log
 
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -1897,9 +1949,9 @@ export const userOperations = {
           deletedBy: adminEmail,
         },
       });
-      
+
       // Add assessment cleanup logic here if needed
-      
+
       try {
         await cognito.send(
           new AdminDeleteUserCommand({
@@ -1909,7 +1961,8 @@ export const userOperations = {
         );
         console.log(`Successfully deleted Cognito user: ${email}`); // Keep log
       } catch (cognitoDeleteError) {
-        console.error( // Keep log
+        console.error(
+          // Keep log
           `Error deleting Cognito user ${email}:`,
           cognitoDeleteError,
         );

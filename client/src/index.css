@@ -57,7 +57,7 @@
 }
 
 /* Target the secret code specifically with all possible selectors */
-[data-amplify-authenticator] code, 
+[data-amplify-authenticator] code,
 [data-amplify-authenticator] pre,
 [data-amplify-authenticator] [class*="secret"],
 [data-amplify-authenticator] [class*="code"],
@@ -85,11 +85,14 @@
 }
 
 /* Target the TOTP setup container - this is needed because some browsers don't support partial attribute selectors */
-div[data-amplify-section="totp-setup"] *:not(button):not(a):not(svg):not(input) {
+div[data-amplify-section="totp-setup"]
+  *:not(button):not(a):not(svg):not(input) {
   color: black !important;
 }
 
-.dark div[data-amplify-section="totp-setup"] *:not(button):not(a):not(svg):not(input) {
+.dark
+  div[data-amplify-section="totp-setup"]
+  *:not(button):not(a):not(svg):not(input) {
   color: white !important;
 }
 
@@ -198,11 +201,20 @@ div[data-amplify-section="totp-setup"] input {
 }
 
 .dark [data-amplify-authenticator] [data-amplify-copy] svg,
-.dark [data-amplify-authenticator] [data-amplify-section="totp-setup"] ~ div svg,
+.dark
+  [data-amplify-authenticator]
+  [data-amplify-section="totp-setup"]
+  ~ div
+  svg,
 .dark [data-amplify-authenticator] button[aria-label="Copy"] svg,
 .dark [data-amplify-authenticator] button.amplify-copy-button svg,
 .dark [data-amplify-authenticator] .amplify-totpsetup__secretcode + button svg,
-.dark [data-amplify-authenticator] .amplify-field__show-password + div button svg {
+.dark
+  [data-amplify-authenticator]
+  .amplify-field__show-password
+  + div
+  button
+  svg {
   fill: white !important;
   color: white !important;
   stroke: white !important;

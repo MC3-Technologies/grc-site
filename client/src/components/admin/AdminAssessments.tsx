@@ -107,7 +107,7 @@ const AdminAssessments = () => {
           // The ID should now primarily come from user.id (which is attributes.sub from lambda)
           // Fallback to user.attributes?.sub for safety, then user.email (which might be ID or email)
           const userId = user.id || user.attributes?.sub || user.email;
-          
+
           // The actual email is best from user.attributes.email
           // Fallback to user.email (top-level) only if it looks like an email
           const userEmail =

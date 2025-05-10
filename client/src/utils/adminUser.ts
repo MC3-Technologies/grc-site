@@ -428,30 +428,32 @@ export const fetchUsersByStatus = async (
 
     // Get the authenticated client
     const client = getClientSchema();
-    
+
     // ===== SPECIAL HANDLING FOR PENDING USERS =====
     // For pending users, we adopt a different strategy since there's a potential
     // mismatch between Cognito and DynamoDB due to user pool configuration issues
     if (normalizedStatus === "pending") {
       console.log("Fetching ALL users for pending status check");
-      
+
       // First get all users from Cognito to ensure we have the most up-to-date list
       const allUsersResponse = await client.queries.listUsers();
       let allUsers: User[] = [];
-      
+
       if (allUsersResponse && allUsersResponse.data) {
-        const parsedAllUsers = safelyParseApiResponse<User[]>(allUsersResponse.data);
+        const parsedAllUsers = safelyParseApiResponse<User[]>(
+          allUsersResponse.data,
+        );
         if (Array.isArray(parsedAllUsers)) {
           allUsers = parsedAllUsers;
           console.log(`Retrieved ${allUsers.length} total users from Cognito`);
         }
       }
-      
+
       // Now fetch pending users from the UserStatus table
       const pendingUsersResponse = await client.queries.getUsersByStatus({
         status: normalizedStatus,
       });
-      
+
       let pendingUsersFromDynamo: User[] = [];
       if (pendingUsersResponse && pendingUsersResponse.data) {
         const parsedData = safelyParseApiResponse(pendingUsersResponse.data);
@@ -466,28 +468,34 @@ export const fetchUsersByStatus = async (
             enabled: item.status !== "suspended" && item.status !== "rejected",
             firstName: item.firstName,
             lastName: item.lastName,
-            companyName: item.companyName
+            companyName: item.companyName,
           }));
-          
-          console.log(`Retrieved ${pendingUsersFromDynamo.length} pending users from DynamoDB`);
+
+          console.log(
+            `Retrieved ${pendingUsersFromDynamo.length} pending users from DynamoDB`,
+          );
         }
       }
-      
+
       // Create a set of emails already in the DynamoDB table
-      const pendingEmailsInDynamoDB = new Set(pendingUsersFromDynamo.map(user => user.email));
-      
+      const pendingEmailsInDynamoDB = new Set(
+        pendingUsersFromDynamo.map((user) => user.email),
+      );
+
       // Find Cognito users that should be considered pending (disabled users not in other statuses)
       const pendingUsersFromCognito = allUsers
-        .filter(user => {
+        .filter((user) => {
           // Only include users not already in DynamoDB and are disabled (pending)
-          return !pendingEmailsInDynamoDB.has(user.email) && 
-                 !user.enabled && 
-                 user.status !== "rejected" && 
-                 user.customStatus !== "REJECTED" &&
-                 user.status !== "suspended" &&
-                 user.customStatus !== "SUSPENDED";
+          return (
+            !pendingEmailsInDynamoDB.has(user.email) &&
+            !user.enabled &&
+            user.status !== "rejected" &&
+            user.customStatus !== "REJECTED" &&
+            user.status !== "suspended" &&
+            user.customStatus !== "SUSPENDED"
+          );
         })
-        .map(user => ({
+        .map((user) => ({
           email: user.email,
           status: "pending" as UserStatusType,
           customStatus: "PENDING",
@@ -497,26 +505,33 @@ export const fetchUsersByStatus = async (
           enabled: false,
           firstName: user.firstName,
           lastName: user.lastName,
-          companyName: user.companyName
+          companyName: user.companyName,
         }));
-      
-      console.log(`Found ${pendingUsersFromCognito.length} additional pending users from Cognito`);
-      
+
+      console.log(
+        `Found ${pendingUsersFromCognito.length} additional pending users from Cognito`,
+      );
+
       // Combine both sources of pending users
-      const combinedPendingUsers = [...pendingUsersFromDynamo, ...pendingUsersFromCognito];
-      console.log(`Combined total: ${combinedPendingUsers.length} pending users`);
-      
+      const combinedPendingUsers = [
+        ...pendingUsersFromDynamo,
+        ...pendingUsersFromCognito,
+      ];
+      console.log(
+        `Combined total: ${combinedPendingUsers.length} pending users`,
+      );
+
       // Cache the combined results
       cacheUsersByStatus(normalizedStatus, combinedPendingUsers);
-      
+
       return combinedPendingUsers;
     }
-    
+
     // Normal handling for non-pending status types
     const response = await client.queries.getUsersByStatus({
       status: normalizedStatus,
     });
-    
+
     // Process the data depending on its type
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
@@ -539,14 +554,16 @@ export const fetchUsersByStatus = async (
 
         // Further filtering based on status
         let resultData = filteredData;
-        
+
         if (normalizedStatus === "rejected") {
-          resultData = filteredData.filter((user) => 
-            user.customStatus === "REJECTED" || user.status === "rejected"
+          resultData = filteredData.filter(
+            (user) =>
+              user.customStatus === "REJECTED" || user.status === "rejected",
           );
         } else if (normalizedStatus === "suspended") {
-          resultData = filteredData.filter((user) => 
-            user.customStatus === "SUSPENDED" || user.status === "suspended"
+          resultData = filteredData.filter(
+            (user) =>
+              user.customStatus === "SUSPENDED" || user.status === "suspended",
           );
         }
 
@@ -654,7 +671,9 @@ export const rejectUser = async (
     clearUserCache();
     clearAdminStatsCache();
 
-    console.log(`Rejecting user ${email} with reason: ${reason || "None provided"}`);
+    console.log(
+      `Rejecting user ${email} with reason: ${reason || "None provided"}`,
+    );
     const client = getClientSchema();
 
     const response = await client.mutations.rejectUser({
@@ -664,37 +683,39 @@ export const rejectUser = async (
     });
 
     // Wait for backend processing
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Parse response if needed
     const result = safelyParseApiResponse(response.data);
     if (result) {
       console.log(`Successfully rejected user: ${email}`);
-      
+
       // Emit event immediately
       emitAdminEvent(AdminEvents.USER_REJECTED);
-      
+
       // Force a refresh of data after rejection
       setTimeout(async () => {
         // Explicitly fetch the updated user counts to ensure the dashboard shows correct data
         const updatedCounts = await getAllUserCounts();
         console.log("Updated user counts after rejection:", updatedCounts);
-        
+
         // Force a refresh of all user data
         await refreshUserData();
-        
+
         // Double-check that we have the latest stats for the dashboard with a slight delay
         setTimeout(async () => {
           await fetchAdminStats();
-          
+
           // Trigger a special event for dashboard refresh
-          document.dispatchEvent(new CustomEvent("adminAction", {
-            detail: { type: "FORCE_DASHBOARD_SYNC" },
-            bubbles: true,
-          }));
+          document.dispatchEvent(
+            new CustomEvent("adminAction", {
+              detail: { type: "FORCE_DASHBOARD_SYNC" },
+              bubbles: true,
+            }),
+          );
         }, 500);
       }, 1000);
-      
+
       return true;
     }
     return false;
@@ -720,7 +741,7 @@ export const suspendUser = async (
     clearAdminStatsCache();
 
     console.log(`Suspending user ${email} by admin ${adminEmail || "unknown"}`);
-    
+
     const client = getClientSchema();
     const response = await client.mutations.suspendUser({
       email,
@@ -734,28 +755,30 @@ export const suspendUser = async (
     const result = safelyParseApiResponse(response.data);
     if (result) {
       console.log(`Successfully suspended user: ${email}`);
-      
+
       // Emit event to notify listeners
       emitAdminEvent(AdminEvents.USER_SUSPENDED);
-      
+
       // Force a refresh of data after suspension
       setTimeout(async () => {
         // Explicitly fetch the updated user counts to ensure the dashboard shows correct data
         const updatedCounts = await getAllUserCounts();
         console.log("Updated user counts after suspension:", updatedCounts);
-        
+
         // Force a refresh of all user data
         await refreshUserData();
-        
+
         // Double-check that we have the latest stats for the dashboard with a slight delay
         setTimeout(async () => {
           await fetchAdminStats();
-          
+
           // Trigger a special event for dashboard refresh
-          document.dispatchEvent(new CustomEvent("adminAction", {
-            detail: { type: "FORCE_DASHBOARD_SYNC" },
-            bubbles: true,
-          }));
+          document.dispatchEvent(
+            new CustomEvent("adminAction", {
+              detail: { type: "FORCE_DASHBOARD_SYNC" },
+              bubbles: true,
+            }),
+          );
         }, 500);
       }, 1000);
 
@@ -782,8 +805,10 @@ export const reactivateUser = async (
     clearUserCache();
     clearAdminStatsCache();
 
-    console.log(`Reactivating user ${email} by admin ${adminEmail || "unknown"}`);
-    
+    console.log(
+      `Reactivating user ${email} by admin ${adminEmail || "unknown"}`,
+    );
+
     const client = getClientSchema();
     const response = await client.mutations.reactivateUser({
       email,
@@ -796,28 +821,30 @@ export const reactivateUser = async (
     const result = safelyParseApiResponse(response.data);
     if (result) {
       console.log(`Successfully reactivated user: ${email}`);
-      
+
       // Emit event to notify listeners
       emitAdminEvent(AdminEvents.USER_REACTIVATED);
-      
+
       // Force a refresh of data after reactivation
       setTimeout(async () => {
         // Explicitly fetch the updated user counts to ensure the dashboard shows correct data
         const updatedCounts = await getAllUserCounts();
         console.log("Updated user counts after reactivation:", updatedCounts);
-        
+
         // Force a refresh of all user data
         await refreshUserData();
-        
+
         // Double-check that we have the latest stats for the dashboard with a slight delay
         setTimeout(async () => {
           await fetchAdminStats();
-          
+
           // Trigger a special event for dashboard refresh
-          document.dispatchEvent(new CustomEvent("adminAction", {
-            detail: { type: "FORCE_DASHBOARD_SYNC" },
-            bubbles: true,
-          }));
+          document.dispatchEvent(
+            new CustomEvent("adminAction", {
+              detail: { type: "FORCE_DASHBOARD_SYNC" },
+              bubbles: true,
+            }),
+          );
         }, 500);
       }, 1000);
 
@@ -1104,27 +1131,27 @@ export const clearAdminStatsCache = (): void => {
 };
 
 // Add a new function to directly query all users by status from DynamoDB
-export const getAllUserCounts = async (): Promise<{ 
+export const getAllUserCounts = async (): Promise<{
   total: number;
-  active: number; 
+  active: number;
   pending: number;
   rejected: number;
   suspended: number;
 }> => {
   try {
     console.log("Getting all user counts directly for dashboard");
-    
+
     // Initialize counts object
     const counts = {
       total: 0,
       active: 0,
       pending: 0,
       rejected: 0,
-      suspended: 0
+      suspended: 0,
     };
-    
+
     const client = getClientSchema();
-    
+
     // First, get ALL users to ensure total count is accurate
     try {
       const allUsersResponse = await client.queries.getAllUsers();
@@ -1139,68 +1166,75 @@ export const getAllUserCounts = async (): Promise<{
       console.error("Error counting all users:", error);
       counts.total = 0; // Reset to recalculate below
     }
-    
+
     // Query each status separately for maximum reliability
     // Using Promise.allSettled to fetch counts concurrently and handle individual errors
     const statusPromises = [
       client.queries.getUsersByStatus({ status: "active" }),
       client.queries.getUsersByStatus({ status: "pending" }),
       client.queries.getUsersByStatus({ status: "rejected" }), // <-- Added rejected query
-      client.queries.getUsersByStatus({ status: "suspended" })
+      client.queries.getUsersByStatus({ status: "suspended" }),
     ];
-    
+
     const results = await Promise.allSettled(statusPromises);
-    
+
     // Process Active Users
-    if (results[0].status === 'fulfilled' && results[0].value.data) {
+    if (results[0].status === "fulfilled" && results[0].value.data) {
       const activeUsers = safelyParseApiResponse(results[0].value.data);
       if (Array.isArray(activeUsers)) {
         counts.active = activeUsers.length;
         console.log(`GetAllUserCounts: Found ${counts.active} active users`);
       }
-    } else if (results[0].status === 'rejected') {
+    } else if (results[0].status === "rejected") {
       console.error("Error counting active users:", results[0].reason);
     }
-    
+
     // Process Pending Users
-    if (results[1].status === 'fulfilled' && results[1].value.data) {
+    if (results[1].status === "fulfilled" && results[1].value.data) {
       const pendingUsers = safelyParseApiResponse(results[1].value.data);
       if (Array.isArray(pendingUsers)) {
         counts.pending = pendingUsers.length;
         console.log(`GetAllUserCounts: Found ${counts.pending} pending users`);
       }
-    } else if (results[1].status === 'rejected') {
+    } else if (results[1].status === "rejected") {
       console.error("Error counting pending users:", results[1].reason);
     }
 
     // Process Rejected Users
-    if (results[2].status === 'fulfilled' && results[2].value.data) {
+    if (results[2].status === "fulfilled" && results[2].value.data) {
       const rejectedUsers = safelyParseApiResponse(results[2].value.data);
       if (Array.isArray(rejectedUsers)) {
         counts.rejected = rejectedUsers.length;
-        console.log(`GetAllUserCounts: Found ${counts.rejected} rejected users`);
+        console.log(
+          `GetAllUserCounts: Found ${counts.rejected} rejected users`,
+        );
       }
-    } else if (results[2].status === 'rejected') {
+    } else if (results[2].status === "rejected") {
       console.error("Error counting rejected users:", results[2].reason);
     }
-    
+
     // Process Suspended Users
-    if (results[3].status === 'fulfilled' && results[3].value.data) {
+    if (results[3].status === "fulfilled" && results[3].value.data) {
       const suspendedUsers = safelyParseApiResponse(results[3].value.data);
       if (Array.isArray(suspendedUsers)) {
         counts.suspended = suspendedUsers.length;
-        console.log(`GetAllUserCounts: Found ${counts.suspended} suspended users`);
+        console.log(
+          `GetAllUserCounts: Found ${counts.suspended} suspended users`,
+        );
       }
-    } else if (results[3].status === 'rejected') {
+    } else if (results[3].status === "rejected") {
       console.error("Error counting suspended users:", results[3].reason);
     }
-    
+
     // If we failed to get total directly, calculate it as sum of all status counts
     if (counts.total === 0) {
-      counts.total = counts.active + counts.pending + counts.rejected + counts.suspended;
-      console.log(`GetAllUserCounts: Total users calculated from statuses: ${counts.total}`);
+      counts.total =
+        counts.active + counts.pending + counts.rejected + counts.suspended;
+      console.log(
+        `GetAllUserCounts: Total users calculated from statuses: ${counts.total}`,
+      );
     }
-    
+
     return counts;
   } catch (error) {
     console.error("Error getting all user counts:", error);
@@ -1209,13 +1243,13 @@ export const getAllUserCounts = async (): Promise<{
       active: 0,
       pending: 0,
       rejected: 0,
-      suspended: 0
+      suspended: 0,
     };
   }
 };
 
 // Add a new function to directly query all assessment counts
-export const getAllAssessmentCounts = async (): Promise<{ 
+export const getAllAssessmentCounts = async (): Promise<{
   total: number;
   inProgress: number;
   completed: number;
@@ -1224,41 +1258,51 @@ export const getAllAssessmentCounts = async (): Promise<{
 }> => {
   try {
     console.log("Getting all assessment counts directly for dashboard");
-    
+
     // Initialize counts object
     const counts = {
       total: 0,
       inProgress: 0,
       completed: 0,
       compliant: 0,
-      nonCompliant: 0
+      nonCompliant: 0,
     };
-    
+
     // Import assessment utility classes
-    const { InProgressAssessment, CompletedAssessment } = await import('./assessment');
-    
+    const { InProgressAssessment, CompletedAssessment } = await import(
+      "./assessment"
+    );
+
     // Fetch assessments from both tables concurrently for efficiency
     const [inProgressAssessments, completedAssessments] = await Promise.all([
       InProgressAssessment.fetchAllAssessments(),
-      CompletedAssessment.fetchAllCompletedAssessments()
+      CompletedAssessment.fetchAllCompletedAssessments(),
     ]);
-    
+
     // Count in-progress assessments
     counts.inProgress = inProgressAssessments.length;
-    console.log(`GetAllAssessmentCounts: Found ${counts.inProgress} in-progress assessments`);
-    
+    console.log(
+      `GetAllAssessmentCounts: Found ${counts.inProgress} in-progress assessments`,
+    );
+
     // Count completed assessments
     counts.completed = completedAssessments.length;
-    console.log(`GetAllAssessmentCounts: Found ${counts.completed} completed assessments`);
-    
+    console.log(
+      `GetAllAssessmentCounts: Found ${counts.completed} completed assessments`,
+    );
+
     // Count compliant and non-compliant assessments
-    counts.compliant = completedAssessments.filter(a => a.isCompliant === true).length;
-    counts.nonCompliant = completedAssessments.filter(a => a.isCompliant === false).length;
-    
+    counts.compliant = completedAssessments.filter(
+      (a) => a.isCompliant === true,
+    ).length;
+    counts.nonCompliant = completedAssessments.filter(
+      (a) => a.isCompliant === false,
+    ).length;
+
     // Calculate total assessments
     counts.total = counts.inProgress + counts.completed;
     console.log(`GetAllAssessmentCounts: Total assessments: ${counts.total}`);
-    
+
     return counts;
   } catch (error) {
     console.error("Error getting assessment counts:", error);
@@ -1267,7 +1311,7 @@ export const getAllAssessmentCounts = async (): Promise<{
       inProgress: 0,
       completed: 0,
       compliant: 0,
-      nonCompliant: 0
+      nonCompliant: 0,
     };
   }
 };
@@ -1308,14 +1352,14 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
     // IMPORTANT: Always get fresh counts directly - this is critical for accurate dashboard display
     const dbUserStats = await getAllUserCounts();
     console.log("Direct user stats for dashboard:", dbUserStats);
-    
+
     // NEW: Get direct assessment counts
     const dbAssessmentStats = await getAllAssessmentCounts();
     console.log("Direct assessment stats for dashboard:", dbAssessmentStats);
 
     // Now call the regular getAdminStats query for other data
     const response = await client.queries.getAdminStats({});
-    
+
     // Process the data depending on its type
     if (response.data) {
       let parsedData: unknown;
@@ -1335,17 +1379,18 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
           "recentActivity" in parsedData
         ) {
           const adminStats = parsedData as AdminStats;
-          
+
           // IMPORTANT: Always override with our direct counts
           adminStats.users = dbUserStats;
           adminStats.assessments = dbAssessmentStats;
-          
+
           // Recalculate compliance rate based on direct counts
-          adminStats.complianceRate = 
+          adminStats.complianceRate =
             adminStats.assessments.completed > 0
               ? Math.round(
-                  (adminStats.assessments.compliant / adminStats.assessments.completed) *
-                    100
+                  (adminStats.assessments.compliant /
+                    adminStats.assessments.completed) *
+                    100,
                 )
               : 0;
 
@@ -1379,11 +1424,16 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
         // If parsedData is an array of users, we need to format it as stats
         if (Array.isArray(parsedData)) {
           const stats: AdminStats = {
-            users: dbUserStats, // Use the directly queried user stats 
+            users: dbUserStats, // Use the directly queried user stats
             assessments: dbAssessmentStats, // NEW: Use directly queried assessment stats
-            complianceRate: dbAssessmentStats.completed > 0
-              ? Math.round((dbAssessmentStats.compliant / dbAssessmentStats.completed) * 100)
-              : 0,
+            complianceRate:
+              dbAssessmentStats.completed > 0
+                ? Math.round(
+                    (dbAssessmentStats.compliant /
+                      dbAssessmentStats.completed) *
+                      100,
+                  )
+                : 0,
             recentActivity: [],
           };
 
@@ -1393,13 +1443,18 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
     }
 
     // If we reach here, something went wrong - return stats with just the direct count data
-    console.error("Failed to get admin statistics, returning direct stats only");
+    console.error(
+      "Failed to get admin statistics, returning direct stats only",
+    );
     return {
       users: dbUserStats,
       assessments: dbAssessmentStats,
-      complianceRate: dbAssessmentStats.completed > 0
-        ? Math.round((dbAssessmentStats.compliant / dbAssessmentStats.completed) * 100)
-        : 0,
+      complianceRate:
+        dbAssessmentStats.completed > 0
+          ? Math.round(
+              (dbAssessmentStats.compliant / dbAssessmentStats.completed) * 100,
+            )
+          : 0,
       recentActivity: [],
     };
   } catch (error) {
@@ -1511,7 +1566,7 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
       console.log(`User ${user.email} has role 'user' from DynamoDB`);
       return "user";
     }
-    
+
     // If no role in DynamoDB, check Cognito groups as fallback
     if (user.attributes?.["cognito:groups"]) {
       try {
@@ -1528,7 +1583,7 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
     // Check for custom role attribute as last fallback
     return (user.attributes?.["custom:role"] as "user" | "admin") || "user";
   };
-  
+
   // Simplified helper function to extract user profile data
   const extractUserProfileData = (user: User) => {
     // Directly use the properties expected from the updated listUsers backend function
@@ -1555,13 +1610,17 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
       // Log the raw user object received from fetchUsers before transformation
       console.log(
         `[transformUserData] Raw user data for ${user.email}:`,
-        JSON.stringify({
-          email: user.email,
-          status: user.status,
-          enabled: user.enabled,
-          role: user.role, // This should come from DynamoDB
-          customStatus: user.customStatus,
-        }, null, 2)
+        JSON.stringify(
+          {
+            email: user.email,
+            status: user.status,
+            enabled: user.enabled,
+            role: user.role, // This should come from DynamoDB
+            customStatus: user.customStatus,
+          },
+          null,
+          2,
+        ),
       );
 
       const transformedStatus = getUserStatus(
@@ -1572,7 +1631,7 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
 
       // Extract user profile information
       const profileData = extractUserProfileData(user);
-      
+
       // Get the role (prioritizing DynamoDB over Cognito)
       const userRole = determineUserRole(user);
 
@@ -1795,15 +1854,15 @@ export const fetchSystemSettings =
 export const fetchAllUsers = async (): Promise<User[]> => {
   try {
     console.log("Fetching all users from DynamoDB");
-    
+
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {
       return getMockUsers();
     }
-    
+
     const client = getClientSchema();
     const response = await client.queries.getAllUsers();
-    
+
     if (response.data) {
       const parsedData = safelyParseApiResponse(response.data);
       if (Array.isArray(parsedData)) {
@@ -1811,7 +1870,7 @@ export const fetchAllUsers = async (): Promise<User[]> => {
         return parsedData;
       }
     }
-    
+
     console.error("Failed to get all users from API");
     return [];
   } catch (error) {

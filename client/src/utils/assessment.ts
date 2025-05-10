@@ -709,17 +709,16 @@ class CompletedAssessment extends Assessment {
 
       // New assessment entry object
       //const { errors, data } =
-      const { errors } =
-        await this.client.models.CompletedAssessment.create({
-          id,
-          name,
-          completedAt: getCurrentDateTime(),
-          complianceScore,
-          isCompliant,
-          storagePath: path,
-          version: version, // Use the passed version
-          duration,
-        });
+      const { errors } = await this.client.models.CompletedAssessment.create({
+        id,
+        name,
+        completedAt: getCurrentDateTime(),
+        complianceScore,
+        isCompliant,
+        storagePath: path,
+        version: version, // Use the passed version
+        duration,
+      });
       // If errors, handle
       if (errors) {
         throw new Error(`Error creating new assessment: ${errors[0].message}`);
