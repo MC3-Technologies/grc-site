@@ -518,8 +518,8 @@ export default function AdminHome() {
                       ?.length
                   : 0)
               }
-              icon={<ClockIcon className="h-8 w-8 text-yellow-600" />}
-              color="yellow"
+              icon={<ClockIcon className="h-8 w-8 text-blue-600" />}
+              color="blue"
               onClick={() => {
                 navigateTo("users", "tab=pending");
                 // Force the correct tab content to load
@@ -538,8 +538,8 @@ export default function AdminHome() {
                       ?.length
                   : 0)
               }
-              icon={<XCircleIcon className="h-8 w-8 text-red-600" />}
-              color="red"
+              icon={<XCircleIcon className="h-8 w-8 text-orange-600" />}
+              color="orange"
               onClick={() => {
                 navigateTo("users", "tab=rejected");
                 // Force the correct tab content to load
@@ -558,8 +558,8 @@ export default function AdminHome() {
                       ?.length
                   : 0)
               }
-              icon={<NoSymbolIcon className="h-8 w-8 text-orange-600" />}
-              color="orange"
+              icon={<NoSymbolIcon className="h-8 w-8 text-yellow-600" />}
+              color="yellow"
               onClick={() => {
                 navigateTo("users", "tab=suspended");
                 // Force the correct tab content to load
@@ -1169,6 +1169,8 @@ const formatActionName = (action: string): string => {
     USER_SUSPENDED: "User Suspended",
     USER_REACTIVATED: "User Reactivated",
     USER_CREATED: "User Created",
+    USER_PENDING: "Registration Pending",
+    USER_REGISTRATION: "User Registration",
     USER_ROLE_UPDATED: "Role Updated",
     USER_PROFILE_UPDATED: "User Profile Updated",
     USER_DELETED: "User Deleted",
@@ -1205,6 +1207,13 @@ const getActionBadgeStyle = (action: string): string => {
   // Suspension actions - yellow
   else if (action.includes("SUSPENDED")) {
     return "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300";
+  }
+  // Pending/Registration actions - blue
+  else if (
+    action.includes("PENDING") ||
+    action.includes("REGISTRATION")
+  ) {
+    return "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300";
   }
   // Update actions - purple - handle both USER_PROFILE_UPDATED and USER_UPDATED
   else if (
@@ -1455,6 +1464,24 @@ const formatActivityDetails = (activity: BackendAuditLog): JSX.Element => {
               Created on{" "}
               {safeTimeDisplay(
                 (activity.details.createdAt as string) || activity.timestamp,
+              )}
+            </span>
+          </span>
+        );
+      case "USER_PENDING":
+      case "USER_REGISTRATION":
+        return (
+          <span>
+            <strong className="text-blue-600 dark:text-blue-400">
+              Pending Approval
+            </strong>
+            <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {getAdminInfo(activity.performedBy)}
+            </span>
+            <span className="block text-xs text-gray-500 dark:text-gray-400">
+              Registered on{" "}
+              {safeTimeDisplay(
+                (activity.details.registrationDate as string) || activity.timestamp,
               )}
             </span>
           </span>

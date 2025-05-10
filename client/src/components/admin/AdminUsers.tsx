@@ -256,19 +256,19 @@ const AdminUsers = () => {
         );
       case "pending":
         return (
-          <span className="bg-yellow-100 text-yellow-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
+          <span className="bg-blue-100 text-blue-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
             Pending
           </span>
         );
       case "suspended":
         return (
-          <span className="bg-orange-100 text-orange-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-orange-900 dark:text-orange-300">
+          <span className="bg-yellow-100 text-yellow-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
             Suspended
           </span>
         );
       case "rejected":
         return (
-          <span className="bg-red-100 text-red-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+          <span className="bg-orange-100 text-orange-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-orange-900 dark:text-orange-300">
             Rejected
           </span>
         );
@@ -969,7 +969,7 @@ const AdminUsers = () => {
                 Pending Approval
                 {allUsers.filter((user) => user.status === "pending").length >
                   0 && (
-                  <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
+                  <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
                     {
                       allUsers.filter((user) => user.status === "pending")
                         .length
@@ -992,7 +992,7 @@ const AdminUsers = () => {
                 Rejected
                 {allUsers.filter((user) => user.status === "rejected").length >
                   0 && (
-                  <span className="ml-2 bg-red-100 text-red-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300">
+                  <span className="ml-2 bg-orange-100 text-orange-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-orange-900 dark:text-orange-300">
                     {
                       allUsers.filter((user) => user.status === "rejected")
                         .length
@@ -1015,7 +1015,7 @@ const AdminUsers = () => {
                 Suspended
                 {allUsers.filter((user) => user.status === "suspended").length >
                   0 && (
-                  <span className="ml-2 bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">
+                  <span className="ml-2 bg-yellow-100 text-yellow-600 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">
                     {
                       allUsers.filter((user) => user.status === "suspended")
                         .length
