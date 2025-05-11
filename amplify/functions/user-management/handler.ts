@@ -72,6 +72,9 @@ export const handler = async (event: AppSyncEvent): Promise<any> => {
       case "getUserDetails":
         return await userOperations.getUserDetails(event.arguments?.email);
 
+      case "getUserProfile":
+        return await userOperations.getUserProfile(event.arguments?.email);
+
       case "getAdminStats":
         //console.log("[DEBUG] getAdminStats operation START");
         const stats = await userOperations.getAdminStats();

@@ -18,10 +18,15 @@ const redirectToCompletedAssessment = (assessmentId: string): void => {
   window.location.href = `/completed-assessment/?assessment-id=${encodeURIComponent(assessmentId)}`;
 };
 
+const redirectToAccount = (): void => {
+  window.location.href = "/account/";
+};
+
 export {
   redirectHome,
   redirectToSignIn,
   redirectToAssessments,
   redirectToInProgressAssessment,
   redirectToCompletedAssessment,
+  redirectToAccount,
 };

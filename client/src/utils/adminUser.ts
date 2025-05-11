@@ -392,7 +392,7 @@ export const fetchUsers = async (
       }
     }
 
-    console.error("No data returned from listUsers query");
+    //console.error("No data returned from listUsers query");
     return [];
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -433,7 +433,7 @@ export const fetchUsersByStatus = async (
     // For pending users, we adopt a different strategy since there's a potential
     // mismatch between Cognito and DynamoDB due to user pool configuration issues
     if (normalizedStatus === "pending") {
-      console.log("Fetching ALL users for pending status check");
+      //console.log("Fetching ALL users for pending status check");
 
       // First get all users from Cognito to ensure we have the most up-to-date list
       const allUsersResponse = await client.queries.listUsers();
@@ -445,7 +445,7 @@ export const fetchUsersByStatus = async (
         );
         if (Array.isArray(parsedAllUsers)) {
           allUsers = parsedAllUsers;
-          console.log(`Retrieved ${allUsers.length} total users from Cognito`);
+          //console.log(`Retrieved ${allUsers.length} total users from Cognito`);
         }
       }
 
@@ -471,9 +471,9 @@ export const fetchUsersByStatus = async (
             companyName: item.companyName,
           }));
 
-          console.log(
-            `Retrieved ${pendingUsersFromDynamo.length} pending users from DynamoDB`,
-          );
+          //console.log(
+          //  `Retrieved ${pendingUsersFromDynamo.length} pending users from DynamoDB`,
+          //);
         }
       }
 

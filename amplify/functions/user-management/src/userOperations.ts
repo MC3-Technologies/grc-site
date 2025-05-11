@@ -595,6 +595,110 @@ export const userOperations = {
     }
   },
 
+  // Get user profile
+  getUserProfile: async (email: string): Promise<string> => {
+    try {
+      console.log(`Getting profile for user: ${email}`);
+      
+      // First try to get data from the UserStatus table
+      const userStatusTableName = process.env.USER_STATUS_TABLE_NAME;
+      
+      if (!userStatusTableName) {
+        throw new Error("USER_STATUS_TABLE_NAME environment variable is not set");
+      }
+      
+      const dynamoDb = new DynamoDBClient();
+      
+      // First check if user exists in the UserStatus table using id as the key
+      let getItemCommand = new GetItemCommand({
+        TableName: userStatusTableName,
+        Key: { id: { S: email } },
+      });
+      
+      let result = await dynamoDb.send(getItemCommand);
+      
+      // If not found by id, try using email as the key
+      if (!result.Item) {
+        console.log(`User not found with id=${email}, trying with email=${email}`);
+        getItemCommand = new GetItemCommand({
+          TableName: userStatusTableName,
+          Key: { email: { S: email } },
+        });
+        
+        result = await dynamoDb.send(getItemCommand);
+      }
+      
+      if (result.Item) {
+        // User exists in UserStatus table, parse and return the profile data
+        const userStatus = unmarshall(result.Item) as any;
+        console.log("Found user in DynamoDB:", userStatus);
+        
+        const profileData = {
+          firstName: userStatus.firstName || "",
+          lastName: userStatus.lastName || "",
+          companyName: userStatus.companyName || "",
+          lastStatusChange: userStatus.lastStatusChange || "",
+          lastStatusChangeBy: userStatus.lastStatusChangeBy || "",
+          status: userStatus.status || "",
+          role: userStatus.role || ""
+        };
+        
+        console.log("Returning profile data:", profileData);
+        return JSON.stringify(profileData);
+      } else {
+        // User not found in UserStatus table, try to get from Cognito
+        // This is a fallback in case the user exists in Cognito but not in DynamoDB yet
+        try {
+          // Get user from Cognito using admin APIs
+          const cognitoIdp = new CognitoIdentityProviderClient();
+          const userPoolId = process.env.USER_POOL_ID;
+          
+          if (!userPoolId) {
+            throw new Error("USER_POOL_ID environment variable is not set");
+          }
+          
+          const listUsersCommand = new ListUsersCommand({
+            UserPoolId: userPoolId,
+            Filter: `email = "${email}"`,
+            Limit: 1,
+          });
+          
+          const listUsersResult = await cognitoIdp.send(listUsersCommand);
+          const cognitoUser = listUsersResult.Users?.[0];
+          
+          if (cognitoUser) {
+            // Parse attributes to find profile information
+            const attributes = cognitoUser.Attributes || [];
+            
+            const profileData = {
+              firstName: attributes.find((attr: { Name?: string }) => attr.Name === "given_name")?.Value || "",
+              lastName: attributes.find((attr: { Name?: string }) => attr.Name === "family_name")?.Value || "",
+              companyName: attributes.find((attr: { Name?: string }) => attr.Name === "custom:company")?.Value || "",
+            };
+            
+            return JSON.stringify(profileData);
+          }
+        } catch (error) {
+          console.error("Error getting user from Cognito:", error);
+        }
+        
+        // Return empty profile if user not found anywhere
+        return JSON.stringify({
+          firstName: "",
+          lastName: "",
+          companyName: "",
+        });
+      }
+    } catch (error) {
+      console.error("Error in getUserProfile:", error);
+      return JSON.stringify({
+        firstName: "",
+        lastName: "",
+        companyName: "",
+      });
+    }
+  },
+
   // Approve user
   approveUser: async (
     email: string,

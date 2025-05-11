@@ -48,7 +48,10 @@ const schema = a
       })
       .returns(a.json())
       .handler(a.handler.function(chatGptFunction))
-      .authorization((allow) => [allow.authenticated("userPools")]),
+      .authorization((allow) => [
+        allow.groups(["GRC-Admin"]),
+        allow.authenticated("userPools")
+      ]),
 
     UserStatus: a
       .model({
@@ -107,6 +110,18 @@ const schema = a
       })
       .returns(a.json())
       .authorization((allow) => [allow.groups(["GRC-Admin"])])
+      .handler(a.handler.function(userManagementFunction)),
+
+    getUserProfile: a
+      .query()
+      .arguments({
+        email: a.string().required(),
+      })
+      .returns(a.json())
+      .authorization((allow) => [
+        allow.groups(["GRC-Admin"]),
+        allow.authenticated("userPools")
+      ])
       .handler(a.handler.function(userManagementFunction)),
 
     getAdminStats: a
@@ -193,7 +208,10 @@ const schema = a
         adminEmail: a.string(), // To log who made the change
       })
       .returns(a.boolean()) // Return true on success, false on failure.
-      .authorization((allow) => [allow.groups(["GRC-Admin"])])
+      .authorization((allow) => [
+        allow.groups(["GRC-Admin"]),
+        allow.authenticated("userPools")
+      ])
       .handler(a.handler.function(userManagementFunction)),
 
     deleteUser: a

@@ -23,7 +23,7 @@ export default defineConfig({
           "completed-assessment/index.html",
         ),
         admin: resolve(__dirname, "admin/index.html"),
-
+        account: resolve(__dirname, "account/index.html"),
         // example-page-directory: resolve(__dirname, 'path/to/page/index.html'),
       },
     },
