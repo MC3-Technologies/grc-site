@@ -22,10 +22,10 @@ export function Auth() {
       | "sign-up"
       | "forgot-password"
       | null;
-    
+
     // Check for mode parameter (for change-password)
     const modeParam = params.get("mode");
-    
+
     // Let the AmplifyAuth component handle the mode
     if (modeParam) {
       return <AmplifyAuth />;

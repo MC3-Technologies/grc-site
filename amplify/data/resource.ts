@@ -50,7 +50,7 @@ const schema = a
       .handler(a.handler.function(chatGptFunction))
       .authorization((allow) => [
         allow.groups(["GRC-Admin"]),
-        allow.authenticated("userPools")
+        allow.authenticated("userPools"),
       ]),
 
     UserStatus: a
@@ -120,7 +120,7 @@ const schema = a
       .returns(a.json())
       .authorization((allow) => [
         allow.groups(["GRC-Admin"]),
-        allow.authenticated("userPools")
+        allow.authenticated("userPools"),
       ])
       .handler(a.handler.function(userManagementFunction)),
 
@@ -210,7 +210,7 @@ const schema = a
       .returns(a.boolean()) // Return true on success, false on failure.
       .authorization((allow) => [
         allow.groups(["GRC-Admin"]),
-        allow.authenticated("userPools")
+        allow.authenticated("userPools"),
       ])
       .handler(a.handler.function(userManagementFunction)),
 
