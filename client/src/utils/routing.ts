@@ -22,6 +22,10 @@ const redirectToAccount = (): void => {
   window.location.href = "/account/";
 };
 
+const redirectToReport = (assessmentId: string): void => {
+  window.location.href = `/report/?assessment-id=${assessmentId}`;
+};
+
 export {
   redirectHome,
   redirectToSignIn,
@@ -29,4 +33,5 @@ export {
   redirectToInProgressAssessment,
   redirectToCompletedAssessment,
   redirectToAccount,
+  redirectToReport,
 };

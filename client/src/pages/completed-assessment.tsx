@@ -361,7 +361,7 @@ export function CompletedAssessmentView() {
                 </div>
 
                 {/* Compliance Status */}
-                <div
+                {/* <div
                   className={`flex items-center p-3 rounded-md ${
                     assessmentData.isCompliant
                       ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-900/50"
@@ -418,7 +418,7 @@ export function CompletedAssessmentView() {
                       ? "CMMC Level 1 Compliant"
                       : "Not Compliant with CMMC Level 1"}
                   </span>
-                </div>
+                </div> */}
               </div>
             </div>
 

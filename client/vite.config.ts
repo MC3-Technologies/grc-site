@@ -24,6 +24,8 @@ export default defineConfig({
         ),
         admin: resolve(__dirname, "admin/index.html"),
         account: resolve(__dirname, "account/index.html"),
+        report: resolve(__dirname, "report/index.html"),
+        securityModels: resolve(__dirname, "security-models/index.html"),
         // example-page-directory: resolve(__dirname, 'path/to/page/index.html'),
       },
     },

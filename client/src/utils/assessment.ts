@@ -459,6 +459,7 @@ class CompletedAssessment extends Assessment {
   public static completeInProgressAssessment = async (
     file: File,
     assessmentId: string,
+    complianceScore: number,
   ): Promise<void> => {
     // Fetch session to use session id in storage path
     const session = await fetchAuthSession();
@@ -482,16 +483,15 @@ class CompletedAssessment extends Assessment {
       duration = Math.max(0, Math.floor((endTime - startTime) / (1000 * 60)));
     }
 
-    // CALL SCORE CALCULATION METHOD HERE (NOT YET IMPLEMENTED) -- WILL USE TEMPORARY VARIABLES FOR NOW
-    const complianceScore: number = 0;
-    const isCompliant: boolean = false;
-
     // Upload new Completed assessment to storage
     const completedAssessmentStoragePath =
       await this._uploadAssessmentToStorage(
         file,
         `assessments/${session.identityId}/completed/${file.name}`,
       );
+
+    // No is compliant calculation yet, so set to false
+    const isCompliant = false;
 
     // Create new completedAssessment database entry
     await this._createAssessmentEntry(
