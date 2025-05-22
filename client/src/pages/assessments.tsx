@@ -41,7 +41,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
 
   if (days > 0) {
@@ -58,7 +58,7 @@ const getTimeAgo = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -176,7 +176,7 @@ export function Assessments() {
         dismissToast(id);
       }, 5000);
     },
-    [] // Empty dependency array ensures this function is memoized and doesn't change on each render.
+    [], // Empty dependency array ensures this function is memoized and doesn't change on each render.
   );
 
   // Dismiss a toast notification
@@ -256,10 +256,10 @@ export function Assessments() {
         // Filter assessments to show only those owned by the current user for this page
         if (userSub) {
           const myInProgress = allInProgressAssessments.filter(
-            (assessment) => assessment.owner === userSub
+            (assessment) => assessment.owner === userSub,
           );
           const myCompleted = allCompletedAssessments.filter(
-            (assessment) => assessment.owner === userSub
+            (assessment) => assessment.owner === userSub,
           );
           setInProgressAssessments(myInProgress);
           setCompletedAssessments(myCompleted);
@@ -297,7 +297,7 @@ export function Assessments() {
       await InProgressAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setInProgressAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -312,7 +312,7 @@ export function Assessments() {
       await CompletedAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setCompletedAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -621,7 +621,7 @@ export function Assessments() {
                                 Duration:{" "}
                                 {calculateDuration(
                                   assessment.createdAt,
-                                  assessment.completedAt
+                                  assessment.completedAt,
                                 )}
                               </p>
 
@@ -755,5 +755,5 @@ export function Assessments() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessments />
-  </StrictMode>
+  </StrictMode>,
 );
