@@ -823,3 +823,71 @@ export const restoreSection = async (
     return false;
   }
 };
+
+/**
+ * Add a new section to the current questionnaire (without creating a new version)
+ * @param sectionData - Data for the new section
+ * @returns Promise<string | null> - Returns the new section ID on success, null on failure
+ */
+export const addNewSection = async (
+  sectionData: { title: string; elements: SurveyElement[] },
+): Promise<string | null> => {
+  try {
+    // Get current questionnaire data
+    const currentPages = loadSavedQuestionnaire();
+    if (!currentPages) {
+      throw new Error("No questionnaire data found");
+    }
+
+    // Generate a unique ID for the new section
+    const newSectionId = `page-${Date.now()}`;
+
+    // Create the new section
+    const newSection: QuestionPage = {
+      id: newSectionId,
+      title: sectionData.title,
+      elements: sectionData.elements,
+    };
+
+    // Add the new section to the pages
+    const updatedPages = [...currentPages, newSection];
+
+    // Save to localStorage (this is just adding to the current working version)
+    localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+
+    // Log the section addition
+    console.log('Section added to current working version:', {
+      sectionId: newSectionId,
+      sectionTitle: sectionData.title,
+      addedAt: new Date().toISOString(),
+    });
+
+    return newSectionId;
+  } catch (error) {
+    console.error("Error adding new section:", error);
+    return null;
+  }
+};
+
+/**
+ * Renumber sections to ensure sequential numbering
+ * @param pages - Array of questionnaire pages
+ * @returns Updated pages with renumbered titles
+ */
+export const renumberSections = (pages: QuestionPage[]): QuestionPage[] => {
+  return pages.map((page, index) => {
+    // Extract the base title without the section number
+    let baseTitle = page.title;
+    
+    // Remove existing section numbers (patterns like "Section 1 - ", "1. ", etc.)
+    baseTitle = baseTitle.replace(/^(Section\s+\d+\s*[-–—]\s*|^\d+\.\s*)/i, '');
+    
+    // Add the new section number
+    const newTitle = `Section ${index + 1} - ${baseTitle}`;
+    
+    return {
+      ...page,
+      title: newTitle,
+    };
+  });
+};
