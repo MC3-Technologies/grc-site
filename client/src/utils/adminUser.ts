@@ -1139,7 +1139,7 @@ export const getAllUserCounts = async (): Promise<{
   suspended: number;
 }> => {
   try {
-    console.log("Getting all user counts directly for dashboard");
+    //console.log("Getting all user counts directly for dashboard");
 
     // Initialize counts object
     const counts = {
@@ -1560,10 +1560,10 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
     // If user has a role property directly from DynamoDB, prioritize it
     if (user.role === "admin") {
       // This is the role from DynamoDB, it takes precedence
-      console.log(`User ${user.email} has role 'admin' from DynamoDB`);
+      //console.log(`User ${user.email} has role 'admin' from DynamoDB`);
       return "admin";
     } else if (user.role === "user") {
-      console.log(`User ${user.email} has role 'user' from DynamoDB`);
+      //console.log(`User ${user.email} has role 'user' from DynamoDB`);
       return "user";
     }
 
@@ -1608,20 +1608,20 @@ export function transformUserData(fetchedUsers: User[]): UserData[] {
       }
 
       // Log the raw user object received from fetchUsers before transformation
-      console.log(
-        `[transformUserData] Raw user data for ${user.email}:`,
-        JSON.stringify(
-          {
-            email: user.email,
-            status: user.status,
-            enabled: user.enabled,
-            role: user.role, // This should come from DynamoDB
-            customStatus: user.customStatus,
-          },
-          null,
-          2,
-        ),
-      );
+      // console.log(
+      //   `[transformUserData] Raw user data for ${user.email}:`,
+      //   JSON.stringify(
+      //     {
+      //       email: user.email,
+      //       status: user.status,
+      //       enabled: user.enabled,
+      //       role: user.role, // This should come from DynamoDB
+      //       customStatus: user.customStatus,
+      //     },
+      //     null,
+      //     2,
+      //   ),
+      // );
 
       const transformedStatus = getUserStatus(
         user.status || "",
@@ -1853,7 +1853,7 @@ export const fetchSystemSettings =
 // Add a new function to fetch all users via API
 export const fetchAllUsers = async (): Promise<User[]> => {
   try {
-    console.log("Fetching all users from DynamoDB");
+    //console.log("Fetching all users from DynamoDB");
 
     // Only use mock data if explicitly configured
     if (USE_MOCK_DATA && process.env.NODE_ENV !== "production") {

@@ -24,10 +24,10 @@ export const userManagementFunction = defineFunction({
       "AuditLog-jvvqiyl2bfghrnbjzog3hwam3y-NONE",
     COMPLETED_ASSESSMENT_TABLE_NAME:
       process.env.COMPLETED_ASSESSMENT_TABLE_NAME ||
-      "CompletedAssessment-b5j4wql6m5fijablcodytncwrm-NONE",
+      "CompletedAssessment-p5ummz54f5bdlkztwzw5jbe2vy-NONE",
     IN_PROGRESS_ASSESSMENT_TABLE_NAME:
       process.env.IN_PROGRESS_ASSESSMENT_TABLE_NAME ||
-      "InProgressAssessment-b5j4wql6m5fijablcodytncwrm-NONE",
+      "InProgressAssessment-p5ummz54f5bdlkztwzw5jbe2vy-NONE",
     USER_STATUS_TABLE_NAME:
       process.env.USER_STATUS_TABLE_NAME ||
       "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE",
