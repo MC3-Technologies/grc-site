@@ -10,12 +10,13 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
 import { CompletedAssessment } from "../utils/assessment";
-import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
+// import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
 import { fetchUsers } from "../utils/adminUser";
+import { surveyJson } from "../assessmentQuestions";
 
 type PageData = {
   assessment: Model | null;
@@ -54,7 +55,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
 
   if (days > 0) {
@@ -138,26 +139,32 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam,
+            assessmentIdParam
           );
 
         // Parse the assessment JSON data
         const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
 
+        // Questionnaire ssurvery data versioning disabled for now  -- 5/27/25
+
         // Use the questionnaire stored with the assessment if available
         // Otherwise fall back to the latest questionnaire data (for backward compatibility)
-        let questionnaireData;
-        if (parsedAssessmentData && parsedAssessmentData.questionnaire) {
-          //console.log("Using questionnaire stored with assessment");
-          questionnaireData = parsedAssessmentData.questionnaire;
-        } else {
-          //console.log("Using latest questionnaire (compatibility mode)");
-          questionnaireData = await getLatestQuestionnaireData();
-        }
+        // let questionnaireData;
+        // if (parsedAssessmentData && parsedAssessmentData.questionnaire) {
+        //   //console.log("Using questionnaire stored with assessment");
+        //   questionnaireData = parsedAssessmentData.questionnaire;
+        // } else {
+        //   //console.log("Using latest questionnaire (compatibility mode)");
+        //   questionnaireData = await getLatestQuestionnaireData();
+        // }
 
         // Create assessment survey model with the data
-        const assessment = new Model(questionnaireData);
-        assessment.data = parsedAssessmentData.data || parsedAssessmentData;
+        // const questionnaireData = await getLatestQuestionnaireData();
+        // const assessment = new Model(questionnaireData);
+
+        const assessment = new Model(surveyJson);
+        // assessment.data = parsedAssessmentData.data || parsedAssessmentData;
+        assessment.data = parsedAssessmentData;
 
         // Set survey to display mode (read-only)
         assessment.mode = "display";
@@ -267,7 +274,7 @@ export function CompletedAssessmentView() {
     // If error fetching assessment
     if (pageData.error) {
       return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`,
+        `There was an error fetching your completed assessment : ${pageData.error}`
       );
     }
     // If fetching assessment successful
@@ -320,7 +327,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {calculateDuration(
                         assessmentData.createdAt,
-                        assessmentData.completedAt,
+                        assessmentData.completedAt
                       )}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -435,7 +442,7 @@ export function CompletedAssessmentView() {
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(
-      "Error getting assessment, fetching operation never started!",
+      "Error getting assessment, fetching operation never started!"
     );
   };
 
@@ -460,5 +467,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>,
+  </StrictMode>
 );
