@@ -557,9 +557,6 @@ const AdminQuestionnaire = () => {
 
     setIsAddingSection(true);
     try {
-      // Generate a unique ID for the new section
-      const newSectionId = `page-${Date.now()}`;
-
       // Create section data with a default question
       const sectionData = {
         title: newSectionTitle.trim(),
