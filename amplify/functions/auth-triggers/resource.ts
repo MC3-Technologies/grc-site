@@ -25,6 +25,6 @@ export const authTriggersFunction = defineFunction({
     EMAIL_SENDER:
       process.env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
     // Ensure the User Pool ID is available to the function
-    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_ZIDNJDzP5", // Default to persistent pool ID
+    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_M4TctmFID", // Default to persistent pool ID
   },
 });

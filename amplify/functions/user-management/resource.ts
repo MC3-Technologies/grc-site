@@ -13,7 +13,7 @@ export const userManagementFunction = defineFunction({
       "https://main.d2xilxp1mil40w.amplifyapp.com/logo-transparent.png",
 
     // Updated user pool ID as specified by user
-    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_ZIDNJDzP5",
+    USER_POOL_ID: process.env.USER_POOL_ID || "us-west-1_M4TctmFID",
 
     // DynamoDB table names - Use persistent environment names as defaults
     SYSTEM_SETTINGS_TABLE_NAME:
