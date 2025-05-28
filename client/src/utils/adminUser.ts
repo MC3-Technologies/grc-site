@@ -1257,7 +1257,7 @@ export const getAllAssessmentCounts = async (): Promise<{
   nonCompliant: number;
 }> => {
   try {
-    console.log("Getting all assessment counts directly for dashboard");
+    //console.log("Getting all assessment counts directly for dashboard");
 
     // Initialize counts object
     const counts = {

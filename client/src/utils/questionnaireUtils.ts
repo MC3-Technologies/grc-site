@@ -22,6 +22,23 @@ export interface VersionInfo extends VersionMetadata {
   path: string;
 }
 
+// Section deletion interface
+export interface SectionDeletion {
+  id: string;
+  questionnaireVersionId: string;
+  sectionId: string;
+  sectionTitle: string;
+  deletedAt: string;
+  deletedBy: string;
+  reason?: string;
+  affectedNewVersions: string[];
+}
+
+// Extended questionnaire data interface with deletion info
+export interface ExtendedQuestionnaireData extends QuestionnaireData {
+  deletedSections?: SectionDeletion[];
+}
+
 // Survey element interfaces
 export interface ChoiceItem {
   value: string;
@@ -596,4 +613,213 @@ export const getAssessmentQuestionnaire = async (assessmentData: unknown) => {
   // For backward compatibility with older assessments that don't have the stored questionnaire
   //console.log("Using latest questionnaire (compatibility mode)");
   return await getLatestQuestionnaireData();
+};
+
+// Section Deletion Functions
+
+/**
+ * Delete a section from the questionnaire and create a new version
+ * @param sectionId - ID of the section to delete
+ * @param deletedBy - Email/ID of the user deleting the section
+ * @param reason - Optional reason for deletion
+ * @returns Promise<boolean> - Success status
+ */
+export const deleteSection = async (
+  sectionId: string,
+  deletedBy: string,
+  reason?: string,
+): Promise<boolean> => {
+  try {
+    // Get current questionnaire data
+    const currentPages = loadSavedQuestionnaire();
+    if (!currentPages) {
+      throw new Error("No questionnaire data found");
+    }
+
+    // Find the section to delete
+    const sectionToDelete = currentPages.find(page => page.id === sectionId);
+    if (!sectionToDelete) {
+      throw new Error(`Section with ID ${sectionId} not found`);
+    }
+
+    // Remove the section from pages
+    const updatedPages = currentPages.filter(page => page.id !== sectionId);
+
+    // Get current version info
+    const currentVersionInfo = await getCurrentVersionInfo();
+    if (!currentVersionInfo) {
+      throw new Error("Could not get current version info");
+    }
+
+    // Create new version number (increment by 0.1)
+    const currentVersionNum = parseFloat(currentVersionInfo.version);
+    const newVersion = (currentVersionNum + 0.1).toFixed(1);
+
+    // Create new version metadata
+    const newVersionMetadata: VersionMetadata = {
+      version: newVersion,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: deletedBy,
+      changeNotes: `Deleted section: ${sectionToDelete.title}${reason ? ` - ${reason}` : ''}`,
+    };
+
+    // Create the new version with updated pages
+    const success = await createNewVersion(updatedPages, newVersionMetadata);
+
+    if (success) {
+      // Update local storage with the new pages
+      localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+
+      // Log the section deletion (this would ideally be stored in DynamoDB)
+      console.log('Section deleted successfully:', {
+        sectionId,
+        sectionTitle: sectionToDelete.title,
+        deletedBy,
+        reason,
+        newVersion,
+        deletedAt: new Date().toISOString(),
+      });
+    }
+
+    return success;
+  } catch (error) {
+    console.error("Error deleting section:", error);
+    return false;
+  }
+};
+
+/**
+ * Get questionnaire data filtered by version (removes sections deleted in that version or later)
+ * @param version - Version to get questionnaire for
+ * @param deletedSections - Array of section deletions to filter out
+ * @returns Filtered questionnaire data
+ */
+export const getVersionSpecificQuestionnaire = async (
+  version: string,
+  deletedSections: SectionDeletion[] = [],
+): Promise<QuestionPage[] | null> => {
+  try {
+    // Load the questionnaire version
+    const pages = await loadQuestionnaireVersion(version);
+    if (!pages) {
+      return null;
+    }
+
+    // Filter out sections that were deleted in this version or later
+    const versionNum = parseFloat(version);
+    const filteredPages = pages.filter(page => {
+      const sectionDeletion = deletedSections.find(deletion => 
+        deletion.sectionId === page.id
+      );
+      
+      if (!sectionDeletion) {
+        return true; // Section was never deleted
+      }
+
+      // Check if the section was deleted in a version after the requested version
+      const deletionVersions = sectionDeletion.affectedNewVersions.map(v => parseFloat(v));
+      const wasDeletedInThisVersion = deletionVersions.some(v => v <= versionNum);
+      
+      return !wasDeletedInThisVersion; // Include if not deleted in this version
+    });
+
+    return filteredPages;
+  } catch (error) {
+    console.error("Error getting version-specific questionnaire:", error);
+    return null;
+  }
+};
+
+/**
+ * Check if a section exists in a specific questionnaire version
+ * @param sectionId - ID of the section to check
+ * @param version - Version to check against
+ * @returns Promise<boolean> - Whether the section exists in that version
+ */
+export const sectionExistsInVersion = async (
+  sectionId: string,
+  version: string,
+): Promise<boolean> => {
+  try {
+    const pages = await loadQuestionnaireVersion(version);
+    if (!pages) {
+      return false;
+    }
+
+    return pages.some(page => page.id === sectionId);
+  } catch (error) {
+    console.error("Error checking section existence in version:", error);
+    return false;
+  }
+};
+
+/**
+ * Restore a deleted section (create new version with the section added back)
+ * @param sectionId - ID of the section to restore
+ * @param restoredBy - Email/ID of the user restoring the section
+ * @param sourceVersion - Version to restore the section from
+ * @returns Promise<boolean> - Success status
+ */
+export const restoreSection = async (
+  sectionId: string,
+  restoredBy: string,
+  sourceVersion: string,
+): Promise<boolean> => {
+  try {
+    // Get current questionnaire data
+    const currentPages = loadSavedQuestionnaire();
+    if (!currentPages) {
+      throw new Error("No questionnaire data found");
+    }
+
+    // Get the section from the source version
+    const sourcePages = await loadQuestionnaireVersion(sourceVersion);
+    if (!sourcePages) {
+      throw new Error(`Could not load source version ${sourceVersion}`);
+    }
+
+    const sectionToRestore = sourcePages.find(page => page.id === sectionId);
+    if (!sectionToRestore) {
+      throw new Error(`Section ${sectionId} not found in version ${sourceVersion}`);
+    }
+
+    // Check if section already exists in current version
+    if (currentPages.some(page => page.id === sectionId)) {
+      throw new Error("Section already exists in current version");
+    }
+
+    // Add the section back to the current pages
+    const updatedPages = [...currentPages, sectionToRestore];
+
+    // Get current version info
+    const currentVersionInfo = await getCurrentVersionInfo();
+    if (!currentVersionInfo) {
+      throw new Error("Could not get current version info");
+    }
+
+    // Create new version number
+    const currentVersionNum = parseFloat(currentVersionInfo.version);
+    const newVersion = (currentVersionNum + 0.1).toFixed(1);
+
+    // Create new version metadata
+    const newVersionMetadata: VersionMetadata = {
+      version: newVersion,
+      lastUpdated: new Date().toISOString(),
+      updatedBy: restoredBy,
+      changeNotes: `Restored section: ${sectionToRestore.title} from version ${sourceVersion}`,
+    };
+
+    // Create the new version with restored section
+    const success = await createNewVersion(updatedPages, newVersionMetadata);
+
+    if (success) {
+      // Update local storage with the new pages
+      localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+    }
+
+    return success;
+  } catch (error) {
+    console.error("Error restoring section:", error);
+    return false;
+  }
 };

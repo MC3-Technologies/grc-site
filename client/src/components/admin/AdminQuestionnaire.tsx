@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getCurrentUser } from "aws-amplify/auth";
 import { surveyJson } from "../../assessmentQuestions";
 import {
   SurveyElement,
@@ -13,6 +14,7 @@ import {
   VersionMetadata,
   loadQuestionnaireVersion,
   saveVersionToS3,
+  deleteSection,
 } from "../../utils/questionnaireUtils";
 import VersionManager from "./VersionManager";
 import NewVersionForm from "./NewVersionForm";
@@ -67,6 +69,15 @@ const AdminQuestionnaire = () => {
 
   // Loading state for S3 operations
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  // Section deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [deleteReason, setDeleteReason] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   // Initialize versioning system if needed
   useEffect(() => {
@@ -381,6 +392,69 @@ const AdminQuestionnaire = () => {
     }
   };
 
+  // Handle section deletion initiation
+  const handleDeleteSectionClick = (pageId: string, pageTitle: string) => {
+    setSectionToDelete({ id: pageId, title: pageTitle });
+    setShowDeleteConfirm(true);
+    setDeleteReason("");
+  };
+
+  // Handle section deletion confirmation
+  const handleConfirmDeleteSection = async () => {
+    if (!sectionToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // Get current user email for tracking
+      const currentUser = await getCurrentUser();
+      const userEmail = currentUser.signInDetails?.loginId || currentUser.username || "admin";
+
+      const success = await deleteSection(
+        sectionToDelete.id,
+        userEmail,
+        deleteReason.trim() || undefined
+      );
+
+      if (success) {
+        // Remove the section from local state
+        const updatedPages = pages.filter(page => page.id !== sectionToDelete.id);
+        setPages(updatedPages);
+
+        // Clear selected page if it was the deleted one
+        if (selectedPage === sectionToDelete.id) {
+          setSelectedPage(null);
+        }
+
+        // Show success message
+        setSuccessMessage(`Section "${sectionToDelete.title}" has been deleted successfully.`);
+        setTimeout(() => setSuccessMessage(null), 5000);
+
+        // Refresh version info
+        await handleVersionsRefresh();
+
+        // Notify other components
+        notifyQuestionnaireUpdate();
+      } else {
+        alert("Failed to delete section. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      alert("An error occurred while deleting the section. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setSectionToDelete(null);
+      setDeleteReason("");
+    }
+  };
+
+  // Handle section deletion cancellation
+  const handleCancelDeleteSection = () => {
+    setShowDeleteConfirm(false);
+    setSectionToDelete(null);
+    setDeleteReason("");
+  };
+
   // Find the selected page object
   const selectedPageObj = pages.find((page) => page.id === selectedPage);
 
@@ -449,21 +523,46 @@ const AdminQuestionnaire = () => {
                 </h3>
                 <div className="space-y-2">
                   {pages.map((page) => (
-                    <button
+                    <div
                       key={page.id}
-                      onClick={() => handleViewPage(page.id)}
-                      className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                      className={`group relative rounded-lg transition ${
                         selectedPage === page.id
                           ? "bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-white"
                           : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                       }`}
                     >
-                      <div className="font-medium">{page.title}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {page.elements.length} question
-                        {page.elements.length !== 1 ? "s" : ""}
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => handleViewPage(page.id)}
+                        className="w-full text-left px-4 py-2 pr-12"
+                      >
+                        <div className="font-medium">{page.title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {page.elements.length} question
+                          {page.elements.length !== 1 ? "s" : ""}
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSectionClick(page.id, page.title)}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label={`Delete section: ${page.title}`}
+                        title={`Delete section: ${page.title}`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          ></path>
+                        </svg>
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1110,6 +1209,86 @@ const AdminQuestionnaire = () => {
             </p>
             <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
               <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section deletion confirmation dialog */}
+      {showDeleteConfirm && sectionToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <svg
+                className="w-6 h-6 text-red-500 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                ></path>
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Section
+              </h3>
+            </div>
+            
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Are you sure you want to delete the section "{sectionToDelete.title}"? 
+              This action will create a new questionnaire version without this section.
+            </p>
+            
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Important:</strong> Users with ongoing assessments will keep this section, 
+                but new assessments will not include it.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="delete-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Reason for deletion (optional)
+              </label>
+              <textarea
+                id="delete-reason"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white"
+                rows={3}
+                placeholder="Explain why this section is being removed..."
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelDeleteSection}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteSection}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Section"
+                )}
+              </button>
             </div>
           </div>
         </div>
