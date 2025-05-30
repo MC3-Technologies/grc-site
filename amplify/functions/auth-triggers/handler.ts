@@ -46,14 +46,14 @@ const handlePreSignUp = async (event: any) => {
   //console.log("Extracted profile data for pre-signup:", profileData);
 
   try {
-    // NOTE: Removed createPendingUserStatus call from PreSignUp.
-    // It will be handled on admin approval, not during signup triggers.
-    // const result = await userStatusOperations.createPendingUserStatus(email, profileData);
-    // if (!result) {
-    //   console.warn(
-    //     `Warning: Could not create UserStatus record for ${email}, but continuing sign-up process`,
-    //   );
-    // }
+    // Create UserStatus record immediately on signup (before email confirmation)
+    // This ensures the user appears in the admin dashboard right away
+    const result = await userStatusOperations.createPendingUserStatus(email, profileData);
+    if (!result) {
+      console.warn(
+        `Warning: Could not create UserStatus record for ${email}, but continuing sign-up process`,
+      );
+    }
 
     // Continue with the sign-up process - validation checks could go here if needed.
     //console.log(`PreSignUp for ${email} completed. Allowing signup.`);
@@ -117,7 +117,11 @@ const handlePostConfirmation = async (event: any) => {
     //  JSON.stringify(profileData),
     //); // Log data being passed
     try {
-      // Ensure profileData object is passed as the second argument
+      // Check if the record already exists (might have been created in PreSignUp)
+      const existingRecord = await userStatusOperations.getUserStatus(email);
+      
+      if (!existingRecord) {
+        // Record doesn't exist, create it now
       const dbRecordCreated =
         await userStatusOperations.createPendingUserStatus(email, profileData);
       if (dbRecordCreated) {
@@ -129,6 +133,11 @@ const handlePostConfirmation = async (event: any) => {
         //  `[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`,
         //);
         // Continue the process even if DB creation fails initially
+        }
+      } else {
+        //console.log(
+        //  `[PostConfirmation] - UserStatus record already exists for ${email}`,
+        //);
       }
     } catch (dbError) {
       console.error(
