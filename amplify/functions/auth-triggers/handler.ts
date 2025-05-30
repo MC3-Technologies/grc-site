@@ -122,17 +122,17 @@ const handlePostConfirmation = async (event: any) => {
       
       if (!existingRecord) {
         // Record doesn't exist, create it now
-        const dbRecordCreated =
-          await userStatusOperations.createPendingUserStatus(email, profileData);
-        if (dbRecordCreated) {
-          //console.log(
-          //  `[PostConfirmation] - Successfully created initial pending DynamoDB record for user: ${email}`,
-          //);
-        } else {
-          //console.warn(
-          //  `[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`,
-          //);
-          // Continue the process even if DB creation fails initially
+      const dbRecordCreated =
+        await userStatusOperations.createPendingUserStatus(email, profileData);
+      if (dbRecordCreated) {
+        //console.log(
+        //  `[PostConfirmation] - Successfully created initial pending DynamoDB record for user: ${email}`,
+        //);
+      } else {
+        //console.warn(
+        //  `[PostConfirmation] createPendingUserStatus returned false for ${email}.`,
+        //);
+        // Continue the process even if DB creation fails initially
         }
       } else {
         //console.log(
