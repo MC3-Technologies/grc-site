@@ -42,7 +42,7 @@ export const auth = defineAuth({
       </div>
       <div class="footer">
         <p>This is an automated message from the MC3 GRC Platform. Please do not reply to this e-mail.</p>
-        <p>&copy; ${new Date().getFullYear()} MC3 Technologies. All rights reserved.</p>
+        <p>&copy; ${new Date().getFullYear()} MC3. All rights reserved.</p>
       </div>
     </div>
   </body>
