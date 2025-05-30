@@ -6,6 +6,7 @@ import {
   baseTemplate,
   adminNotificationTemplate,
 } from "../../user-management/src/templates/emailTemplates";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 
 // Try to import env variables, fallback to process.env if not available
 let amplifyEnv: any;
@@ -40,6 +41,7 @@ const cognito = new CognitoIdentityProviderClient();
 const dynamoClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const sesClient = new SESClient();
+const ssm = new SSMClient({});
 
 // Cache for table name to avoid repeated lookups
 let cachedUserStatusTableName: string | null = null;
@@ -49,74 +51,43 @@ let cachedUserStatusTableName: string | null = null;
  * Tables created by Amplify Gen 2 follow the pattern: UserStatus-<hash>-<environment>
  */
 async function getUserStatusTableName(): Promise<string> {
-  console.log("[getUserStatusTableName] Starting discovery...");
-  if (cachedUserStatusTableName) {
-    console.log(`[getUserStatusTableName] Returning cached table name: ${cachedUserStatusTableName}`);
-    return cachedUserStatusTableName;
-  }
+  if (cachedUserStatusTableName) return cachedUserStatusTableName;
 
+  const paramName = process.env.USERSTATUS_PARAM;
   try {
-    // First try environment variables
-    const envTableName = process.env.USER_STATUS_TABLE || process.env.USER_STATUS_TABLE_NAME;
-    console.log(`[getUserStatusTableName] Environment variables: USER_STATUS_TABLE=${process.env.USER_STATUS_TABLE}, USER_STATUS_TABLE_NAME=${process.env.USER_STATUS_TABLE_NAME}`);
-    if (envTableName) {
-      console.log(`[getUserStatusTableName] Found table name in environment: ${envTableName}`);
-      cachedUserStatusTableName = envTableName;
-      return envTableName;
-    }
-    console.log("[getUserStatusTableName] Table name not in environment, attempting discovery via ListTables...");
-
-    // If not in env, discover it by listing tables
-    const listTablesCommand = new ListTablesCommand({});
-    const response = await dynamoClient.send(listTablesCommand);
-    console.log(`[getUserStatusTableName] ListTables response: ${JSON.stringify(response.TableNames)}`);
-    
-    const candidateTables = (response.TableNames || []).filter((name) =>
-      name.startsWith("UserStatus-")
-    );
-
-    if (candidateTables.length > 0) {
-      let newestTable = candidateTables[0];
-      let newestTime = 0;
-
-      for (const tableName of candidateTables) {
-        try {
-          const desc = await dynamoClient.send(
-            new DescribeTableCommand({ TableName: tableName })
-          );
-          const created = desc.Table?.CreationDateTime?.getTime() || 0;
-          if (created > newestTime) {
-            newestTime = created;
-            newestTable = tableName;
-          }
-        } catch (err) {
-          console.warn(
-            `[getUserStatusTableName] DescribeTable failed for ${tableName}:`,
-            err
-          );
-        }
-      }
-
-      cachedUserStatusTableName = newestTable;
-      console.log(
-        `[getUserStatusTableName] Selected newest UserStatus table: ${newestTable}`
+    if (paramName) {
+      const { Parameter } = await ssm.send(
+        new GetParameterCommand({ Name: paramName })
       );
-      return newestTable;
+      if (Parameter?.Value) {
+        cachedUserStatusTableName = Parameter.Value;
+        return cachedUserStatusTableName;
+      }
     }
-
-    // Fallback to a known table name if discovery fails
-    const fallbackTable = "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"; // This should ideally not be used
-    console.warn(`[getUserStatusTableName] Could not discover UserStatus table via ListTables, using fallback: ${fallbackTable}`);
-    cachedUserStatusTableName = fallbackTable;
-    return fallbackTable;
-  } catch (error) {
-    console.error("[getUserStatusTableName] Error discovering UserStatus table:", error);
-    // Use fallback
-    const fallbackTable = "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE";
-    console.warn(`[getUserStatusTableName] Error occurred, using fallback: ${fallbackTable}`);
-    cachedUserStatusTableName = fallbackTable;
-    return fallbackTable;
+  } catch (err) {
+    console.error("SSM lookup failed:", err);
   }
+
+  // Fallback to ListTables discovery if SSM not ready
+  return await discoverViaListTables();
+}
+
+// ---------- helper ----------
+async function discoverViaListTables(): Promise<string> {
+  const listTables = await dynamoClient.send(new ListTablesCommand({}));
+  const all = (listTables.TableNames || []).filter(t => t.startsWith("UserStatus-"));
+
+  if (all.length === 0) throw new Error("No UserStatus table found");
+
+  let newest = all[0];
+  let newestTime = 0;
+  for (const t of all) {
+    const meta = await dynamoClient.send(new DescribeTableCommand({ TableName: t }));
+    const created = meta.Table?.CreationDateTime?.getTime() ?? 0;
+    if (created > newestTime) { newestTime = created; newest = t; }
+  }
+  cachedUserStatusTableName = newest;
+  return newest;
 }
 
 // Admin email - Could be stored in environment variables
@@ -132,16 +103,16 @@ const FROM_EMAIL =
   "no-reply-grc@mc3technologies.com";
 
 // Log email configuration for debugging
-console.log("Email configuration:", {
-  ADMIN_EMAIL,
-  FROM_EMAIL,
-  amplifyEnvAdminEmail: amplifyEnv.ADMIN_EMAIL,
-  processEnvAdminEmail: process.env.ADMIN_EMAIL,
-  amplifyEnvEmailSender: amplifyEnv.EMAIL_SENDER,
-  processEnvEmailSender: process.env.EMAIL_SENDER,
-  amplifyEnvFromEmail: amplifyEnv.FROM_EMAIL,
-  processEnvFromEmail: process.env.FROM_EMAIL,
-});
+// console.log("Email configuration:", {
+//   ADMIN_EMAIL,
+//   FROM_EMAIL,
+//   amplifyEnvAdminEmail: amplifyEnv.ADMIN_EMAIL,
+//   processEnvAdminEmail: process.env.ADMIN_EMAIL,
+//   amplifyEnvEmailSender: amplifyEnv.EMAIL_SENDER,
+//   processEnvEmailSender: process.env.EMAIL_SENDER,
+//   amplifyEnvFromEmail: amplifyEnv.FROM_EMAIL,
+//   processEnvFromEmail: process.env.FROM_EMAIL,
+// });
 
 // Define minimal UserStatus interface needed here
 interface UserStatus {

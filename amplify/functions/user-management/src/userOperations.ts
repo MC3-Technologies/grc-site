@@ -463,14 +463,6 @@ export const userOperations = {
         console.error(`Error fetching existing UserStatus record for ${email}:`, getError);
       }
       
-      // If this is a pending user being approved for the first time, set a temporary password
-      let tempPassword: string | undefined;
-      if (existingUserStatus.status === "pending") {
-        tempPassword = generateSecurePassword();
-        // Set the temporary password in Cognito
-        await amplifyAuthOperations.setTemporaryPassword(email, tempPassword);
-      }
-      
       // Enable user in Cognito
       await amplifyAuthOperations.enableUser(email);
       await amplifyAuthOperations.updateUserAttributes(email, [
@@ -567,34 +559,12 @@ export const userOperations = {
         details: { email, approvedAt: new Date().toISOString() },
       });
 
-      // Send approval email with credentials if this was a pending user
-      if (existingUserStatus.status === "pending" && tempPassword) {
-        const emailContent = `
-          <h3>Your MC3 GRC Account Has Been Approved!</h3>
-          <p>Dear ${profileData.firstName || 'User'},</p>
-          <p>Great news! Your account on the MC3 GRC platform has been approved.</p>
-          <p><strong>Your login credentials:</strong></p>
-          <ul>
-            <li>Email: ${email}</li>
-            <li>Temporary Password: ${tempPassword}</li>
-          </ul>
-          <p><strong>Important:</strong> You will be required to change your password on first login.</p>
-          <p>Best regards,<br>The MC3 Admin Team</p>
-        `;
-        
-        await sendEmailHelper({
-          to: email,
-          subject: "Account Approved - MC3 GRC Platform",
-          message: baseTemplate(emailContent),
-        });
-      } else {
-        // Send regular approval email for already active users
+      // Send approval email (no password included – rely on user's existing credentials)
       await sendEmailHelper({
         to: email,
         subject: "Welcome to MC3 GRC Platform - Your Account is Approved",
         message: approvalTemplate(),
       });
-      }
 
       return true;
     } catch (error) {

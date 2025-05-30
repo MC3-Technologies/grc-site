@@ -15,12 +15,12 @@ const docClient = DynamoDBDocumentClient.from(ddbClient);
 
 // Get table name from environment (Amplify sets these automatically)
 const getUserStatusTableName = () => {
-  // Log all environment variables for debugging
-  console.log("Looking for UserStatus table. Available env vars:", 
-    Object.keys(process.env).filter(key => 
-      key.includes('TABLE') || key.includes('USER') || key.includes('STATUS')
-    )
-  );
+  // // Log all environment variables for debugging
+  // console.log("Looking for UserStatus table. Available env vars:", 
+  //   Object.keys(process.env).filter(key => 
+  //     key.includes('TABLE') || key.includes('USER') || key.includes('STATUS')
+  //   )
+  // );
   
   // Look for table name in various possible environment variables
   const possibleVars = [
@@ -33,7 +33,7 @@ const getUserStatusTableName = () => {
   
   for (const varName of possibleVars) {
     if (process.env[varName]) {
-      console.log(`Found UserStatus table name in ${varName}: ${process.env[varName]}`);
+      //console.log(`Found UserStatus table name in ${varName}: ${process.env[varName]}`);
       return process.env[varName];
     }
   }
@@ -41,7 +41,7 @@ const getUserStatusTableName = () => {
   // Fallback: construct table name based on stack name pattern
   // Try to get from Lambda function name or other environment variables
   const functionName = process.env.AWS_LAMBDA_FUNCTION_NAME || '';
-  console.log(`Lambda function name: ${functionName}`);
+  //console.log(`Lambda function name: ${functionName}`);
   
   // Extract stack identifier from function name
   // Format is usually: amplify-grcsite3-<branch>-<hash>-userManagementFu-<id>
@@ -50,13 +50,13 @@ const getUserStatusTableName = () => {
     const branch = stackMatch[1];
     const hash = stackMatch[2];
     const tableName = `UserStatus-${hash}-${branch}`;
-    console.log(`Constructed UserStatus table name: ${tableName}`);
+    //console.log(`Constructed UserStatus table name: ${tableName}`);
     return tableName;
   }
   
   // Last resort fallback
   const fallback = 'UserStatus-NONE-NONE';
-  console.log(`Using fallback UserStatus table name: ${fallback}`);
+  //console.log(`Using fallback UserStatus table name: ${fallback}`);
   return fallback;
 };
 
@@ -77,7 +77,7 @@ const getAuditLogTableName = () => {
   
   for (const varName of possibleVars) {
     if (process.env[varName]) {
-      console.log(`Found AuditLog table name in ${varName}: ${process.env[varName]}`);
+      //console.log(`Found AuditLog table name in ${varName}: ${process.env[varName]}`);
       return process.env[varName];
     }
   }
@@ -89,12 +89,12 @@ const getAuditLogTableName = () => {
     const branch = stackMatch[1];
     const hash = stackMatch[2];
     const tableName = `AuditLog-${hash}-${branch}`;
-    console.log(`Constructed AuditLog table name: ${tableName}`);
+    //console.log(`Constructed AuditLog table name: ${tableName}`);
     return tableName;
   }
   
   const fallback = 'AuditLog-NONE-NONE';
-  console.log(`Using fallback AuditLog table name: ${fallback}`);
+  //console.log(`Using fallback AuditLog table name: ${fallback}`);
   return fallback;
 };
 
@@ -110,7 +110,7 @@ const getSystemSettingsTableName = () => {
   
   for (const varName of possibleVars) {
     if (process.env[varName]) {
-      console.log(`Found SystemSettings table name in ${varName}: ${process.env[varName]}`);
+      //console.log(`Found SystemSettings table name in ${varName}: ${process.env[varName]}`);
       return process.env[varName];
     }
   }
@@ -123,7 +123,7 @@ export const dynamoDbOperations = {
   // UserStatus operations
   async createUserStatus(userStatus: any) {
     const tableName = getUserStatusTableName();
-    console.log(`Creating user status in table: ${tableName}`);
+    //console.log(`Creating user status in table: ${tableName}`);
     
     try {
       const command = new PutCommand({
@@ -193,7 +193,7 @@ export const dynamoDbOperations = {
     
     // If no fields to update (only updatedAt), return early
     if (updateExpressionParts.length === 1) {
-      console.log('No fields to update for user status');
+      //console.log('No fields to update for user status');
       return { id };
     }
     

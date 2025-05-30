@@ -10,6 +10,7 @@ import { authTriggersFunction } from "./functions/auth-triggers/resource";
 // import it so we can attach IAM policies below. We purposely avoid wiring any environment
 // variables that reference resources from other stacks to prevent circular dependencies.
 import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
+import { StringParameter } from "aws-cdk-lib/aws-ssm";
 
 /**
  * @see https://docs.amplify.aws/react/build-a-backend/ to add storage, functions, and more
@@ -47,6 +48,9 @@ if (tables.UserStatus) {
 if (tables.AuditLog) {
   backend.userManagementFunction.addEnvironment("AUDITLOG_TABLE_NAME", tables.AuditLog.tableName);
 }
+
+// NEW: Provide a branch-specific tag so authTriggersFunction can deterministically pick its tables without cross-stack refs
+backend.authTriggersFunction.addEnvironment("AMPLIFY_BRANCH_TAG", backend.stack.stackName);
 
 // Add DynamoDB permissions to the user management Lambda function
 backend.userManagementFunction.resources.lambda.addToRolePolicy(
@@ -128,3 +132,25 @@ backend.authTriggersFunction.resources.lambda.addToRolePolicy(
 );
 
 // Note: Data API permissions are handled automatically by Amplify for Lambda resolvers
+
+if (tables.UserStatus) {
+  const paramName = `/grc-site/${backend.stack.stackName}/USERSTATUS_TABLE_NAME`;
+
+  new StringParameter(backend.stack, "UserStatusParam", {
+    parameterName: paramName,
+    stringValue: tables.UserStatus.tableName,
+  });
+}
+
+const paramName = `/grc-site/${backend.stack.stackName}/USERSTATUS_TABLE_NAME`;
+backend.authTriggersFunction.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ["ssm:GetParameter"],
+    resources: [
+      `arn:aws:ssm:${backend.stack.region}:${backend.stack.account}:parameter${paramName}`,
+    ],
+  }),
+);
+
+// Pass the param name (not the value) to the function
+backend.authTriggersFunction.addEnvironment("USERSTATUS_PARAM", paramName);
