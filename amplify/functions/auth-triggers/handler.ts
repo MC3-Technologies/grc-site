@@ -130,7 +130,7 @@ const handlePostConfirmation = async (event: any) => {
         //);
       } else {
         //console.warn(
-        //  `[PostConfirmation] createPendingUserStatus returned false for ${email}.`,
+        //  `[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`,
         //);
         // Continue the process even if DB creation fails initially
         }
