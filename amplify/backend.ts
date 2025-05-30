@@ -25,32 +25,47 @@ const backend = defineBackend({
 });
 
 // Grant the Lambda function access to Amplify resources with proper environment variables
-backend.userManagementFunction.addEnvironment("AMPLIFY_AUTH_USERPOOL_ID", backend.auth.resources.userPool.userPoolId);
+backend.userManagementFunction.addEnvironment(
+  "AMPLIFY_AUTH_USERPOOL_ID",
+  backend.auth.resources.userPool.userPoolId,
+);
 
 // For Gen 2, we need to provide the GraphQL API endpoint to the Lambda function
 const { cfnResources } = backend.data.resources;
 const cfnGraphqlApi = cfnResources.cfnGraphqlApi;
-backend.userManagementFunction.addEnvironment("API_ENDPOINT", cfnGraphqlApi.attrGraphQlUrl);
+backend.userManagementFunction.addEnvironment(
+  "API_ENDPOINT",
+  cfnGraphqlApi.attrGraphQlUrl,
+);
 
 // Add DynamoDB table names as environment variables
 const tables = backend.data.resources.tables;
 Object.entries(tables).forEach(([modelName, table]) => {
   backend.userManagementFunction.addEnvironment(
     `${modelName.toUpperCase()}_TABLE_NAME`,
-    table.tableName
+    table.tableName,
   );
 });
 
 // Also add specific table names for UserStatus and AuditLog
 if (tables.UserStatus) {
-  backend.userManagementFunction.addEnvironment("USERSTATUS_TABLE_NAME", tables.UserStatus.tableName);
+  backend.userManagementFunction.addEnvironment(
+    "USERSTATUS_TABLE_NAME",
+    tables.UserStatus.tableName,
+  );
 }
 if (tables.AuditLog) {
-  backend.userManagementFunction.addEnvironment("AUDITLOG_TABLE_NAME", tables.AuditLog.tableName);
+  backend.userManagementFunction.addEnvironment(
+    "AUDITLOG_TABLE_NAME",
+    tables.AuditLog.tableName,
+  );
 }
 
 // NEW: Provide a branch-specific tag so authTriggersFunction can deterministically pick its tables without cross-stack refs
-backend.authTriggersFunction.addEnvironment("AMPLIFY_BRANCH_TAG", backend.stack.stackName);
+backend.authTriggersFunction.addEnvironment(
+  "AMPLIFY_BRANCH_TAG",
+  backend.stack.stackName,
+);
 
 // Add DynamoDB permissions to the user management Lambda function
 backend.userManagementFunction.resources.lambda.addToRolePolicy(

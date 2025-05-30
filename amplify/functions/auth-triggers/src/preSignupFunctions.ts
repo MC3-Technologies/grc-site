@@ -1,6 +1,14 @@
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
-import { DynamoDBClient, ListTablesCommand, DescribeTableCommand } from "@aws-sdk/client-dynamodb";
-import { PutCommand, GetCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBClient,
+  ListTablesCommand,
+  DescribeTableCommand,
+} from "@aws-sdk/client-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  DynamoDBDocumentClient,
+} from "@aws-sdk/lib-dynamodb";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import {
   baseTemplate,
@@ -57,7 +65,7 @@ async function getUserStatusTableName(): Promise<string> {
   try {
     if (paramName) {
       const { Parameter } = await ssm.send(
-        new GetParameterCommand({ Name: paramName })
+        new GetParameterCommand({ Name: paramName }),
       );
       if (Parameter?.Value) {
         cachedUserStatusTableName = Parameter.Value;
@@ -75,16 +83,23 @@ async function getUserStatusTableName(): Promise<string> {
 // ---------- helper ----------
 async function discoverViaListTables(): Promise<string> {
   const listTables = await dynamoClient.send(new ListTablesCommand({}));
-  const all = (listTables.TableNames || []).filter(t => t.startsWith("UserStatus-"));
+  const all = (listTables.TableNames || []).filter((t) =>
+    t.startsWith("UserStatus-"),
+  );
 
   if (all.length === 0) throw new Error("No UserStatus table found");
 
   let newest = all[0];
   let newestTime = 0;
   for (const t of all) {
-    const meta = await dynamoClient.send(new DescribeTableCommand({ TableName: t }));
+    const meta = await dynamoClient.send(
+      new DescribeTableCommand({ TableName: t }),
+    );
     const created = meta.Table?.CreationDateTime?.getTime() ?? 0;
-    if (created > newestTime) { newestTime = created; newest = t; }
+    if (created > newestTime) {
+      newestTime = created;
+      newest = t;
+    }
   }
   cachedUserStatusTableName = newest;
   return newest;
@@ -144,7 +159,9 @@ export const userStatusOperations = {
   getUserStatus: async (email: string): Promise<any> => {
     try {
       const tableName = await getUserStatusTableName();
-      console.log(`[getUserStatus] Using table: ${tableName} for email: ${email}`);
+      console.log(
+        `[getUserStatus] Using table: ${tableName} for email: ${email}`,
+      );
 
       const getCommand = new GetCommand({
         TableName: tableName,
@@ -176,10 +193,14 @@ export const userStatusOperations = {
       companyName?: string;
     },
   ): Promise<boolean> => {
-    console.log(`[createPendingUserStatus] Attempting to create record for ${email} with profile: ${JSON.stringify(profileData)}`);
+    console.log(
+      `[createPendingUserStatus] Attempting to create record for ${email} with profile: ${JSON.stringify(profileData)}`,
+    );
     try {
       const tableName = await getUserStatusTableName();
-      console.log(`[createPendingUserStatus] Using table: ${tableName} for email: ${email}`);
+      console.log(
+        `[createPendingUserStatus] Using table: ${tableName} for email: ${email}`,
+      );
 
       // Ensure profileData exists and provide fallbacks directly in the data object
       const fName = profileData?.firstName || undefined; // Use undefined as fallback
@@ -207,11 +228,18 @@ export const userStatusOperations = {
         lastStatusChangeBy: undefined,
         ttl: undefined,
       };
-      console.log(`[createPendingUserStatus] Data to write: ${JSON.stringify(userStatusData)}`);
+      console.log(
+        `[createPendingUserStatus] Data to write: ${JSON.stringify(userStatusData)}`,
+      );
 
       // Reject if we are still using the hard-coded fallback (means discovery failed)
-      if (!tableName || tableName === "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE") {
-        console.error(`[createPendingUserStatus] Invalid or fallback table name: ${tableName}. Aborting PutCommand.`);
+      if (
+        !tableName ||
+        tableName === "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"
+      ) {
+        console.error(
+          `[createPendingUserStatus] Invalid or fallback table name: ${tableName}. Aborting PutCommand.`,
+        );
         return false;
       }
 
@@ -221,14 +249,22 @@ export const userStatusOperations = {
           Item: userStatusData,
         });
         await docClient.send(putCommand);
-        console.log(`[createPendingUserStatus] Successfully created UserStatus record for ${email} in table ${tableName}`);
+        console.log(
+          `[createPendingUserStatus] Successfully created UserStatus record for ${email} in table ${tableName}`,
+        );
         return true;
       } catch (dbError: any) {
-        console.error(`[createPendingUserStatus] DynamoDB error for ${email} in table ${tableName}:`, dbError);
+        console.error(
+          `[createPendingUserStatus] DynamoDB error for ${email} in table ${tableName}:`,
+          dbError,
+        );
         return false;
       }
     } catch (error: any) {
-      console.error(`[createPendingUserStatus] Outer error for ${email}:`, error);
+      console.error(
+        `[createPendingUserStatus] Outer error for ${email}:`,
+        error,
+      );
       return false;
     }
   },

@@ -11,7 +11,8 @@ export const authTriggersFunction = defineFunction({
     REGION: process.env.AWS_REGION || "us-west-1",
     ADMIN_EMAIL: process.env.ADMIN_EMAIL || "cmmc.support@mc3technologies.com",
     FROM_EMAIL: process.env.FROM_EMAIL || "no-reply-grc@mc3technologies.com",
-    EMAIL_SENDER: process.env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
+    EMAIL_SENDER:
+      process.env.EMAIL_SENDER || "no-reply-grc@mc3technologies.com",
     ADMIN_URL: process.env.ADMIN_URL || "#",
     // Table names and other env vars will be injected from backend.ts
   },

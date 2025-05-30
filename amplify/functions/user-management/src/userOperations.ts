@@ -1,5 +1,9 @@
 // File: amplify/functions/user-management/src/userOperations.ts
-import { CognitoIdentityProviderClient, GetUserCommand, AttributeType } from "@aws-sdk/client-cognito-identity-provider";
+import {
+  CognitoIdentityProviderClient,
+  GetUserCommand,
+  AttributeType,
+} from "@aws-sdk/client-cognito-identity-provider";
 import { SendEmailCommand, SESClient } from "@aws-sdk/client-ses";
 import { env } from "$amplify/env/user-management";
 import { log } from "./utils";
@@ -16,15 +20,18 @@ import {
 } from "./templates/emailTemplates";
 
 // Check if we're running as an AppSync resolver
-const isAppSyncResolver = !!process.env.AWS_LAMBDA_FUNCTION_NAME && 
+const isAppSyncResolver =
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME &&
   (process.env.USERSTATUS_TABLE_NAME || process.env.AUDITLOG_TABLE_NAME);
 
 // Use direct DynamoDB operations when running as resolver, otherwise fall back to Amplify Data client
-const dataOperations = isAppSyncResolver ? dynamoDbOperations : (() => {
-  // Lazy load amplifyDataOperations only if not running as resolver
-  const { amplifyDataOperations } = require("./amplifyDataClient");
-  return amplifyDataOperations;
-})();
+const dataOperations = isAppSyncResolver
+  ? dynamoDbOperations
+  : (() => {
+      // Lazy load amplifyDataOperations only if not running as resolver
+      const { amplifyDataOperations } = require("./amplifyDataClient");
+      return amplifyDataOperations;
+    })();
 
 // --- Client Initialization ---
 const getSesClient = () => {
@@ -191,33 +198,41 @@ const createAuditLogEntry = async (logEntry: Omit<AuditLog, "id">) => {
   }
 };
 
-const createUserStatusIfMissing = async (email: string, cognitoUser: any): Promise<void> => {
+const createUserStatusIfMissing = async (
+  email: string,
+  cognitoUser: any,
+): Promise<void> => {
   try {
     // Check if UserStatus already exists
     const existingStatus = await dataOperations.getUserStatus(email);
     if (existingStatus) {
       return; // Already exists, nothing to do
     }
-    
+
     // Extract attributes from Cognito user
     const attributes: Record<string, string> = {};
     cognitoUser.Attributes?.forEach((attr: any) => {
       if (attr.Name && attr.Value) attributes[attr.Name] = attr.Value;
     });
-    
+
     // Create UserStatus record
     const userStatus: UserStatus = {
       id: email,
       email: email,
       status: cognitoUser.Enabled ? "active" : "pending",
       role: (attributes["custom:role"] as UserStatus["role"]) || "user",
-      registrationDate: cognitoUser.UserCreateDate?.toISOString() || new Date().toISOString(),
-      lastStatusChange: cognitoUser.UserLastModifiedDate?.toISOString() || new Date().toISOString(),
-      firstName: attributes["given_name"] || attributes["custom:firstName"] || undefined,
-      lastName: attributes["family_name"] || attributes["custom:lastName"] || undefined,
+      registrationDate:
+        cognitoUser.UserCreateDate?.toISOString() || new Date().toISOString(),
+      lastStatusChange:
+        cognitoUser.UserLastModifiedDate?.toISOString() ||
+        new Date().toISOString(),
+      firstName:
+        attributes["given_name"] || attributes["custom:firstName"] || undefined,
+      lastName:
+        attributes["family_name"] || attributes["custom:lastName"] || undefined,
       companyName: attributes["custom:companyName"] || undefined,
     };
-    
+
     await dataOperations.createUserStatus(userStatus);
     console.log(`Created missing UserStatus record for ${email}`);
   } catch (error) {
@@ -269,9 +284,12 @@ export const userOperations = {
               if (dbUser) {
                 dbStatus = dbUser.status === null ? undefined : dbUser.status;
                 dbRole = dbUser.role === null ? undefined : dbUser.role;
-                dbFirstName = dbUser.firstName === null ? undefined : dbUser.firstName;
-                dbLastName = dbUser.lastName === null ? undefined : dbUser.lastName;
-                dbCompanyName = dbUser.companyName === null ? undefined : dbUser.companyName;
+                dbFirstName =
+                  dbUser.firstName === null ? undefined : dbUser.firstName;
+                dbLastName =
+                  dbUser.lastName === null ? undefined : dbUser.lastName;
+                dbCompanyName =
+                  dbUser.companyName === null ? undefined : dbUser.companyName;
                 if (dbUser.registrationDate)
                   registrationDate = dbUser.registrationDate;
                 if (dbUser.lastStatusChange)
@@ -279,14 +297,18 @@ export const userOperations = {
               }
             } catch (err) {
               // If UserStatus doesn't exist, create it
-              if ((err as Error).message.includes("ResourceNotFoundException") || 
-                  (err as Error).message.includes("not found")) {
-                console.log(`[listUsers] Creating missing UserStatus for ${email}`);
+              if (
+                (err as Error).message.includes("ResourceNotFoundException") ||
+                (err as Error).message.includes("not found")
+              ) {
+                console.log(
+                  `[listUsers] Creating missing UserStatus for ${email}`,
+                );
                 await createUserStatusIfMissing(email, cognitoUser);
               } else {
-              console.warn(
-                `[listUsers] Could not fetch DynamoDB UserStatus for ${email}: ${(err as Error).message}`,
-              );
+                console.warn(
+                  `[listUsers] Could not fetch DynamoDB UserStatus for ${email}: ${(err as Error).message}`,
+                );
               }
             }
           }
@@ -451,7 +473,7 @@ export const userOperations = {
   ): Promise<boolean> => {
     try {
       console.log(`Approving user ${email} by admin: ${adminEmail}`);
-      
+
       // Get existing user status to check if they're actually pending
       let existingUserStatus: any = {};
       try {
@@ -460,13 +482,16 @@ export const userOperations = {
           existingUserStatus = existingData;
         }
       } catch (getError) {
-        console.error(`Error fetching existing UserStatus record for ${email}:`, getError);
+        console.error(
+          `Error fetching existing UserStatus record for ${email}:`,
+          getError,
+        );
       }
-      
+
       // Enable user in Cognito
       await amplifyAuthOperations.enableUser(email);
       await amplifyAuthOperations.updateUserAttributes(email, [
-        { Name: "custom:status", Value: "ACTIVE" }
+        { Name: "custom:status", Value: "ACTIVE" },
       ]);
       await amplifyAuthOperations.addUserToGroup(email, "Approved-Users");
 
@@ -521,7 +546,8 @@ export const userOperations = {
         id: email,
         email: email,
         status: "active",
-        role: (profileData.role as UserStatus["role"]) ||
+        role:
+          (profileData.role as UserStatus["role"]) ||
           existingUserStatus.role ||
           "user",
         registrationDate: registrationDateToKeep,
@@ -537,7 +563,7 @@ export const userOperations = {
           undefined,
         lastLogin: existingUserStatus.lastLogin || undefined,
         notes: existingUserStatus.notes || undefined,
-        approvedBy: adminEmail,  // Set the approvedBy field
+        approvedBy: adminEmail, // Set the approvedBy field
         rejectionReason: undefined,
         suspensionReason: undefined,
         ttl: undefined,
@@ -581,11 +607,11 @@ export const userOperations = {
   ): Promise<boolean> => {
     try {
       console.log(`Rejecting user ${email} by admin: ${adminEmail}`);
-      
+
       // Disable user in Cognito
       await amplifyAuthOperations.disableUser(email);
       await amplifyAuthOperations.updateUserAttributes(email, [
-        { Name: "custom:status", Value: "REJECTED" }
+        { Name: "custom:status", Value: "REJECTED" },
       ]);
 
       // Get existing user data
@@ -605,7 +631,8 @@ export const userOperations = {
         email: email,
         status: "rejected",
         role: existingUserStatus.role || "user",
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
         rejectionReason: reason || "Application rejected by administrator",
@@ -618,13 +645,13 @@ export const userOperations = {
         suspensionReason: undefined,
         ttl: undefined,
       };
-      
+
       if (existingUserStatus.id) {
         await dataOperations.updateUserStatus(email, userStatusUpdateData);
       } else {
         await dataOperations.createUserStatus(userStatusUpdateData);
       }
-      
+
       // Create audit log entry
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -635,17 +662,20 @@ export const userOperations = {
         details: {
           email,
           reason: reason || "No reason provided",
-          rejectedAt: new Date().toISOString() 
+          rejectedAt: new Date().toISOString(),
         },
       });
-      
+
       // Send rejection email
-        await sendEmailHelper({
-          to: email,
+      await sendEmailHelper({
+        to: email,
         subject: "Account Application Status - MC3 GRC Platform",
-        message: rejectionTemplate({ reason: reason || "Your application has been rejected by an administrator." }),
-        });
-      
+        message: rejectionTemplate({
+          reason:
+            reason || "Your application has been rejected by an administrator.",
+        }),
+      });
+
       console.log(`Successfully rejected user ${email}`);
       return true;
     } catch (error) {
@@ -661,11 +691,11 @@ export const userOperations = {
   ): Promise<boolean> => {
     try {
       console.log(`Suspending user ${email} by admin: ${adminEmail}`);
-      
+
       // Disable user in Cognito
       await amplifyAuthOperations.disableUser(email);
       await amplifyAuthOperations.updateUserAttributes(email, [
-        { Name: "custom:status", Value: "SUSPENDED" }
+        { Name: "custom:status", Value: "SUSPENDED" },
       ]);
 
       // Get existing user data
@@ -685,7 +715,8 @@ export const userOperations = {
         email: email,
         status: "suspended",
         role: existingUserStatus.role || "user",
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
         suspensionReason: reason || "Suspended by administrator",
@@ -698,13 +729,13 @@ export const userOperations = {
         rejectionReason: undefined,
         ttl: undefined,
       };
-      
+
       if (existingUserStatus.id) {
         await dataOperations.updateUserStatus(email, userStatusUpdateData);
       } else {
         await dataOperations.createUserStatus(userStatusUpdateData);
       }
-      
+
       // Create audit log entry
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -715,17 +746,20 @@ export const userOperations = {
         details: {
           email,
           reason: reason || "No reason provided",
-          suspendedAt: new Date().toISOString() 
+          suspendedAt: new Date().toISOString(),
         },
       });
-      
+
       // Send suspension email
-        await sendEmailHelper({
-          to: email,
+      await sendEmailHelper({
+        to: email,
         subject: "Account Suspended - MC3 GRC Platform",
-        message: suspensionTemplate({ reason: reason || "Your account has been suspended by an administrator." }),
-        });
-      
+        message: suspensionTemplate({
+          reason:
+            reason || "Your account has been suspended by an administrator.",
+        }),
+      });
+
       console.log(`Successfully suspended user ${email}`);
       return true;
     } catch (error) {
@@ -744,9 +778,9 @@ export const userOperations = {
       // Enable user in Cognito
       await amplifyAuthOperations.enableUser(email);
       await amplifyAuthOperations.updateUserAttributes(email, [
-        { Name: "custom:status", Value: "ACTIVE" }
+        { Name: "custom:status", Value: "ACTIVE" },
       ]);
-      
+
       // Get existing user data
       let existingUserStatus: any = {};
       try {
@@ -757,14 +791,15 @@ export const userOperations = {
       } catch (getError) {
         console.warn(`No existing UserStatus record found for ${email}`);
       }
-      
+
       // Update UserStatus in DynamoDB
       const userStatusUpdateData: UserStatus = {
         id: email,
         email: email,
         status: "active",
         role: existingUserStatus.role || "user",
-        registrationDate: existingUserStatus.registrationDate || new Date().toISOString(),
+        registrationDate:
+          existingUserStatus.registrationDate || new Date().toISOString(),
         lastStatusChange: new Date().toISOString(),
         lastStatusChangeBy: adminEmail,
         firstName: existingUserStatus.firstName || undefined,
@@ -777,13 +812,13 @@ export const userOperations = {
         suspensionReason: undefined,
         ttl: undefined,
       };
-      
+
       if (existingUserStatus.id) {
         await dataOperations.updateUserStatus(email, userStatusUpdateData);
       } else {
         await dataOperations.createUserStatus(userStatusUpdateData);
       }
-      
+
       // Create audit log entry
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -793,17 +828,17 @@ export const userOperations = {
         resourceId: email,
         details: {
           email,
-          reactivatedAt: new Date().toISOString() 
+          reactivatedAt: new Date().toISOString(),
         },
       });
-      
+
       // Send reactivation email
       await sendEmailHelper({
         to: email,
         subject: "Account Reactivated - MC3 GRC Platform",
         message: reactivationTemplate(),
       });
-      
+
       console.log(`Successfully reactivated user ${email}`);
       return true;
     } catch (error) {
@@ -824,39 +859,41 @@ export const userOperations = {
     try {
       // Note: Allowing flexible email formats for test users
       console.log(`Creating user ${email} with role ${role}`);
-      
+
       // Generate a temporary password
       const tempPassword = generateSecurePassword();
-      
+
       // Create user in Cognito
       const cognitoUser = await amplifyAuthOperations.createUser({
         email: email,
         attributes: [
-        { Name: "email", Value: email },
-        { Name: "email_verified", Value: "true" },
-        { Name: "custom:role", Value: role },
+          { Name: "email", Value: email },
+          { Name: "email_verified", Value: "true" },
+          { Name: "custom:role", Value: role },
           ...(firstName ? [{ Name: "given_name", Value: firstName }] : []),
           ...(lastName ? [{ Name: "family_name", Value: lastName }] : []),
-          ...(companyName ? [{ Name: "custom:companyName", Value: companyName }] : []),
-          { Name: "custom:status", Value: "PENDING" }
+          ...(companyName
+            ? [{ Name: "custom:companyName", Value: companyName }]
+            : []),
+          { Name: "custom:status", Value: "PENDING" },
         ],
         temporaryPassword: tempPassword,
-        sendWelcomeEmail: false // We'll send our own custom email
+        sendWelcomeEmail: false, // We'll send our own custom email
       });
-      
+
       if (!cognitoUser) {
         throw new Error("Failed to create user in Cognito");
       }
 
       // Disable the user in Cognito until approved
       await amplifyAuthOperations.disableUser(email);
-      
+
       // Add user to appropriate group ONLY if they're admin
       if (role === "admin") {
         await amplifyAuthOperations.addUserToGroup(email, "GRC-Admin");
       }
       // Don't add to Approved-Users group - they need to be approved first
-      
+
       // Create UserStatus record in DynamoDB with pending status
       const userStatus: UserStatus = {
         id: email,
@@ -870,9 +907,9 @@ export const userOperations = {
         lastName: lastName || undefined,
         companyName: companyName || undefined,
       };
-      
+
       await dataOperations.createUserStatus(userStatus);
-      
+
       // Create audit log entry
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -884,28 +921,28 @@ export const userOperations = {
           email,
           role,
           status: "pending",
-          createdAt: new Date().toISOString() 
+          createdAt: new Date().toISOString(),
         },
       });
-      
+
       // Send welcome email with temporary password if requested
       if (shouldSendEmail) {
         const emailContent = `
           <h3>Welcome to MC3 GRC Platform!</h3>
-          <p>Dear ${firstName || 'User'},</p>
+          <p>Dear ${firstName || "User"},</p>
           <p>An account has been created for you on the MC3 GRC platform.</p>
           <p><strong>Your account is currently pending approval.</strong> An administrator will review and approve your account shortly.</p>
           <p>Once approved, you will receive another email with login instructions.</p>
           <p>Best regards,<br>The MC3 Admin Team</p>
         `;
-        
+
         await sendEmailHelper({
           to: email,
           subject: "Welcome to MC3 GRC Platform - Account Pending Approval",
           message: baseTemplate(emailContent),
         });
       }
-      
+
       console.log(`Successfully created user ${email} with pending status`);
       return {
         success: true,
@@ -917,13 +954,13 @@ export const userOperations = {
           companyName,
           status: "pending",
           tempPassword: shouldSendEmail ? undefined : tempPassword, // Only return password if email wasn't sent
-        }
+        },
       };
     } catch (error) {
       console.error(`Error creating user ${email}:`, error);
       return {
         success: false,
-        error: (error as Error).message
+        error: (error as Error).message,
       };
     }
   },
@@ -934,26 +971,34 @@ export const userOperations = {
     adminEmail: string = "system",
   ): Promise<boolean> => {
     try {
-      console.log(`Updating role for user ${email} to ${role} by admin: ${adminEmail}`);
-      
+      console.log(
+        `Updating role for user ${email} to ${role} by admin: ${adminEmail}`,
+      );
+
       // Update user attributes in Cognito
       await amplifyAuthOperations.updateUserAttributes(email, [
-        { Name: "custom:role", Value: role }
+        { Name: "custom:role", Value: role },
       ]);
-      
+
       // Update groups based on role
       const userGroups = await amplifyAuthOperations.getUserGroups(email);
-      
+
       // Remove from GRC-Admin group if changing from admin to user
-      if (userGroups.Groups?.some(g => g.GroupName === "GRC-Admin") && role !== "admin") {
+      if (
+        userGroups.Groups?.some((g) => g.GroupName === "GRC-Admin") &&
+        role !== "admin"
+      ) {
         await amplifyAuthOperations.removeUserFromGroup(email, "GRC-Admin");
       }
-      
+
       // Add to GRC-Admin group if changing to admin
-      if (role === "admin" && !userGroups.Groups?.some(g => g.GroupName === "GRC-Admin")) {
+      if (
+        role === "admin" &&
+        !userGroups.Groups?.some((g) => g.GroupName === "GRC-Admin")
+      ) {
         await amplifyAuthOperations.addUserToGroup(email, "GRC-Admin");
       }
-      
+
       // Update UserStatus in DynamoDB
       const existingUser = await dataOperations.getUserStatus(email);
       if (existingUser) {
@@ -961,8 +1006,8 @@ export const userOperations = {
           id: email,
           email: email,
           role: role as UserStatus["role"],
-        lastStatusChange: new Date().toISOString(),
-        lastStatusChangeBy: adminEmail,
+          lastStatusChange: new Date().toISOString(),
+          lastStatusChangeBy: adminEmail,
         });
       } else {
         // Create new UserStatus if it doesn't exist
@@ -975,8 +1020,8 @@ export const userOperations = {
           lastStatusChange: new Date().toISOString(),
           lastStatusChangeBy: adminEmail,
         });
-        }
-      
+      }
+
       // Create audit log entry
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -987,10 +1032,10 @@ export const userOperations = {
         details: {
           email,
           newRole: role,
-          updatedAt: new Date().toISOString() 
+          updatedAt: new Date().toISOString(),
         },
       });
-      
+
       console.log(`Successfully updated role for user ${email} to ${role}`);
       return true;
     } catch (error) {
@@ -1008,7 +1053,7 @@ export const userOperations = {
   ): Promise<boolean> => {
     try {
       console.log(`Updating profile for user ${email} by admin: ${adminEmail}`);
-      
+
       // Build attributes array for Cognito update
       const attributes: AttributeType[] = [];
       if (firstName !== undefined) {
@@ -1027,7 +1072,7 @@ export const userOperations = {
       if (attributes.length > 0) {
         await amplifyAuthOperations.updateUserAttributes(email, attributes);
       }
-      
+
       // Update UserStatus in DynamoDB
       const existingUser = await dataOperations.getUserStatus(email);
       const updateData: any = {
@@ -1037,10 +1082,12 @@ export const userOperations = {
         lastStatusChangeBy: adminEmail,
       };
 
-      if (firstName !== undefined) updateData.firstName = firstName || undefined;
+      if (firstName !== undefined)
+        updateData.firstName = firstName || undefined;
       if (lastName !== undefined) updateData.lastName = lastName || undefined;
-      if (companyName !== undefined) updateData.companyName = companyName || undefined;
-      
+      if (companyName !== undefined)
+        updateData.companyName = companyName || undefined;
+
       if (existingUser) {
         await dataOperations.updateUserStatus(email, updateData);
       } else {
@@ -1067,10 +1114,10 @@ export const userOperations = {
             ...(lastName !== undefined && { lastName }),
             ...(companyName !== undefined && { companyName }),
           },
-          updatedAt: new Date().toISOString() 
+          updatedAt: new Date().toISOString(),
         },
       });
-      
+
       console.log(`Successfully updated profile for user ${email}`);
       return true;
     } catch (error) {
@@ -1088,13 +1135,13 @@ export const userOperations = {
       if (!cognitoUser) {
         return JSON.stringify({ error: `User ${email} not found` });
       }
-      
+
       // Extract attributes
       const attributes: Record<string, string> = {};
       cognitoUser.UserAttributes?.forEach((attr) => {
         if (attr.Name && attr.Value) attributes[attr.Name] = attr.Value;
       });
-      
+
       // Get UserStatus from DynamoDB
       let dbUser: any = {};
       try {
@@ -1103,19 +1150,29 @@ export const userOperations = {
       } catch (err) {
         console.warn(`No UserStatus record found for ${email}`);
       }
-      
+
       // Build profile response
       const profile = {
         email,
-        firstName: attributes["given_name"] || attributes["custom:firstName"] || dbUser.firstName || "",
-        lastName: attributes["family_name"] || attributes["custom:lastName"] || dbUser.lastName || "",
-        companyName: attributes["custom:companyName"] || dbUser.companyName || "",
+        firstName:
+          attributes["given_name"] ||
+          attributes["custom:firstName"] ||
+          dbUser.firstName ||
+          "",
+        lastName:
+          attributes["family_name"] ||
+          attributes["custom:lastName"] ||
+          dbUser.lastName ||
+          "",
+        companyName:
+          attributes["custom:companyName"] || dbUser.companyName || "",
         role: dbUser.role || attributes["custom:role"] || "user",
         status: dbUser.status || "active",
-        registrationDate: dbUser.registrationDate || cognitoUser.UserCreateDate?.toISOString(),
+        registrationDate:
+          dbUser.registrationDate || cognitoUser.UserCreateDate?.toISOString(),
         lastLogin: dbUser.lastLogin,
       };
-      
+
       console.log(`Successfully retrieved profile for user ${email}`);
       return JSON.stringify(profile);
     } catch (error) {
@@ -1127,7 +1184,7 @@ export const userOperations = {
   getAdminStats: async (): Promise<AdminStats> => {
     try {
       console.log("Fetching admin stats");
-      
+
       // Get all users and count by status
       const allUsers = await dataOperations.listUsersByStatus();
       const userStats = {
@@ -1137,19 +1194,26 @@ export const userOperations = {
         rejected: 0,
         suspended: 0,
       };
-      
+
       allUsers.forEach((user: any) => {
-        if (user.status && user.status in userStats && user.status !== 'total') {
+        if (
+          user.status &&
+          user.status in userStats &&
+          user.status !== "total"
+        ) {
           userStats[user.status as keyof typeof userStats]++;
         }
       });
-      
+
       // Get recent audit logs
       const auditLogs = await dataOperations.listAuditLogs();
       const recentActivity = auditLogs
-        .sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .sort(
+          (a: any, b: any) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        )
         .slice(0, 10); // Get 10 most recent
-      
+
       // Return admin stats (assessments would need separate implementation)
       return {
         users: userStats,
@@ -1163,7 +1227,7 @@ export const userOperations = {
         complianceRate: 0,
         recentActivity,
       };
-      } catch (error) {
+    } catch (error) {
       console.error("Error fetching admin stats:", error);
       return {
         users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
@@ -1190,62 +1254,69 @@ export const userOperations = {
   ): Promise<string> => {
     try {
       console.log(`Getting audit logs with filters:`, { dateRange, filters });
-      
+
       // Get all audit logs
       let auditLogs = await dataOperations.listAuditLogs();
-      
+
       // Apply date range filter
       if (dateRange?.startDate || dateRange?.endDate) {
-        const startTime = dateRange.startDate ? new Date(dateRange.startDate).getTime() : 0;
-        const endTime = dateRange.endDate ? new Date(dateRange.endDate).getTime() : Date.now();
-        
+        const startTime = dateRange.startDate
+          ? new Date(dateRange.startDate).getTime()
+          : 0;
+        const endTime = dateRange.endDate
+          ? new Date(dateRange.endDate).getTime()
+          : Date.now();
+
         auditLogs = auditLogs.filter((log: any) => {
           const logTime = new Date(log.timestamp).getTime();
           return logTime >= startTime && logTime <= endTime;
         });
       }
-      
+
       // Apply action filter
       if (filters?.action) {
-        auditLogs = auditLogs.filter((log: any) => 
-          log.action === filters.action
+        auditLogs = auditLogs.filter(
+          (log: any) => log.action === filters.action,
         );
       }
-      
+
       // Apply performedBy filter
       if (filters?.performedBy) {
-        auditLogs = auditLogs.filter((log: any) => 
-          log.performedBy === filters.performedBy
+        auditLogs = auditLogs.filter(
+          (log: any) => log.performedBy === filters.performedBy,
         );
       }
-      
+
       // Apply affectedResource filter
       if (filters?.affectedResource) {
-        auditLogs = auditLogs.filter((log: any) => 
-          log.affectedResource === filters.affectedResource
+        auditLogs = auditLogs.filter(
+          (log: any) => log.affectedResource === filters.affectedResource,
         );
       }
 
       // Sort by timestamp descending
-      auditLogs.sort((a: any, b: any) => 
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      auditLogs.sort(
+        (a: any, b: any) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
-      
+
       console.log(`Found ${auditLogs.length} audit logs matching criteria`);
       return JSON.stringify(auditLogs);
     } catch (error) {
       console.error(`Error getting audit logs:`, error);
-      return JSON.stringify({ error: `Failed to get audit logs: ${(error as Error).message}` });
+      return JSON.stringify({
+        error: `Failed to get audit logs: ${(error as Error).message}`,
+      });
     }
   },
 
   getAllSystemSettings: async (): Promise<string> => {
     try {
       console.log(`Getting all system settings`);
-      
+
       // Get all system settings
       const settings = await dataOperations.listSystemSettings();
-      
+
       // Group settings by category
       const settingsByCategory: Record<string, SystemSetting[]> = {};
       settings.forEach((setting: SystemSetting) => {
@@ -1255,25 +1326,25 @@ export const userOperations = {
         }
         settingsByCategory[category].push(setting);
       });
-      
+
       // Sort settings within each category by name
-      Object.keys(settingsByCategory).forEach(category => {
-        settingsByCategory[category].sort((a, b) => 
-          (a.name || "").localeCompare(b.name || "")
+      Object.keys(settingsByCategory).forEach((category) => {
+        settingsByCategory[category].sort((a, b) =>
+          (a.name || "").localeCompare(b.name || ""),
         );
       });
-      
+
       console.log(`Found ${settings.length} system settings`);
-      return JSON.stringify({ 
-        settings, 
-        settingsByCategory 
+      return JSON.stringify({
+        settings,
+        settingsByCategory,
       });
     } catch (error) {
       console.error(`Error getting system settings:`, error);
       return JSON.stringify({
         settings: [],
         settingsByCategory: {},
-        error: `Failed to get system settings: ${(error as Error).message}` 
+        error: `Failed to get system settings: ${(error as Error).message}`,
       });
     }
   },
@@ -1285,60 +1356,67 @@ export const userOperations = {
     try {
       const settingsArray = Array.isArray(settings) ? settings : [settings];
       console.log(`Updating ${settingsArray.length} system settings`);
-      
+
       const results = await Promise.all(
         settingsArray.map(async (setting) => {
-        try {
+          try {
             // Check if setting exists
             let existingSetting;
             try {
-              existingSetting = await dataOperations.getSystemSettings(setting.id);
+              existingSetting = await dataOperations.getSystemSettings(
+                setting.id,
+              );
             } catch (err) {
               // Setting doesn't exist, will create new
             }
-            
+
             const settingData: SystemSetting = {
               ...setting,
               lastUpdated: new Date().toISOString(),
               updatedBy: updatedBy || "system",
             };
-            
+
             if (existingSetting) {
-              await dataOperations.updateSystemSettings(setting.id, settingData);
+              await dataOperations.updateSystemSettings(
+                setting.id,
+                settingData,
+              );
             } else {
               await dataOperations.createSystemSettings(settingData);
             }
-            
+
             // Create audit log entry
-          await createAuditLogEntry({
+            await createAuditLogEntry({
               timestamp: new Date().toISOString(),
               action: existingSetting ? "SETTING_UPDATED" : "SETTING_CREATED",
-            performedBy: updatedBy || "system",
+              performedBy: updatedBy || "system",
               affectedResource: "systemSetting",
-            resourceId: setting.id,
-            details: {
+              resourceId: setting.id,
+              details: {
                 settingName: setting.name,
                 settingValue: setting.value,
                 category: setting.category,
-            },
-          });
-            
+              },
+            });
+
             return { id: setting.id, success: true };
           } catch (error) {
             console.error(`Error updating setting ${setting.id}:`, error);
-            return { 
-              id: setting.id, 
-              success: false, 
-              error: (error as Error).message 
+            return {
+              id: setting.id,
+              success: false,
+              error: (error as Error).message,
             };
-        }
-        })
+          }
+        }),
       );
-      
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
-      
-      console.log(`Successfully updated ${successful} settings, ${failed} failed`);
+
+      const successful = results.filter((r) => r.success).length;
+      const failed = results.filter((r) => !r.success).length;
+
+      console.log(
+        `Successfully updated ${successful} settings, ${failed} failed`,
+      );
       return JSON.stringify({
         success: failed === 0,
         results,
@@ -1346,7 +1424,7 @@ export const userOperations = {
           total: results.length,
           successful,
           failed,
-        }
+        },
       });
     } catch (error) {
       console.error(`Error updating system settings:`, error);
@@ -1363,7 +1441,7 @@ export const userOperations = {
   ): Promise<{ success: boolean; message: string }> => {
     try {
       console.log(`Deleting user ${email} by admin: ${adminEmail}`);
-      
+
       // Delete user from Cognito
       await amplifyAuthOperations.deleteUser(email);
 
@@ -1372,15 +1450,15 @@ export const userOperations = {
       const existingUser = await dataOperations.getUserStatus(email);
       if (existingUser) {
         await dataOperations.updateUserStatus(email, {
-        id: email,
-        email: email,
+          id: email,
+          email: email,
           status: "deleted",
           lastStatusChange: new Date().toISOString(),
           lastStatusChangeBy: adminEmail,
           ttl: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60, // 30 days TTL
         });
       }
-      
+
       // Create audit log entry
       await createAuditLogEntry({
         timestamp: new Date().toISOString(),
@@ -1412,35 +1490,39 @@ export const userOperations = {
   }> => {
     try {
       console.log("Starting migration of Cognito users to DynamoDB");
-      
+
       let allCognitoUsers: any[] = [];
       let nextToken: string | undefined = undefined;
       let successCount = 0;
       let errorCount = 0;
-      
+
       // Paginate through all Cognito users
       do {
         const response = await amplifyAuthOperations.listUsers(60, nextToken);
         allCognitoUsers = allCognitoUsers.concat(response.Users || []);
         nextToken = response.PaginationToken;
       } while (nextToken);
-      
-      console.log(`Found ${allCognitoUsers.length} users in Cognito to migrate`);
+
+      console.log(
+        `Found ${allCognitoUsers.length} users in Cognito to migrate`,
+      );
 
       // Process each user
       for (const cognitoUser of allCognitoUsers) {
         try {
-        const attributes: Record<string, string> = {};
+          const attributes: Record<string, string> = {};
           cognitoUser.Attributes?.forEach((attr: any) => {
-          if (attr.Name && attr.Value) attributes[attr.Name] = attr.Value;
-        });
+            if (attr.Name && attr.Value) attributes[attr.Name] = attr.Value;
+          });
 
           const email = attributes["email"] || cognitoUser.Username;
-        if (!email) {
-            console.warn(`Skipping user without email: ${cognitoUser.Username}`);
-          errorCount++;
-          continue;
-        }
+          if (!email) {
+            console.warn(
+              `Skipping user without email: ${cognitoUser.Username}`,
+            );
+            errorCount++;
+            continue;
+          }
 
           // Check if UserStatus already exists
           try {
@@ -1459,17 +1541,26 @@ export const userOperations = {
             email: email,
             status: cognitoUser.Enabled ? "active" : "pending",
             role: (attributes["custom:role"] as UserStatus["role"]) || "user",
-            registrationDate: cognitoUser.UserCreateDate?.toISOString() || new Date().toISOString(),
-            lastStatusChange: cognitoUser.UserLastModifiedDate?.toISOString() || new Date().toISOString(),
-            firstName: attributes["given_name"] || attributes["custom:firstName"] || undefined,
-            lastName: attributes["family_name"] || attributes["custom:lastName"] || undefined,
+            registrationDate:
+              cognitoUser.UserCreateDate?.toISOString() ||
+              new Date().toISOString(),
+            lastStatusChange:
+              cognitoUser.UserLastModifiedDate?.toISOString() ||
+              new Date().toISOString(),
+            firstName:
+              attributes["given_name"] ||
+              attributes["custom:firstName"] ||
+              undefined,
+            lastName:
+              attributes["family_name"] ||
+              attributes["custom:lastName"] ||
+              undefined,
             companyName: attributes["custom:companyName"] || undefined,
           };
-          
+
           await dataOperations.createUserStatus(userStatus);
           console.log(`Successfully migrated user ${email}`);
           successCount++;
-          
         } catch (error) {
           console.error(`Error migrating user ${cognitoUser.Username}:`, error);
           errorCount++;
@@ -1486,22 +1577,24 @@ export const userOperations = {
           totalUsers: allCognitoUsers.length,
           successCount,
           errorCount,
-          completedAt: new Date().toISOString() 
+          completedAt: new Date().toISOString(),
         },
       });
 
-      console.log(`Migration completed: ${successCount} successful, ${errorCount} errors`);
-      return { 
-        success: errorCount === 0, 
-        count: successCount, 
-        errors: errorCount 
+      console.log(
+        `Migration completed: ${successCount} successful, ${errorCount} errors`,
+      );
+      return {
+        success: errorCount === 0,
+        count: successCount,
+        errors: errorCount,
       };
     } catch (error) {
       console.error("Error during user migration:", error);
-      return { 
-        success: false, 
-        count: 0, 
-        errors: 1 
+      return {
+        success: false,
+        count: 0,
+        errors: 1,
       };
     }
   },

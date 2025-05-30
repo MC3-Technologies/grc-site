@@ -637,13 +637,13 @@ export const deleteSection = async (
     }
 
     // Find the section to delete
-    const sectionToDelete = currentPages.find(page => page.id === sectionId);
+    const sectionToDelete = currentPages.find((page) => page.id === sectionId);
     if (!sectionToDelete) {
       throw new Error(`Section with ID ${sectionId} not found`);
     }
 
     // Remove the section from pages
-    const updatedPages = currentPages.filter(page => page.id !== sectionId);
+    const updatedPages = currentPages.filter((page) => page.id !== sectionId);
 
     // Get current version info
     const currentVersionInfo = await getCurrentVersionInfo();
@@ -660,7 +660,7 @@ export const deleteSection = async (
       version: newVersion,
       lastUpdated: new Date().toISOString(),
       updatedBy: deletedBy,
-      changeNotes: `Deleted section: ${sectionToDelete.title}${reason ? ` - ${reason}` : ''}`,
+      changeNotes: `Deleted section: ${sectionToDelete.title}${reason ? ` - ${reason}` : ""}`,
     };
 
     // Create the new version with updated pages
@@ -668,10 +668,13 @@ export const deleteSection = async (
 
     if (success) {
       // Update local storage with the new pages
-      localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+      localStorage.setItem(
+        QUESTIONNAIRE_STORAGE_KEY,
+        JSON.stringify(updatedPages),
+      );
 
       // Log the section deletion (this would ideally be stored in DynamoDB)
-      console.log('Section deleted successfully:', {
+      console.log("Section deleted successfully:", {
         sectionId,
         sectionTitle: sectionToDelete.title,
         deletedBy,
@@ -707,19 +710,23 @@ export const getVersionSpecificQuestionnaire = async (
 
     // Filter out sections that were deleted in this version or later
     const versionNum = parseFloat(version);
-    const filteredPages = pages.filter(page => {
-      const sectionDeletion = deletedSections.find(deletion => 
-        deletion.sectionId === page.id
+    const filteredPages = pages.filter((page) => {
+      const sectionDeletion = deletedSections.find(
+        (deletion) => deletion.sectionId === page.id,
       );
-      
+
       if (!sectionDeletion) {
         return true; // Section was never deleted
       }
 
       // Check if the section was deleted in a version after the requested version
-      const deletionVersions = sectionDeletion.affectedNewVersions.map(v => parseFloat(v));
-      const wasDeletedInThisVersion = deletionVersions.some(v => v <= versionNum);
-      
+      const deletionVersions = sectionDeletion.affectedNewVersions.map((v) =>
+        parseFloat(v),
+      );
+      const wasDeletedInThisVersion = deletionVersions.some(
+        (v) => v <= versionNum,
+      );
+
       return !wasDeletedInThisVersion; // Include if not deleted in this version
     });
 
@@ -746,7 +753,7 @@ export const sectionExistsInVersion = async (
       return false;
     }
 
-    return pages.some(page => page.id === sectionId);
+    return pages.some((page) => page.id === sectionId);
   } catch (error) {
     console.error("Error checking section existence in version:", error);
     return false;
@@ -778,13 +785,15 @@ export const restoreSection = async (
       throw new Error(`Could not load source version ${sourceVersion}`);
     }
 
-    const sectionToRestore = sourcePages.find(page => page.id === sectionId);
+    const sectionToRestore = sourcePages.find((page) => page.id === sectionId);
     if (!sectionToRestore) {
-      throw new Error(`Section ${sectionId} not found in version ${sourceVersion}`);
+      throw new Error(
+        `Section ${sectionId} not found in version ${sourceVersion}`,
+      );
     }
 
     // Check if section already exists in current version
-    if (currentPages.some(page => page.id === sectionId)) {
+    if (currentPages.some((page) => page.id === sectionId)) {
       throw new Error("Section already exists in current version");
     }
 
@@ -814,7 +823,10 @@ export const restoreSection = async (
 
     if (success) {
       // Update local storage with the new pages
-      localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+      localStorage.setItem(
+        QUESTIONNAIRE_STORAGE_KEY,
+        JSON.stringify(updatedPages),
+      );
     }
 
     return success;
@@ -829,9 +841,10 @@ export const restoreSection = async (
  * @param sectionData - Data for the new section
  * @returns Promise<string | null> - Returns the new section ID on success, null on failure
  */
-export const addNewSection = async (
-  sectionData: { title: string; elements: SurveyElement[] },
-): Promise<string | null> => {
+export const addNewSection = async (sectionData: {
+  title: string;
+  elements: SurveyElement[];
+}): Promise<string | null> => {
   try {
     // Get current questionnaire data
     const currentPages = loadSavedQuestionnaire();
@@ -853,10 +866,13 @@ export const addNewSection = async (
     const updatedPages = [...currentPages, newSection];
 
     // Save to localStorage (this is just adding to the current working version)
-    localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(updatedPages));
+    localStorage.setItem(
+      QUESTIONNAIRE_STORAGE_KEY,
+      JSON.stringify(updatedPages),
+    );
 
     // Log the section addition
-    console.log('Section added to current working version:', {
+    console.log("Section added to current working version:", {
       sectionId: newSectionId,
       sectionTitle: sectionData.title,
       addedAt: new Date().toISOString(),
@@ -878,13 +894,13 @@ export const renumberSections = (pages: QuestionPage[]): QuestionPage[] => {
   return pages.map((page, index) => {
     // Extract the base title without the section number
     let baseTitle = page.title;
-    
+
     // Remove existing section numbers (patterns like "Section 1 - ", "1. ", etc.)
-    baseTitle = baseTitle.replace(/^(Section\s+\d+\s*[-–—]\s*|^\d+\.\s*)/i, '');
-    
+    baseTitle = baseTitle.replace(/^(Section\s+\d+\s*[-–—]\s*|^\d+\.\s*)/i, "");
+
     // Add the new section number
     const newTitle = `Section ${index + 1} - ${baseTitle}`;
-    
+
     return {
       ...page,
       title: newTitle,

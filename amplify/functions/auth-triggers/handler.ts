@@ -48,7 +48,10 @@ const handlePreSignUp = async (event: any) => {
   try {
     // Create UserStatus record immediately on signup (before email confirmation)
     // This ensures the user appears in the admin dashboard right away
-    const result = await userStatusOperations.createPendingUserStatus(email, profileData);
+    const result = await userStatusOperations.createPendingUserStatus(
+      email,
+      profileData,
+    );
     if (!result) {
       console.warn(
         `Warning: Could not create UserStatus record for ${email}, but continuing sign-up process`,
@@ -119,20 +122,23 @@ const handlePostConfirmation = async (event: any) => {
     try {
       // Check if the record already exists (might have been created in PreSignUp)
       const existingRecord = await userStatusOperations.getUserStatus(email);
-      
+
       if (!existingRecord) {
         // Record doesn't exist, create it now
-      const dbRecordCreated =
-        await userStatusOperations.createPendingUserStatus(email, profileData);
-      if (dbRecordCreated) {
-        //console.log(
-        //  `[PostConfirmation] - Successfully created initial pending DynamoDB record for user: ${email}`,
-        //);
-      } else {
-        //console.warn(
-        //  `[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`,
-        //);
-        // Continue the process even if DB creation fails initially
+        const dbRecordCreated =
+          await userStatusOperations.createPendingUserStatus(
+            email,
+            profileData,
+          );
+        if (dbRecordCreated) {
+          //console.log(
+          //  `[PostConfirmation] - Successfully created initial pending DynamoDB record for user: ${email}`,
+          //);
+        } else {
+          //console.warn(
+          //  `[PostConfirmation] ⚠️ createPendingUserStatus returned false for ${email}.`,
+          //);
+          // Continue the process even if DB creation fails initially
         }
       } else {
         //console.log(

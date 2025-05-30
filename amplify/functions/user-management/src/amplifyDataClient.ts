@@ -4,15 +4,16 @@ import type { Schema } from "../../../data/resource";
 
 // For Lambda resolvers in the data stack, we need to check if we're running
 // in an AppSync context or standalone
-const isAppSyncResolver = !!process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.API_ENDPOINT;
+const isAppSyncResolver =
+  !!process.env.AWS_LAMBDA_FUNCTION_NAME && !process.env.API_ENDPOINT;
 
 if (!isAppSyncResolver) {
   // Only configure Amplify if we're not running as an AppSync resolver
   const graphqlEndpoint = process.env.API_ENDPOINT;
-  
+
   if (graphqlEndpoint) {
     console.log("Configuring Amplify with GraphQL endpoint:", graphqlEndpoint);
-    
+
     Amplify.configure({
       API: {
         GraphQL: {
@@ -39,7 +40,9 @@ export const amplifyDataOperations = {
   async createUserStatus(userStatus: any) {
     const result = await dataClient.models.UserStatus.create(userStatus);
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to create user status: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to create user status: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -58,7 +61,9 @@ export const amplifyDataOperations = {
       ...updates,
     });
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to update user status: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to update user status: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -66,7 +71,9 @@ export const amplifyDataOperations = {
   async deleteUserStatus(id: string) {
     const result = await dataClient.models.UserStatus.delete({ id });
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to delete user status: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to delete user status: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -81,7 +88,9 @@ export const amplifyDataOperations = {
         },
       });
       if (result.errors && result.errors.length > 0) {
-        throw new Error(`Failed to list users by status: ${result.errors[0].message}`);
+        throw new Error(
+          `Failed to list users by status: ${result.errors[0].message}`,
+        );
       }
       return result.data;
     } else {
@@ -97,7 +106,9 @@ export const amplifyDataOperations = {
   async createAuditLog(auditLog: any) {
     const result = await dataClient.models.AuditLog.create(auditLog);
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to create audit log: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to create audit log: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -114,7 +125,9 @@ export const amplifyDataOperations = {
   async listCompletedAssessments() {
     const result = await dataClient.models.CompletedAssessment.list();
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to list completed assessments: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to list completed assessments: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -122,7 +135,9 @@ export const amplifyDataOperations = {
   async listInProgressAssessments() {
     const result = await dataClient.models.InProgressAssessment.list();
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to list in-progress assessments: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to list in-progress assessments: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -130,7 +145,9 @@ export const amplifyDataOperations = {
   async getCompletedAssessment(id: string) {
     const result = await dataClient.models.CompletedAssessment.get({ id });
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to get completed assessment: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to get completed assessment: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -138,7 +155,9 @@ export const amplifyDataOperations = {
   async getInProgressAssessment(id: string) {
     const result = await dataClient.models.InProgressAssessment.get({ id });
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to get in-progress assessment: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to get in-progress assessment: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -147,7 +166,9 @@ export const amplifyDataOperations = {
   async getSystemSettings(id: string) {
     const result = await dataClient.models.SystemSettings.get({ id });
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to get system settings: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to get system settings: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -155,7 +176,9 @@ export const amplifyDataOperations = {
   async listSystemSettings() {
     const result = await dataClient.models.SystemSettings.list();
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to list system settings: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to list system settings: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -163,7 +186,9 @@ export const amplifyDataOperations = {
   async createSystemSettings(settings: any) {
     const result = await dataClient.models.SystemSettings.create(settings);
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to create system settings: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to create system settings: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },
@@ -174,7 +199,9 @@ export const amplifyDataOperations = {
       ...updates,
     });
     if (result.errors && result.errors.length > 0) {
-      throw new Error(`Failed to update system settings: ${result.errors[0].message}`);
+      throw new Error(
+        `Failed to update system settings: ${result.errors[0].message}`,
+      );
     }
     return result.data;
   },

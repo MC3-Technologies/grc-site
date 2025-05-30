@@ -14,7 +14,8 @@ const userStatusToUser = (userStatus: any): User => {
     lastName: userStatus.lastName || "",
     role: userStatus.role || "user",
     status: userStatus.status || "pending",
-    enabled: userStatus.status !== "suspended" && userStatus.status !== "rejected",
+    enabled:
+      userStatus.status !== "suspended" && userStatus.status !== "rejected",
     created: userStatus.registrationDate || new Date().toISOString(),
     lastModified: userStatus.lastStatusChange || new Date().toISOString(),
     attributes: {
@@ -34,13 +35,15 @@ export const listAllUsers = async (): Promise<User[]> => {
 
     // In development mode, return mock data
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Using mock users instead of Amplify API call");
+      console.log(
+        "DEVELOPMENT MODE: Using mock users instead of Amplify API call",
+      );
       const { getMockUsers } = await import("./adminUser");
       return getMockUsers();
     }
 
     const response = await client.queries.getAllUsers();
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
       throw new Error(`Failed to fetch users: ${response.errors[0].message}`);
@@ -52,7 +55,7 @@ export const listAllUsers = async (): Promise<User[]> => {
 
     // Parse the JSON response
     const usersData = JSON.parse(response.data as string);
-    
+
     if (usersData.error) {
       throw new Error(usersData.error);
     }
@@ -72,7 +75,9 @@ export const getUsersByStatus = async (status: string): Promise<User[]> => {
 
     // In development mode, return mock data
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Using filtered mock users instead of Amplify API call");
+      console.log(
+        "DEVELOPMENT MODE: Using filtered mock users instead of Amplify API call",
+      );
       const { getFilteredMockUsers } = await import("./adminUser");
       return getFilteredMockUsers(status as UserStatusType);
     }
@@ -80,10 +85,12 @@ export const getUsersByStatus = async (status: string): Promise<User[]> => {
     const response = await client.queries.getUsersByStatus({
       status: status,
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
-      throw new Error(`Failed to fetch users by status: ${response.errors[0].message}`);
+      throw new Error(
+        `Failed to fetch users by status: ${response.errors[0].message}`,
+      );
     }
 
     if (!response.data) {
@@ -92,7 +99,7 @@ export const getUsersByStatus = async (status: string): Promise<User[]> => {
 
     // Parse the JSON response
     const usersData = JSON.parse(response.data as string);
-    
+
     if (usersData.error) {
       throw new Error(usersData.error);
     }
@@ -112,7 +119,9 @@ export const getUserDetails = async (email: string): Promise<User> => {
 
     // In development mode, return mock data
     if (process.env.NODE_ENV !== "production") {
-      console.log("DEVELOPMENT MODE: Using mock user instead of Amplify API call");
+      console.log(
+        "DEVELOPMENT MODE: Using mock user instead of Amplify API call",
+      );
       const { getMockUsers } = await import("./adminUser");
       const mockUsers = getMockUsers();
       const user = mockUsers.find((u) => u.email === email);
@@ -123,10 +132,12 @@ export const getUserDetails = async (email: string): Promise<User> => {
     const response = await client.queries.getUserDetails({
       email: email,
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
-      throw new Error(`Failed to fetch user details: ${response.errors[0].message}`);
+      throw new Error(
+        `Failed to fetch user details: ${response.errors[0].message}`,
+      );
     }
 
     if (!response.data) {
@@ -135,7 +146,7 @@ export const getUserDetails = async (email: string): Promise<User> => {
 
     // Parse the JSON response
     const userData = JSON.parse(response.data as string);
-    
+
     if (userData.error) {
       throw new Error(userData.error);
     }
@@ -163,7 +174,7 @@ export const approveUser = async (email: string): Promise<boolean> => {
       email: email,
       adminEmail: "admin", // You might want to get this from current user context
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
       throw new Error(`Failed to approve user: ${response.errors[0].message}`);
@@ -177,7 +188,10 @@ export const approveUser = async (email: string): Promise<boolean> => {
 };
 
 // Reject user using Amplify Data API
-export const rejectUser = async (email: string, reason?: string): Promise<boolean> => {
+export const rejectUser = async (
+  email: string,
+  reason?: string,
+): Promise<boolean> => {
   try {
     console.log(`Rejecting user: ${email}`);
 
@@ -192,7 +206,7 @@ export const rejectUser = async (email: string, reason?: string): Promise<boolea
       reason: reason,
       adminEmail: "admin", // You might want to get this from current user context
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
       throw new Error(`Failed to reject user: ${response.errors[0].message}`);
@@ -206,7 +220,10 @@ export const rejectUser = async (email: string, reason?: string): Promise<boolea
 };
 
 // Suspend user using Amplify Data API
-export const suspendUser = async (email: string, reason?: string): Promise<boolean> => {
+export const suspendUser = async (
+  email: string,
+  reason?: string,
+): Promise<boolean> => {
   try {
     console.log(`Suspending user: ${email}`);
 
@@ -221,7 +238,7 @@ export const suspendUser = async (email: string, reason?: string): Promise<boole
       reason: reason,
       adminEmail: "admin", // You might want to get this from current user context
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
       throw new Error(`Failed to suspend user: ${response.errors[0].message}`);
@@ -249,10 +266,12 @@ export const reactivateUser = async (email: string): Promise<boolean> => {
       email: email,
       adminEmail: "admin", // You might want to get this from current user context
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
-      throw new Error(`Failed to reactivate user: ${response.errors[0].message}`);
+      throw new Error(
+        `Failed to reactivate user: ${response.errors[0].message}`,
+      );
     }
 
     return response.data === true;
@@ -307,7 +326,7 @@ export const createUser = async (
       lastName: lastName,
       companyName: companyName,
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
       return {
@@ -325,7 +344,7 @@ export const createUser = async (
 
     // Parse the JSON response
     const result = JSON.parse(response.data as string);
-    
+
     if (!result.success) {
       return {
         success: false,
@@ -347,7 +366,10 @@ export const createUser = async (
 };
 
 // Update user role using Amplify Data API
-export const updateUserRole = async (email: string, role: string): Promise<boolean> => {
+export const updateUserRole = async (
+  email: string,
+  role: string,
+): Promise<boolean> => {
   try {
     console.log(`Updating user role: ${email} to ${role}`);
 
@@ -362,10 +384,12 @@ export const updateUserRole = async (email: string, role: string): Promise<boole
       role: role,
       adminEmail: "admin", // You might want to get this from current user context
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
-      throw new Error(`Failed to update user role: ${response.errors[0].message}`);
+      throw new Error(
+        `Failed to update user role: ${response.errors[0].message}`,
+      );
     }
 
     return response.data === true;
@@ -390,7 +414,7 @@ export const deleteUser = async (email: string): Promise<boolean> => {
       email: email,
       adminEmail: "admin", // You might want to get this from current user context
     });
-    
+
     if (response.errors && response.errors.length > 0) {
       console.error("Amplify API errors:", response.errors);
       throw new Error(`Failed to delete user: ${response.errors[0].message}`);
@@ -402,10 +426,10 @@ export const deleteUser = async (email: string): Promise<boolean> => {
 
     // Parse the JSON response
     const result = JSON.parse(response.data as string);
-    
+
     return result.success === true;
   } catch (error) {
     console.error(`Error deleting user ${email}:`, error);
     throw error;
   }
-}; 
+};

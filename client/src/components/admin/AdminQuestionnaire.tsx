@@ -44,10 +44,12 @@ const AdminQuestionnaire = () => {
     }
 
     //console.log("Using default questionnaire data");
-    const defaultPages = surveyJson.pages.map((page: SurveyPage, index: number) => ({
-      ...page,
-      id: `page-${index}`,
-    }));
+    const defaultPages = surveyJson.pages.map(
+      (page: SurveyPage, index: number) => ({
+        ...page,
+        id: `page-${index}`,
+      }),
+    );
 
     // Apply renumbering to ensure proper section numbering
     return renumberSections(defaultPages);
@@ -298,8 +300,10 @@ const AdminQuestionnaire = () => {
       draggedSection !== dragOverSection
     ) {
       // Find the indices of the dragged and drop target sections
-      const draggedIndex = pages.findIndex(page => page.id === draggedSection);
-      const dropIndex = pages.findIndex(page => page.id === dragOverSection);
+      const draggedIndex = pages.findIndex(
+        (page) => page.id === draggedSection,
+      );
+      const dropIndex = pages.findIndex((page) => page.id === dragOverSection);
 
       if (draggedIndex !== -1 && dropIndex !== -1) {
         // Create a new array with reordered sections
@@ -319,7 +323,10 @@ const AdminQuestionnaire = () => {
         setPages(renumberedPages);
 
         // Save to localStorage
-        localStorage.setItem(QUESTIONNAIRE_STORAGE_KEY, JSON.stringify(renumberedPages));
+        localStorage.setItem(
+          QUESTIONNAIRE_STORAGE_KEY,
+          JSON.stringify(renumberedPages),
+        );
 
         // Notify other components
         notifyQuestionnaireUpdate();
@@ -457,7 +464,7 @@ const AdminQuestionnaire = () => {
         if (loadedData) {
           // Apply renumbering to ensure proper section numbering
           const renumberedData = renumberSections(loadedData);
-          
+
           // Update the pages state with fresh data
           setPages(renumberedData);
 
@@ -490,21 +497,24 @@ const AdminQuestionnaire = () => {
     try {
       // Get current user email for tracking
       const currentUser = await getCurrentUser();
-      const userEmail = currentUser.signInDetails?.loginId || currentUser.username || "admin";
+      const userEmail =
+        currentUser.signInDetails?.loginId || currentUser.username || "admin";
 
       const success = await deleteSection(
         sectionToDelete.id,
         userEmail,
-        deleteReason.trim() || undefined
+        deleteReason.trim() || undefined,
       );
 
       if (success) {
         // Remove the section from local state
-        let updatedPages = pages.filter(page => page.id !== sectionToDelete.id);
-        
+        let updatedPages = pages.filter(
+          (page) => page.id !== sectionToDelete.id,
+        );
+
         // Renumber the remaining sections
         updatedPages = renumberSections(updatedPages);
-        
+
         setPages(updatedPages);
 
         // Clear selected page if it was the deleted one
@@ -513,7 +523,9 @@ const AdminQuestionnaire = () => {
         }
 
         // Show success message
-        setSuccessMessage(`Section "${sectionToDelete.title}" has been deleted successfully.`);
+        setSuccessMessage(
+          `Section "${sectionToDelete.title}" has been deleted successfully.`,
+        );
         setTimeout(() => setSuccessMessage(null), 5000);
 
         // Refresh version info
@@ -566,7 +578,7 @@ const AdminQuestionnaire = () => {
             name: `section_${Date.now()}_question_1`,
             title: "Sample Question",
             isRequired: false,
-          } as SurveyElement
+          } as SurveyElement,
         ],
       };
 
@@ -575,7 +587,7 @@ const AdminQuestionnaire = () => {
       if (newSectionIdResult) {
         // Get updated pages and renumber them
         let updatedPages = [...pages];
-        
+
         // Add the new section
         const newSection: QuestionPage = {
           id: newSectionIdResult,
@@ -583,14 +595,16 @@ const AdminQuestionnaire = () => {
           elements: sectionData.elements,
         };
         updatedPages.push(newSection);
-        
+
         // Renumber all sections to include proper "Section #" numbering
         updatedPages = renumberSections(updatedPages);
-        
+
         setPages(updatedPages);
 
         // Show success message
-        setSuccessMessage(`Section "${newSectionTitle}" has been added successfully.`);
+        setSuccessMessage(
+          `Section "${newSectionTitle}" has been added successfully.`,
+        );
         setTimeout(() => setSuccessMessage(null), 5000);
 
         // Notify other components
@@ -719,10 +733,10 @@ const AdminQuestionnaire = () => {
                         selectedPage === page.id
                           ? "bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-white"
                           : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-                      } ${
-                        draggedSection === page.id ? "opacity-50" : ""
-                      } ${
-                        dragOverSection === page.id ? "border-2 border-blue-500" : "border border-transparent"
+                      } ${draggedSection === page.id ? "opacity-50" : ""} ${
+                        dragOverSection === page.id
+                          ? "border-2 border-blue-500"
+                          : "border border-transparent"
                       }`}
                       draggable="true"
                       onDragStart={(e) => handleSectionDragStart(e, page.id)}
@@ -758,7 +772,9 @@ const AdminQuestionnaire = () => {
                           </div>
                         </button>
                         <button
-                          onClick={() => handleDeleteSectionClick(page.id, page.title)}
+                          onClick={() =>
+                            handleDeleteSectionClick(page.id, page.title)
+                          }
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
                           aria-label={`Delete section: ${page.title}`}
                           title={`Delete section: ${page.title}`}
@@ -1454,21 +1470,25 @@ const AdminQuestionnaire = () => {
                 Delete Section
               </h3>
             </div>
-            
+
             <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Are you sure you want to delete the section "{sectionToDelete.title}"? 
-              This action will create a new questionnaire version without this section.
+              Are you sure you want to delete the section "
+              {sectionToDelete.title}"? This action will create a new
+              questionnaire version without this section.
             </p>
-            
+
             <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
               <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                <strong>Important:</strong> Users with ongoing assessments will keep this section, 
-                but new assessments will not include it.
+                <strong>Important:</strong> Users with ongoing assessments will
+                keep this section, but new assessments will not include it.
               </p>
             </div>
 
             <div className="mb-4">
-              <label htmlFor="delete-reason" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                htmlFor="delete-reason"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Reason for deletion (optional)
               </label>
               <textarea
@@ -1496,9 +1516,25 @@ const AdminQuestionnaire = () => {
               >
                 {isDeleting ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Deleting...
                   </>
@@ -1534,13 +1570,17 @@ const AdminQuestionnaire = () => {
                 Add New Section
               </h3>
             </div>
-            
+
             <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Create a new section for your questionnaire. The section will be automatically numbered.
+              Create a new section for your questionnaire. The section will be
+              automatically numbered.
             </p>
 
             <div className="mb-4">
-              <label htmlFor="section-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                htmlFor="section-title"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
                 Section Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -1556,8 +1596,9 @@ const AdminQuestionnaire = () => {
 
             <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Note:</strong> A new section will be created with a sample question that you can edit. 
-                This will create a new questionnaire version.
+                <strong>Note:</strong> A new section will be created with a
+                sample question that you can edit. This will create a new
+                questionnaire version.
               </p>
             </div>
 
@@ -1576,9 +1617,25 @@ const AdminQuestionnaire = () => {
               >
                 {isAddingSection ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Adding...
                   </>

@@ -57,7 +57,13 @@ const schema = a
       .model({
         id: a.id().required(),
         email: a.string().required(),
-        status: a.enum(["pending", "active", "suspended", "rejected", "deleted"]),
+        status: a.enum([
+          "pending",
+          "active",
+          "suspended",
+          "rejected",
+          "deleted",
+        ]),
         role: a.enum(["user", "admin"]),
         lastName: a.string(),
         firstName: a.string(),
@@ -297,9 +303,7 @@ const schema = a
         changeNotes: a.string(),
         s3Path: a.string().required(),
       })
-      .secondaryIndexes((index) => [
-        index("version").name("version-index"),
-      ])
+      .secondaryIndexes((index) => [index("version").name("version-index")])
       .authorization((allow) => [
         allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
         allow.authenticated("userPools").to(["read"]),
@@ -317,7 +321,9 @@ const schema = a
         affectedNewVersions: a.string().array(), // Array of version numbers where this section is deleted
       })
       .secondaryIndexes((index) => [
-        index("questionnaireVersionId").sortKeys(["deletedAt"]).name("version-deletions"),
+        index("questionnaireVersionId")
+          .sortKeys(["deletedAt"])
+          .name("version-deletions"),
         index("sectionId").name("section-index"),
       ])
       .authorization((allow) => [

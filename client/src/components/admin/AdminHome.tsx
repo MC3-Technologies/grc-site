@@ -119,31 +119,38 @@ export default function AdminHome() {
         // DEBUG: Log the actual activities received
         console.log("🔍 DEBUG: Recent activities received from API:", {
           count: stats.recentActivity?.length || 0,
-          activities: stats.recentActivity?.slice(0, 5).map(activity => ({
-            action: activity.action,
-            timestamp: activity.timestamp,
-            resourceId: activity.resourceId
-          })) || []
+          activities:
+            stats.recentActivity?.slice(0, 5).map((activity) => ({
+              action: activity.action,
+              timestamp: activity.timestamp,
+              resourceId: activity.resourceId,
+            })) || [],
         });
 
         // DEBUG: Show the 5 most recent activity timestamps
         if (stats.recentActivity && stats.recentActivity.length > 0) {
-          const recentTimestamps = stats.recentActivity.slice(0, 5).map(activity => ({
-            action: activity.action,
-            timestamp: activity.timestamp,
-            resourceId: activity.resourceId,
-            performedBy: activity.performedBy,
-            formattedTime: formatDateToHST(activity.timestamp)
-          }));
+          const recentTimestamps = stats.recentActivity
+            .slice(0, 5)
+            .map((activity) => ({
+              action: activity.action,
+              timestamp: activity.timestamp,
+              resourceId: activity.resourceId,
+              performedBy: activity.performedBy,
+              formattedTime: formatDateToHST(activity.timestamp),
+            }));
           console.log("🔍 DEBUG: 5 Most Recent Activities:", recentTimestamps);
         }
 
         // Count activities by action type for debugging
-        const actionCounts = stats.recentActivity?.reduce((acc, activity) => {
-          acc[activity.action] = (acc[activity.action] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>) || {};
-        
+        const actionCounts =
+          stats.recentActivity?.reduce(
+            (acc, activity) => {
+              acc[activity.action] = (acc[activity.action] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          ) || {};
+
         console.log("🔍 DEBUG: Activity breakdown by action:", actionCounts);
 
         // Add debugging timestamp to help identify when data was last processed
@@ -200,7 +207,8 @@ export default function AdminHome() {
         }
 
         // For USER_CREATED events, add extra delay for DynamoDB consistency
-        const refreshDelay = eventType === AdminEvents.USER_CREATED ? 2000 : 500;
+        const refreshDelay =
+          eventType === AdminEvents.USER_CREATED ? 2000 : 500;
 
         // Force refresh with delay to allow backend to fully process
         setTimeout(() => {
@@ -359,7 +367,8 @@ export default function AdminHome() {
       ) {
         //logDebug(`Refreshing after admin action: ${eventType}`);
         // Add a longer delay for USER_CREATED to ensure DynamoDB consistency
-        const refreshDelay = eventType === AdminEvents.USER_CREATED ? 2500 : 1000;
+        const refreshDelay =
+          eventType === AdminEvents.USER_CREATED ? 2500 : 1000;
         setTimeout(() => {
           //console.log(`Triggering refresh due to admin action: ${eventType}`);
           // Force increment to trigger UI rerenders
@@ -906,8 +915,8 @@ export default function AdminHome() {
                     adminStats.recentActivity.length > 0 ? (
                       // Filter activities based on current filters
                       (() => {
-                        const filteredActivities = adminStats.recentActivity
-                          .filter((activity) => {
+                        const filteredActivities =
+                          adminStats.recentActivity.filter((activity) => {
                             // User Email Filter
                             const emailMatches = (() => {
                               if (!userFilter) return true;
@@ -968,70 +977,75 @@ export default function AdminHome() {
                             actionFilter: actionFilter || "(none)",
                             adminEmailFilter: adminEmailFilter || "(none)",
                             startDateFilter: startDateFilter || "(none)",
-                            endDateFilter: endDateFilter || "(none)"
+                            endDateFilter: endDateFilter || "(none)",
                           },
-                          filteredActivityActions: filteredActivities.map(a => a.action)
+                          filteredActivityActions: filteredActivities.map(
+                            (a) => a.action,
+                          ),
                         });
 
-                        return filteredActivities
-                          // Apply pagination to display only a subset of activities
-                          .slice(
-                            (currentPage - 1) * activitiesPerPage,
-                            currentPage * activitiesPerPage,
-                          )
-                          .map((activity, index) => {
-                            // Skip invalid activities to prevent rendering errors
-                            if (!activity || !activity.action) {
-                              console.warn(
-                                "Skipping invalid activity:",
-                                activity,
-                              );
-                              return null;
-                            }
+                        return (
+                          filteredActivities
+                            // Apply pagination to display only a subset of activities
+                            .slice(
+                              (currentPage - 1) * activitiesPerPage,
+                              currentPage * activitiesPerPage,
+                            )
+                            .map((activity, index) => {
+                              // Skip invalid activities to prevent rendering errors
+                              if (!activity || !activity.action) {
+                                console.warn(
+                                  "Skipping invalid activity:",
+                                  activity,
+                                );
+                                return null;
+                              }
 
-                            try {
-                              return (
-                                <tr
-                                  key={activity.id || `activity-${index}`}
-                                  className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                                >
-                                  <td className="py-4 px-6">
-                                    {formatDateToHST(activity.timestamp)}
-                                  </td>
-                                  <td className="py-4 px-6">
-                                    <span
-                                      className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
-                                    >
-                                      {formatActionName(activity.action)}
-                                    </span>
-                                  </td>
-                                  <td className="py-4 px-6">
-                                    {activity.performedBy || "System"}
-                                  </td>
-                                  <td className="py-4 px-6">
-                                    {activity.affectedResource || "Unknown"}
-                                    {(activity.resourceId ||
-                                      activity.details?.email) && (
-                                      <span className="block text-xs text-gray-500 dark:text-gray-400">
-                                        {(activity.details?.email as string) ||
-                                          activity.resourceId}
+                              try {
+                                return (
+                                  <tr
+                                    key={activity.id || `activity-${index}`}
+                                    className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                                  >
+                                    <td className="py-4 px-6">
+                                      {formatDateToHST(activity.timestamp)}
+                                    </td>
+                                    <td className="py-4 px-6">
+                                      <span
+                                        className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
+                                      >
+                                        {formatActionName(activity.action)}
                                       </span>
-                                    )}
-                                  </td>
-                                  <td className="py-4 px-6">
-                                    {formatActivityDetails(activity)}
-                                  </td>
-                                </tr>
-                              );
-                            } catch (error) {
-                              console.error(
-                                "Error rendering activity:",
-                                error,
-                                activity,
-                              );
-                              return null;
-                            }
-                          });
+                                    </td>
+                                    <td className="py-4 px-6">
+                                      {activity.performedBy || "System"}
+                                    </td>
+                                    <td className="py-4 px-6">
+                                      {activity.affectedResource || "Unknown"}
+                                      {(activity.resourceId ||
+                                        activity.details?.email) && (
+                                        <span className="block text-xs text-gray-500 dark:text-gray-400">
+                                          {(activity.details
+                                            ?.email as string) ||
+                                            activity.resourceId}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-4 px-6">
+                                      {formatActivityDetails(activity)}
+                                    </td>
+                                  </tr>
+                                );
+                              } catch (error) {
+                                console.error(
+                                  "Error rendering activity:",
+                                  error,
+                                  activity,
+                                );
+                                return null;
+                              }
+                            })
+                        );
                       })()
                     ) : (
                       <tr>

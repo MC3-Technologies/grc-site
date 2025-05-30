@@ -55,7 +55,7 @@ const calculateDuration = (startDate: string, endDate: string): string => {
 
   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
   const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
 
   if (days > 0) {
@@ -139,7 +139,7 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam
+            assessmentIdParam,
           );
 
         // Parse the assessment JSON data
@@ -274,7 +274,7 @@ export function CompletedAssessmentView() {
     // If error fetching assessment
     if (pageData.error) {
       return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`
+        `There was an error fetching your completed assessment : ${pageData.error}`,
       );
     }
     // If fetching assessment successful
@@ -327,7 +327,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {calculateDuration(
                         assessmentData.createdAt,
-                        assessmentData.completedAt
+                        assessmentData.completedAt,
                       )}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -442,7 +442,7 @@ export function CompletedAssessmentView() {
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(
-      "Error getting assessment, fetching operation never started!"
+      "Error getting assessment, fetching operation never started!",
     );
   };
 
@@ -467,5 +467,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>
+  </StrictMode>,
 );
