@@ -57,7 +57,7 @@ const schema = a
       .model({
         id: a.id().required(),
         email: a.string().required(),
-        status: a.enum(["pending", "active", "suspended", "rejected"]),
+        status: a.enum(["pending", "active", "suspended", "rejected", "deleted"]),
         role: a.enum(["user", "admin"]),
         lastName: a.string(),
         firstName: a.string(),

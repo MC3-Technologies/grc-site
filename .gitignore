@@ -17,3 +17,20 @@ postcss.config.js
 tailwind.config.js
 tsconfig.json
 tsconfig.node.json
+amplify/functions/user-management/src/userOperations.ts
+fixedFiles/AdminHome.tsx
+fixedFiles/amplifyAdminClient.ts
+fixedFiles/amplifyAuthClient.ts
+fixedFiles/amplifyDataClient.ts
+fixedFiles/backend.ts
+fixedFiles/dynamoDbOperations.ts
+fixedFiles/handler copy.ts
+fixedFiles/handler.ts
+fixedFiles/preSignupFunctions.ts
+fixedFiles/PrivateRoute.tsx
+fixedFiles/resource copy 2.ts
+fixedFiles/resource copy 3.ts
+fixedFiles/resource copy 4.ts
+fixedFiles/resource copy.ts
+fixedFiles/resource.ts
+fixedFiles/userOperations.ts

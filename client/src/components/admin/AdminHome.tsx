@@ -116,6 +116,36 @@ export default function AdminHome() {
       const stats = await fetchAdminStats();
 
       if (stats) {
+        // DEBUG: Log the actual activities received
+        console.log("🔍 DEBUG: Recent activities received from API:", {
+          count: stats.recentActivity?.length || 0,
+          activities: stats.recentActivity?.slice(0, 5).map(activity => ({
+            action: activity.action,
+            timestamp: activity.timestamp,
+            resourceId: activity.resourceId
+          })) || []
+        });
+
+        // DEBUG: Show the 5 most recent activity timestamps
+        if (stats.recentActivity && stats.recentActivity.length > 0) {
+          const recentTimestamps = stats.recentActivity.slice(0, 5).map(activity => ({
+            action: activity.action,
+            timestamp: activity.timestamp,
+            resourceId: activity.resourceId,
+            performedBy: activity.performedBy,
+            formattedTime: formatDateToHST(activity.timestamp)
+          }));
+          console.log("🔍 DEBUG: 5 Most Recent Activities:", recentTimestamps);
+        }
+
+        // Count activities by action type for debugging
+        const actionCounts = stats.recentActivity?.reduce((acc, activity) => {
+          acc[activity.action] = (acc[activity.action] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>) || {};
+        
+        console.log("🔍 DEBUG: Activity breakdown by action:", actionCounts);
+
         // Add debugging timestamp to help identify when data was last processed
         const statsWithDebug = {
           ...stats,
@@ -156,6 +186,7 @@ export default function AdminHome() {
         eventType === AdminEvents.USER_REACTIVATED ||
         eventType === AdminEvents.USER_REJECTED ||
         eventType === AdminEvents.USER_APPROVED ||
+        eventType === AdminEvents.USER_CREATED ||
         eventType === "FORCE_DASHBOARD_SYNC"
       ) {
         console.log(
@@ -168,7 +199,10 @@ export default function AdminHome() {
           window.adminUser.clearUserCache();
         }
 
-        // Force refresh with slight delay to allow backend to fully process
+        // For USER_CREATED events, add extra delay for DynamoDB consistency
+        const refreshDelay = eventType === AdminEvents.USER_CREATED ? 2000 : 500;
+
+        // Force refresh with delay to allow backend to fully process
         setTimeout(() => {
           //console.log(`Executing high-priority refresh for: ${eventType}`);
           fetchStats();
@@ -178,7 +212,7 @@ export default function AdminHome() {
             //console.log(`Double-checking refresh for: ${eventType}`);
             fetchStats();
           }, 1500);
-        }, 500);
+        }, refreshDelay);
 
         return;
       }
@@ -324,14 +358,15 @@ export default function AdminHome() {
         eventType === "FORCE_DASHBOARD_SYNC" // Special event for forced refresh
       ) {
         //logDebug(`Refreshing after admin action: ${eventType}`);
-        // Add a small delay to ensure backend processing is complete
+        // Add a longer delay for USER_CREATED to ensure DynamoDB consistency
+        const refreshDelay = eventType === AdminEvents.USER_CREATED ? 2500 : 1000;
         setTimeout(() => {
           //console.log(`Triggering refresh due to admin action: ${eventType}`);
           // Force increment to trigger UI rerenders
           setForceRefreshCounter((prev) => prev + 1);
           // Always force refresh from API
           fetchStats();
-        }, 1000);
+        }, refreshDelay);
       }
     };
 
@@ -870,116 +905,134 @@ export default function AdminHome() {
                     {adminStats?.recentActivity &&
                     adminStats.recentActivity.length > 0 ? (
                       // Filter activities based on current filters
-                      adminStats.recentActivity
-                        .filter((activity) => {
-                          // User Email Filter
-                          const emailMatches = (() => {
-                            if (!userFilter) return true;
-                            const email =
-                              activity.resourceId ||
-                              (activity.details &&
-                                (activity.details.email as string)) ||
-                              "";
-                            return email
-                              .toLowerCase()
-                              .includes(userFilter.toLowerCase());
-                          })();
-
-                          // Action Filter
-                          const actionMatches = actionFilter
-                            ? // Special handling for USER_UPDATED action
-                              actionFilter === "USER_UPDATED"
-                              ? activity.action === "USER_PROFILE_UPDATED"
-                              : activity.action === actionFilter
-                            : true;
-
-                          // Admin Email Filter
-                          const adminEmailMatches = adminEmailFilter
-                            ? (activity.performedBy || "")
+                      (() => {
+                        const filteredActivities = adminStats.recentActivity
+                          .filter((activity) => {
+                            // User Email Filter
+                            const emailMatches = (() => {
+                              if (!userFilter) return true;
+                              const email =
+                                activity.resourceId ||
+                                (activity.details &&
+                                  (activity.details.email as string)) ||
+                                "";
+                              return email
                                 .toLowerCase()
-                                .includes(adminEmailFilter.toLowerCase())
-                            : true;
+                                .includes(userFilter.toLowerCase());
+                            })();
 
-                          // Date Range Filter
-                          const activityDate = new Date(activity.timestamp);
-                          // Adjust start date to beginning of the day (local time)
-                          const startDate = startDateFilter
-                            ? new Date(startDateFilter + "T00:00:00")
-                            : null;
-                          // Adjust end date to end of the day (local time)
-                          const endDate = endDateFilter
-                            ? new Date(endDateFilter + "T23:59:59.999")
-                            : null;
+                            // Action Filter
+                            const actionMatches = actionFilter
+                              ? // Special handling for USER_UPDATED action
+                                actionFilter === "USER_UPDATED"
+                                ? activity.action === "USER_PROFILE_UPDATED"
+                                : activity.action === actionFilter
+                              : true;
 
-                          const dateMatches =
-                            (!startDate || activityDate >= startDate) &&
-                            (!endDate || activityDate <= endDate);
+                            // Admin Email Filter
+                            const adminEmailMatches = adminEmailFilter
+                              ? (activity.performedBy || "")
+                                  .toLowerCase()
+                                  .includes(adminEmailFilter.toLowerCase())
+                              : true;
 
-                          return (
-                            emailMatches &&
-                            actionMatches &&
-                            adminEmailMatches &&
-                            dateMatches
-                          ); // Combine all filters
-                        })
-                        // Apply pagination to display only a subset of activities
-                        .slice(
-                          (currentPage - 1) * activitiesPerPage,
-                          currentPage * activitiesPerPage,
-                        )
-                        .map((activity, index) => {
-                          // Skip invalid activities to prevent rendering errors
-                          if (!activity || !activity.action) {
-                            console.warn(
-                              "Skipping invalid activity:",
-                              activity,
-                            );
-                            return null;
-                          }
+                            // Date Range Filter
+                            const activityDate = new Date(activity.timestamp);
+                            // Adjust start date to beginning of the day (local time)
+                            const startDate = startDateFilter
+                              ? new Date(startDateFilter + "T00:00:00")
+                              : null;
+                            // Adjust end date to end of the day (local time)
+                            const endDate = endDateFilter
+                              ? new Date(endDateFilter + "T23:59:59.999")
+                              : null;
 
-                          try {
+                            const dateMatches =
+                              (!startDate || activityDate >= startDate) &&
+                              (!endDate || activityDate <= endDate);
+
                             return (
-                              <tr
-                                key={activity.id || `activity-${index}`}
-                                className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
-                              >
-                                <td className="py-4 px-6">
-                                  {formatDateToHST(activity.timestamp)}
-                                </td>
-                                <td className="py-4 px-6">
-                                  <span
-                                    className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
-                                  >
-                                    {formatActionName(activity.action)}
-                                  </span>
-                                </td>
-                                <td className="py-4 px-6">
-                                  {activity.performedBy || "System"}
-                                </td>
-                                <td className="py-4 px-6">
-                                  {activity.affectedResource || "Unknown"}
-                                  {(activity.resourceId ||
-                                    activity.details?.email) && (
-                                    <span className="block text-xs text-gray-500 dark:text-gray-400">
-                                      {(activity.details?.email as string) ||
-                                        activity.resourceId}
+                              emailMatches &&
+                              actionMatches &&
+                              adminEmailMatches &&
+                              dateMatches
+                            ); // Combine all filters
+                          });
+
+                        // DEBUG: Log filtering results
+                        console.log("🔍 DEBUG: Filter results:", {
+                          totalActivities: adminStats.recentActivity.length,
+                          filteredActivities: filteredActivities.length,
+                          activeFilters: {
+                            userFilter: userFilter || "(none)",
+                            actionFilter: actionFilter || "(none)",
+                            adminEmailFilter: adminEmailFilter || "(none)",
+                            startDateFilter: startDateFilter || "(none)",
+                            endDateFilter: endDateFilter || "(none)"
+                          },
+                          filteredActivityActions: filteredActivities.map(a => a.action)
+                        });
+
+                        return filteredActivities
+                          // Apply pagination to display only a subset of activities
+                          .slice(
+                            (currentPage - 1) * activitiesPerPage,
+                            currentPage * activitiesPerPage,
+                          )
+                          .map((activity, index) => {
+                            // Skip invalid activities to prevent rendering errors
+                            if (!activity || !activity.action) {
+                              console.warn(
+                                "Skipping invalid activity:",
+                                activity,
+                              );
+                              return null;
+                            }
+
+                            try {
+                              return (
+                                <tr
+                                  key={activity.id || `activity-${index}`}
+                                  className="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+                                >
+                                  <td className="py-4 px-6">
+                                    {formatDateToHST(activity.timestamp)}
+                                  </td>
+                                  <td className="py-4 px-6">
+                                    <span
+                                      className={`px-2 py-1 text-xs font-medium rounded-full ${getActionBadgeStyle(activity.action)}`}
+                                    >
+                                      {formatActionName(activity.action)}
                                     </span>
-                                  )}
-                                </td>
-                                <td className="py-4 px-6">
-                                  {formatActivityDetails(activity)}
-                                </td>
-                              </tr>
-                            );
-                          } catch (error) {
-                            console.error(
-                              "Error rendering activity:",
-                              error,
-                              activity,
-                            );
-                            return null;
-                          }
-                        })
+                                  </td>
+                                  <td className="py-4 px-6">
+                                    {activity.performedBy || "System"}
+                                  </td>
+                                  <td className="py-4 px-6">
+                                    {activity.affectedResource || "Unknown"}
+                                    {(activity.resourceId ||
+                                      activity.details?.email) && (
+                                      <span className="block text-xs text-gray-500 dark:text-gray-400">
+                                        {(activity.details?.email as string) ||
+                                          activity.resourceId}
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="py-4 px-6">
+                                    {formatActivityDetails(activity)}
+                                  </td>
+                                </tr>
+                              );
+                            } catch (error) {
+                              console.error(
+                                "Error rendering activity:",
+                                error,
+                                activity,
+                              );
+                              return null;
+                            }
+                          });
+                      })()
                     ) : (
                       <tr>
                         <td colSpan={5} className="py-4 px-6 text-center">

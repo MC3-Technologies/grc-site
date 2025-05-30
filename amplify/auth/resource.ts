@@ -1,6 +1,5 @@
 import { defineAuth } from "@aws-amplify/backend";
 import { authTriggersFunction } from "../functions/auth-triggers/resource";
-import { userManagementFunction } from "../functions/user-management/resource";
 /**
  * Define and configure your auth resource
  * @see https://docs.amplify.aws/gen2/build-a-backend/auth
@@ -49,22 +48,4 @@ export const auth = defineAuth({
     preSignUp: authTriggersFunction,
     postConfirmation: authTriggersFunction,
   },
-
-  // Admin-only access to user management functions
-  access: (allow) => [
-    allow
-      .resource(userManagementFunction)
-      .to([
-        "listUsers",
-        "getUser",
-        "createUser",
-        "updateUserAttributes",
-        "enableUser",
-        "disableUser",
-        "deleteUser",
-        "setUserPassword",
-        "addUserToGroup",
-        "removeUserFromGroup",
-      ]),
-  ],
 });
