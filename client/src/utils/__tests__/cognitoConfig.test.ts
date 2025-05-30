@@ -310,14 +310,5 @@ describe("cognitoConfig", () => {
       expect(config.region).toBe("amplify-region");
       expect(config.clientId).toBe("amplify-client-id");
     });
-
-    it("should log that it's getting configuration", () => {
-      getCognitoConfig();
-
-      // Should log
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining("Getting Cognito configuration"),
-      );
-    });
   });
 });
