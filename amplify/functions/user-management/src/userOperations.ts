@@ -306,9 +306,9 @@ export const userOperations = {
                 );
                 await createUserStatusIfMissing(email, cognitoUser);
               } else {
-                console.warn(
-                  `[listUsers] Could not fetch DynamoDB UserStatus for ${email}: ${(err as Error).message}`,
-                );
+              console.warn(
+                `[listUsers] Could not fetch DynamoDB UserStatus for ${email}: ${(err as Error).message}`,
+              );
               }
             }
           }
@@ -423,7 +423,12 @@ export const userOperations = {
     try {
       const response = await amplifyAuthOperations.getUser(email);
       if (!response) {
-        return JSON.stringify({ error: `User ${email} not found` });
+        return JSON.stringify({
+          email,
+          status: "unknown",
+          enabled: false,
+          error: `User ${email} not found`,
+        });
       }
 
       const attributes: Record<string, string> = {};
@@ -448,7 +453,7 @@ export const userOperations = {
         created: response.UserCreateDate?.toISOString(),
         lastModified: response.UserLastModifiedDate?.toISOString(),
         attributes,
-        status: dbUser.status || "pending",
+        status: dbUser.status || attributes["custom:status"] || "pending",
         role: dbUser.role || attributes["custom:role"] || "user",
         firstName: dbUser.firstName || attributes["given_name"],
         lastName: dbUser.lastName || attributes["family_name"],
@@ -459,7 +464,7 @@ export const userOperations = {
       return JSON.stringify(userDetails);
     } catch (error) {
       console.error(`Error getting user details for ${email}:`, error);
-      return JSON.stringify({ error: `Failed to get details for ${email}` });
+      return JSON.stringify({ email, error: `Failed to get details for ${email}` });
     }
   },
 
@@ -667,8 +672,8 @@ export const userOperations = {
       });
 
       // Send rejection email
-      await sendEmailHelper({
-        to: email,
+        await sendEmailHelper({
+          to: email,
         subject: "Account Application Status - MC3 GRC Platform",
         message: rejectionTemplate({
           reason:
@@ -751,8 +756,8 @@ export const userOperations = {
       });
 
       // Send suspension email
-      await sendEmailHelper({
-        to: email,
+        await sendEmailHelper({
+          to: email,
         subject: "Account Suspended - MC3 GRC Platform",
         message: suspensionTemplate({
           reason:
@@ -867,14 +872,14 @@ export const userOperations = {
       const cognitoUser = await amplifyAuthOperations.createUser({
         email: email,
         attributes: [
-          { Name: "email", Value: email },
-          { Name: "email_verified", Value: "true" },
-          { Name: "custom:role", Value: role },
+        { Name: "email", Value: email },
+        { Name: "email_verified", Value: "true" },
+        { Name: "custom:role", Value: role },
           ...(firstName ? [{ Name: "given_name", Value: firstName }] : []),
           ...(lastName ? [{ Name: "family_name", Value: lastName }] : []),
-          ...(companyName
-            ? [{ Name: "custom:companyName", Value: companyName }]
-            : []),
+        ...(companyName
+          ? [{ Name: "custom:companyName", Value: companyName }]
+          : []),
           { Name: "custom:status", Value: "PENDING" },
         ],
         temporaryPassword: tempPassword,
@@ -1006,8 +1011,8 @@ export const userOperations = {
           id: email,
           email: email,
           role: role as UserStatus["role"],
-          lastStatusChange: new Date().toISOString(),
-          lastStatusChangeBy: adminEmail,
+        lastStatusChange: new Date().toISOString(),
+        lastStatusChangeBy: adminEmail,
         });
       } else {
         // Create new UserStatus if it doesn't exist
@@ -1227,7 +1232,7 @@ export const userOperations = {
         complianceRate: 0,
         recentActivity,
       };
-    } catch (error) {
+      } catch (error) {
       console.error("Error fetching admin stats:", error);
       return {
         users: { total: 0, active: 0, pending: 0, rejected: 0, suspended: 0 },
@@ -1386,18 +1391,18 @@ export const userOperations = {
             }
 
             // Create audit log entry
-            await createAuditLogEntry({
+          await createAuditLogEntry({
               timestamp: new Date().toISOString(),
               action: existingSetting ? "SETTING_UPDATED" : "SETTING_CREATED",
-              performedBy: updatedBy || "system",
+            performedBy: updatedBy || "system",
               affectedResource: "systemSetting",
-              resourceId: setting.id,
-              details: {
+            resourceId: setting.id,
+            details: {
                 settingName: setting.name,
                 settingValue: setting.value,
                 category: setting.category,
-              },
-            });
+            },
+          });
 
             return { id: setting.id, success: true };
           } catch (error) {
@@ -1450,8 +1455,8 @@ export const userOperations = {
       const existingUser = await dataOperations.getUserStatus(email);
       if (existingUser) {
         await dataOperations.updateUserStatus(email, {
-          id: email,
-          email: email,
+        id: email,
+        email: email,
           status: "deleted",
           lastStatusChange: new Date().toISOString(),
           lastStatusChangeBy: adminEmail,
@@ -1510,19 +1515,19 @@ export const userOperations = {
       // Process each user
       for (const cognitoUser of allCognitoUsers) {
         try {
-          const attributes: Record<string, string> = {};
+        const attributes: Record<string, string> = {};
           cognitoUser.Attributes?.forEach((attr: any) => {
-            if (attr.Name && attr.Value) attributes[attr.Name] = attr.Value;
-          });
+          if (attr.Name && attr.Value) attributes[attr.Name] = attr.Value;
+        });
 
           const email = attributes["email"] || cognitoUser.Username;
-          if (!email) {
+        if (!email) {
             console.warn(
               `Skipping user without email: ${cognitoUser.Username}`,
             );
-            errorCount++;
-            continue;
-          }
+          errorCount++;
+          continue;
+        }
 
           // Check if UserStatus already exists
           try {

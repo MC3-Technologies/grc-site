@@ -24,6 +24,77 @@ jest.mock("@aws-sdk/client-dynamodb", () => {
   );
 });
 
+// Mock amplifyAuthClient to return proper user data
+jest.mock("../src/amplifyAuthClient", () => ({
+  amplifyAuthOperations: {
+    getUser: jest.fn().mockImplementation((email) => {
+      // Return the mock user data if it exists
+      const mockCognito = jest.requireActual(
+        "../../../../client/src/__mocks__/@aws-sdk/client-cognito-identity-provider",
+      );
+      const mockUser = mockCognito.__getMockUser(email);
+      if (mockUser) {
+        return {
+          UserAttributes: Object.entries(mockUser.attributes || {}).map(
+            ([Name, Value]) => ({ Name, Value })
+          ),
+          Username: email,
+          UserStatus: mockUser.status || "CONFIRMED",
+          Enabled: mockUser.enabled,
+          UserCreateDate: new Date(),
+          UserLastModifiedDate: new Date(),
+        };
+      }
+      return null;
+    }),
+    listUsers: jest.fn(),
+    createUser: jest.fn(),
+    updateUserAttributes: jest.fn(),
+    deleteUser: jest.fn(),
+    enableUser: jest.fn(),
+    disableUser: jest.fn(),
+    addUserToGroup: jest.fn(),
+    removeUserFromGroup: jest.fn(),
+    getUserGroups: jest.fn(),
+    confirmUser: jest.fn(),
+    setTemporaryPassword: jest.fn(),
+  },
+}));
+
+// Mock amplifyDataClient
+jest.mock("../src/amplifyDataClient", () => ({
+  amplifyDataOperations: {
+    getUserStatus: jest.fn().mockResolvedValue(null),
+    createUserStatus: jest.fn(),
+    updateUserStatus: jest.fn(),
+    listUsersByStatus: jest.fn().mockResolvedValue([]),
+    deleteUserStatus: jest.fn(),
+    createAuditLog: jest.fn(),
+    listAuditLogs: jest.fn().mockResolvedValue([]),
+    getSystemSettings: jest.fn(),
+    listSystemSettings: jest.fn().mockResolvedValue([]),
+    createSystemSettings: jest.fn(),
+    updateSystemSettings: jest.fn(),
+  },
+}));
+
+// Mock dynamoDbOperations
+jest.mock("../src/dynamoDbOperations", () => ({
+  dynamoDbOperations: {
+    getUserStatus: jest.fn().mockResolvedValue(null),
+    createUserStatus: jest.fn(),
+    updateUserStatus: jest.fn(),
+    listUsersByStatus: jest.fn().mockResolvedValue([]),
+    deleteUserStatus: jest.fn(),
+    createAuditLog: jest.fn(),
+    listAuditLogs: jest.fn().mockResolvedValue([]),
+    getSystemSettings: jest.fn(),
+    listSystemSettings: jest.fn().mockResolvedValue([]),
+    createSystemSettings: jest.fn(),
+    updateSystemSettings: jest.fn(),
+  },
+}));
+
 // Direct mock for the Amplify module without path aliases
 jest.mock(
   "$amplify/env/user-management",

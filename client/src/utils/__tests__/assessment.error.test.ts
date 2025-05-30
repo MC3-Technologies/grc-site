@@ -55,7 +55,7 @@ jest.mock("../questionnaireUtils", () => ({
   }),
 }));
 
-describe.skip("Assessment Error Handling", () => {
+describe("Assessment Error Handling", () => {
   // Skip the entire suite for now
   // Declare mockClient outside beforeEach but initialize inside
   let mockClient: unknown; // Use unknown instead of any

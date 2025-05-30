@@ -311,7 +311,7 @@ describe("cognitoConfig", () => {
       expect(config.clientId).toBe("amplify-client-id");
     });
 
-    it.skip("should log that it's getting configuration", () => {
+    it("should log that it's getting configuration", () => {
       getCognitoConfig();
 
       // Should log
