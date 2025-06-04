@@ -1,7 +1,8 @@
 type Control = {
   name: string;
-  description: string;
-  adherenceInstructions: string;
+  summary: string;
+  adherenceInstructions: string[];
+  requiredEvidence: string[];
 };
 
 type ControlGroup = {
@@ -21,30 +22,70 @@ const level1Controls: ControlGroup[] = [
     controls: [
       {
         name: "AC.L1-b.1.i – Use Individual Accounts",
-        description:
+        summary:
           "Only the right people should be allowed into your systems, and they should each have their own login.",
-        adherenceInstructions:
-          "Give every employee their own username and password. Don’t let people share accounts. Keep a list of who has access and update it when someone leaves.",
+        adherenceInstructions: [
+          "Give each user their own username and password.",
+          "Create and enforce a policy against account sharing.",
+          "Maintain a list of: Who has access, What systems they access, When access was granted/removed.",
+          "Revoke access right away when someone leaves or changes roles.",
+        ],
+        requiredEvidence: [
+          "A current access list (spreadsheet or log)",
+          "Your account use policy",
+          "Screenshots showing individual accounts (such as from Active Directory)",
+          "Termination logs or emails showing account deactivations",
+          "Staff who can confirm in interviews that they don’t share accounts",
+        ],
       },
       {
         name: "AC.L1-b.1.ii – Limit Access Based on Job",
-        description: "People should only see what they need to do their jobs.",
-        adherenceInstructions:
-          "Set up your systems so employees only have access to the information and tools they need. Review these settings every so often to make sure they’re still accurate.",
+        summary:
+          "Only allow employees to access the systems and data they need to do their job.",
+        adherenceInstructions: [
+          "Set up role-based access control in each system (e.g., finance users can’t access engineering files).",
+          "Use group permissions in email, file shares, and applications.",
+          "Review and update access rights regularly, especially after promotions or departures.",
+          "Remove or adjust permissions when roles change.",
+        ],
+        requiredEvidence: [
+          "Role-based access policy or procedure.",
+          "Screenshots showing user group assignments.",
+          "Access control list or user permissions report.",
+          "Record of periodic access reviews (e.g., quarterly access check log).",
+        ],
       },
       {
         name: "AC.L1-b.1.iii – Manage Outside Connections",
-        description:
-          "Be careful with how your systems connect to the internet or other services.",
-        adherenceInstructions:
-          "Know which outside services (like cloud storage or email) your business uses. Make sure only trusted services are connected. Keep a written list of all outside systems you use and why.",
+        summary:
+          "Limit and track which outside tools or services connect to your network or systems.",
+        adherenceInstructions: [
+          "List all cloud services or external vendors used (email, storage, collaboration tools, etc.).",
+          "Approve only those you trust and need for business operations.",
+          "Block access to unapproved external services via firewall, DNS filtering, or policy.",
+          "Keep documentation on why each service is used.",
+        ],
+        requiredEvidence: [
+          "Approved external services list.",
+          "Firewall rules or DNS filtering policy.",
+          "Vendor contracts or risk acceptance forms.",
+          "Change control records for new connections.",
+        ],
       },
       {
         name: "AC.L1-b.1.iv – Review Public Info",
-        description:
-          "Check what's shared publicly about your company, especially online.",
-        adherenceInstructions:
-          "Only allow trusted team members to post on your website or social media. Make sure sensitive company details aren’t being posted by mistake.",
+        summary:
+          "Make sure you’re not accidentally sharing sensitive info online (like on your website or social media).",
+        adherenceInstructions: [
+          "Only allow specific team members to post to websites or social accounts.",
+          "Define what can and cannot be shared (e.g., no internal IPs, contract numbers).",
+          "Perform regular reviews of public content to spot accidental leaks.",
+        ],
+        requiredEvidence: [
+          "Communication/public release policy.",
+          "List of authorized content posters.",
+          "Screenshots or checklist logs of public content reviews.",
+        ],
       },
     ],
   },
@@ -53,15 +94,33 @@ const level1Controls: ControlGroup[] = [
     controls: [
       {
         name: "IA.L1-b.1.v – Know Who’s Logging In",
-        description: "Your system should know who is using it at all times.",
-        adherenceInstructions:
-          "Give each employee their own login. Keep a list of all users and what systems they can access. Remove logins for employees who leave.",
+        summary:
+          "Every user must be uniquely identifiable, so you know who’s doing what in your systems.",
+        adherenceInstructions: [
+          "Assign unique usernames to all users.",
+          "Maintain a central access log of who can access which systems.",
+          "Revoke user access when they leave or change roles.",
+        ],
+        requiredEvidence: [
+          "Access inventory list with usernames and systems accessed.",
+          "HR offboarding checklist showing account removal.",
+          "Active user lists from systems (screenshots or exports).",
+        ],
       },
       {
         name: "IA.L1-b.1.vi – Require a Password or Similar Check",
-        description: "Users should have to prove who they are to log in.",
-        adherenceInstructions:
-          "Require passwords (or another method like a code or app). Use strong password rules (e.g., not “1234”). Change passwords when needed or if a breach happens.",
+        summary:
+          "Ensure users prove their identity before accessing any system.",
+        adherenceInstructions: [
+          "Require passwords, MFA, or biometric login.",
+          "Set and enforce password strength rules (length, complexity, expiration).",
+          "Reset passwords if there is a security incident or concern.",
+        ],
+        requiredEvidence: [
+          "Authentication policy or procedure.",
+          "Screenshot of system-enforced password rules.",
+          "Logs or records of password changes due to incidents.",
+        ],
       },
     ],
   },
@@ -70,10 +129,20 @@ const level1Controls: ControlGroup[] = [
     controls: [
       {
         name: "MP.L1-b.1.vii – Properly Get Rid of Old Computers or Hard Drives",
-        description:
-          "Before you throw away a computer or device, erase the data completely.",
-        adherenceInstructions:
-          "Delete everything securely (not just using the trash can icon). Or physically destroy old drives (e.g., with a shredder). Keep a record of when and how you disposed of them.",
+        summary:
+          "Erase data securely before disposing of any equipment that stored sensitive info.",
+        adherenceInstructions: [
+          "Use secure erase software (not just deleting files).",
+          "Physically destroy drives when appropriate (e.g., degaussing, shredding).",
+          "Keep a disposal log with dates, method, and serial numbers.",
+          "If using a vendor, get a certificate of destruction.",
+        ],
+        requiredEvidence: [
+          "Hardware disposal log.",
+          "Photos of physical destruction (optional).",
+          "Certificate of destruction (if applicable).",
+          "Secure wipe reports or logs.",
+        ],
       },
     ],
   },
@@ -82,17 +151,33 @@ const level1Controls: ControlGroup[] = [
     controls: [
       {
         name: "PE.L1-b.1.viii – Lock Up Sensitive Equipment",
-        description:
-          "Keep important computers and equipment in locked rooms or areas.",
-        adherenceInstructions:
-          "Lock server rooms or storage closets. Only let authorized people access those spaces.",
+        summary:
+          "Protect critical devices (like servers or networking gear) from physical theft or tampering.",
+        adherenceInstructions: [
+          "Store equipment in locked rooms or cabinets.",
+          "Restrict physical access to authorized personnel only.",
+          "Keep a list of who has keys or badge access.",
+        ],
+        requiredEvidence: [
+          "Physical access policy.",
+          "Photos of locked areas or storage cabinets.",
+          "List of personnel with physical access rights.",
+        ],
       },
       {
         name: "PE.L1-b.1.ix – Watch Visitors",
-        description:
-          "Keep track of anyone who visits secure parts of your business.",
-        adherenceInstructions:
-          "Have visitors sign in and out. Walk them through the building — don’t leave them unattended. Store visitor logs in case you need to look back later.",
+        summary:
+          "Keep track of anyone who enters secure areas of your facility.",
+        adherenceInstructions: [
+          "Have visitors sign in and out on a log.",
+          "Assign an escort who stays with them during their visit.",
+          "Keep visitor logs for 90 days or more.",
+        ],
+        requiredEvidence: [
+          "Visitor log (paper or digital).",
+          "Visitor procedure or checklist.",
+          "Staff training records for visitor escort policy.",
+        ],
       },
     ],
   },
@@ -101,17 +186,34 @@ const level1Controls: ControlGroup[] = [
     controls: [
       {
         name: "SC.L1-b.1.x – Protect Your Network from Threats",
-        description:
-          "Use tools to block viruses and hackers from getting into your systems.",
-        adherenceInstructions:
-          "Install antivirus and firewall software. Make sure it’s working and up to date. Use tools that alert you to suspicious activity.",
+        summary:
+          "Use software and tools to block cyberattacks and monitor for threats.",
+        adherenceInstructions: [
+          "Install antivirus software on all systems.",
+          "Enable and configure firewalls (on devices and networks).",
+          "Use tools that alert you to malware or unusual traffic.",
+          "Keep all security tools up to date.",
+        ],
+        requiredEvidence: [
+          "Screenshot or report showing antivirus is active and updated.",
+          "Firewall configuration files or screenshots.",
+          "Logs or alerts from security software.",
+        ],
       },
       {
         name: "SC.L1-b.1.xi – Keep Your Website Separate from Business Systems",
-        description:
-          "Your public website should not connect directly to your internal systems.",
-        adherenceInstructions:
-          "Set up your website in a way that doesn’t give outsiders a path into your sensitive systems. Ask your IT person or service provider to keep them separated.",
+        summary:
+          "Your public website should not have direct access to your internal business systems.",
+        adherenceInstructions: [
+          "Host your website in a different network segment or provider.",
+          "Ensure the website does not connect to file servers, internal email, or CUI systems.",
+          "Verify this separation with your IT team or service provider.",
+        ],
+        requiredEvidence: [
+          "Network diagram showing website isolation.",
+          "Statement from IT or service provider.",
+          "Firewall rule preventing access from web server to internal systems.",
+        ],
       },
     ],
   },
@@ -120,28 +222,17 @@ const level1Controls: ControlGroup[] = [
     controls: [
       {
         name: "SI.L1-b.1.xii – Fix Security Problems Quickly",
-        description:
-          "When updates are available for your software, install them right away.",
-        adherenceInstructions:
-          "Turn on automatic updates where possible. Have someone check monthly to make sure everything’s up to date.",
-      },
-      {
-        name: "SI.L1-b.1.xiii – Protect Against Viruses",
-        description: "Use software that can find and block malicious programs.",
-        adherenceInstructions:
-          "Install antivirus software on all computers. Make sure it updates itself daily. Train employees to avoid suspicious links or downloads.",
-      },
-      {
-        name: "SI.L1-b.1.xiv – Keep Antivirus Tools Updated",
-        description: "Your virus protection is only good if it’s current.",
-        adherenceInstructions:
-          "Turn on auto-updates for your antivirus. Check monthly to confirm it’s working.",
-      },
-      {
-        name: "SI.L1-b.1.xv – Regularly Scan for Threats",
-        description: "Run scans to catch harmful software or files.",
-        adherenceInstructions:
-          "Schedule automatic scans each week. Have antivirus check all emails and downloads. Review scan reports and follow up if there are problems.",
+        summary: "Apply software updates regularly to close security gaps.",
+        adherenceInstructions: [
+          "Turn on automatic updates where possible.",
+          "Designate someone to check for and apply patches at least monthly.",
+          "Apply critical updates immediately, especially for internet-facing systems.",
+        ],
+        requiredEvidence: [
+          "Patch policy or monthly patch checklist.",
+          "Screenshot showing auto-update is enabled.",
+          "Logs of applied updates or change control tickets.",
+        ],
       },
     ],
   },

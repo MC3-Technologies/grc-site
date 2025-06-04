@@ -65,22 +65,55 @@ export function SecurityModels() {
                         {val.name}
                       </h5>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 my-4 md:mx-0 ">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 my-4 md:mx-0 ">
                         {val.controls.map((val2, key2) => (
                           <div
-                            className=" p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700"
+                            className="text-left p-6 bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700"
                             key={key2}
                           >
                             <h5 className="mb-2 text-xl font-bold tracking-tight text-gray-900 dark:text-white">
                               {val2.name}
                             </h5>
 
-                            <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                              {val2.description}
-                            </p>
-                            <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                              {val2.adherenceInstructions}
-                            </p>
+                            {/* summary seciton */}
+                            <div className="mb-3">
+                              <h5 className=" text-base font-bold tracking-tight text-gray-900 dark:text-white">
+                                Summary :
+                              </h5>
+                              <p className="font-normal text-gray-700 dark:text-gray-400">
+                                {val2.summary}
+                              </p>
+                            </div>
+
+                            {/* what to do section */}
+                            <div className="mb-3">
+                              <h5 className=" text-base font-bold tracking-tight text-gray-900 dark:text-white">
+                                What to do :
+                              </h5>
+                              {val2.adherenceInstructions.map((val3, key3) => (
+                                <p
+                                  key={key3}
+                                  className=" font-normal text-gray-700 dark:text-gray-400"
+                                >
+                                  {`${key3 + 1}. ${val3}`}
+                                </p>
+                              ))}
+                            </div>
+
+                            {/* information you need section */}
+                            <div>
+                              <h5 className=" text-base font-bold tracking-tight text-gray-900 dark:text-white">
+                                Information you'll need :
+                              </h5>
+                              {val2.requiredEvidence.map((val4, key4) => (
+                                <p
+                                  key={key4}
+                                  className=" font-normal text-gray-700 dark:text-gray-400"
+                                >
+                                  {`${key4 + 1}. ${val4}`}
+                                </p>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
