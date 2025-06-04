@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
+import { fetchUserAttributes } from "aws-amplify/auth"; // Import fetchUserAttributes
 
 import "../index.css";
 import "survey-core/defaultV2.min.css";
@@ -8,15 +9,17 @@ import "survey-core/defaultV2.min.css";
 import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
-import { isLoggedIn } from "../amplify/auth";
+import { isLoggedIn } from "../amplify/auth"; // Remove isCurrentUserAdmin import
 import {
   redirectToInProgressAssessment,
   redirectToSignIn,
   redirectToCompletedAssessment,
+  redirectToReport,
 } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
 import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
+import { fetchUsers } from "../utils/adminUser";
 
 // Helper function to format dates
 const formatDate = (dateString: string): string => {
@@ -155,6 +158,13 @@ export function Assessments() {
   // Is loading
   const [loading, setLoading] = useState<boolean>(true);
 
+  // New state for user ID to email mapping (for admins)
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
+  // State for current user info
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [currentUserSub, setCurrentUserSub] = useState<string | null>(null);
+  // Removed unused isAdmin state
+
   // Add a toast notification
   const addToast = useCallback(
     (message: string, type: "error" | "success" | "info" = "error") => {
@@ -174,6 +184,45 @@ export function Assessments() {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
 
+  // Load users and create user ID to email mapping
+  useEffect(() => {
+    const loadUserMap = async () => {
+      try {
+        // Force refresh to ensure we get latest user data
+        const users = await fetchUsers(true);
+        const userMapping: Record<string, string> = {};
+
+        users.forEach((user) => {
+          // The ID can be in user.attributes.sub or user.email (which is actually the UUID)
+          const userId = user.attributes?.sub || user.email;
+          // The actual email is in user.attributes.email or user.email if it's already an email
+          const userEmail =
+            user.attributes?.email ||
+            (user.email.includes("@") ? user.email : null);
+
+          if (userId && userEmail) {
+            userMapping[userId] = userEmail;
+            //console.log(`Mapped user ID ${userId} to email ${userEmail}`);
+          }
+        });
+
+        setUserMap(userMapping);
+        //console.log("User ID to email mapping created:", userMapping);
+      } catch (error) {
+        console.error("Error creating user mapping:", error);
+      }
+    };
+
+    loadUserMap();
+
+    // Set up interval to periodically refresh user mapping
+    const refreshInterval = setInterval(loadUserMap, 30000);
+
+    return () => {
+      clearInterval(refreshInterval);
+    };
+  }, []);
+
   // useEffect to handle assessment setting up and adding on completion handler
   useEffect(() => {
     initFlowbite();
@@ -188,15 +237,37 @@ export function Assessments() {
       }
 
       try {
-        // Fetch users in progress assessments
-        const inProgressAssessments =
-          await InProgressAssessment.fetchAllAssessments();
-        setInProgressAssessments(inProgressAssessments);
+        // Fetch current user's attributes
+        const userAttributes = await fetchUserAttributes();
+        const userEmail = userAttributes.email || null;
+        const userSub = userAttributes.sub || null;
+        setCurrentUserEmail(userEmail);
+        setCurrentUserSub(userSub);
+        //console.log("Current user info:", { email: userEmail, sub: userSub });
 
-        // Fetch users completed assessments
-        const completedAssessments =
+        // Removed admin check
+
+        // Fetch ALL assessments first
+        const allInProgressAssessments =
+          await InProgressAssessment.fetchAllAssessments();
+        const allCompletedAssessments =
           await CompletedAssessment.fetchAllCompletedAssessments();
-        setCompletedAssessments(completedAssessments);
+
+        // Filter assessments to show only those owned by the current user for this page
+        if (userSub) {
+          const myInProgress = allInProgressAssessments.filter(
+            (assessment) => assessment.owner === userSub,
+          );
+          const myCompleted = allCompletedAssessments.filter(
+            (assessment) => assessment.owner === userSub,
+          );
+          setInProgressAssessments(myInProgress);
+          setCompletedAssessments(myCompleted);
+        } else {
+          // Should not happen if logged in, but handle defensively
+          setInProgressAssessments([]);
+          setCompletedAssessments([]);
+        }
       } catch (e) {
         console.error(e);
         addToast(`Error loading assessments: ${e}`);
@@ -459,7 +530,14 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {assessment.owner}
+                                  Owner:{" "}
+                                  {assessment.owner === currentUserSub
+                                    ? currentUserEmail // Display current user's email if they are the owner
+                                    : userMap[assessment.owner] || // Otherwise, use the map (for admins)
+                                      (assessment.owner?.includes("@") // Fallback 1: If owner is already email
+                                        ? assessment.owner
+                                        : assessment.owner)}{" "}
+                                  {/* Fallback 2: Raw owner ID/UUID */}
                                 </p>
                               )}
 
@@ -562,14 +640,21 @@ export function Assessments() {
                                       clipRule="evenodd"
                                     ></path>
                                   </svg>
-                                  Owner: {assessment.owner}
+                                  Owner:{" "}
+                                  {assessment.owner === currentUserSub
+                                    ? currentUserEmail // Display current user's email if they are the owner
+                                    : userMap[assessment.owner] || // Otherwise, use the map (for admins)
+                                      (assessment.owner?.includes("@") // Fallback 1: If owner is already email
+                                        ? assessment.owner
+                                        : assessment.owner)}{" "}
+                                  {/* Fallback 2: Raw owner ID/UUID */}
                                 </p>
                               )}
 
                               <p>Score: {assessment.complianceScore}%</p>
 
                               {/* Visual Compliance Indicator */}
-                              <div className="mt-3">
+                              {/* <div className="mt-3">
                                 <div
                                   className={`flex items-center p-2 rounded-md ${
                                     assessment.isCompliant
@@ -628,7 +713,7 @@ export function Assessments() {
                                       : "Not Compliant with CMMC Level 1"}
                                   </span>
                                 </div>
-                              </div>
+                              </div> */}
                             </div>
                             <div className="mt-4 flex space-x-2">
                               <button
@@ -637,7 +722,13 @@ export function Assessments() {
                                 }
                                 className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
                               >
-                                View
+                                View Assessment
+                              </button>
+                              <button
+                                onClick={() => redirectToReport(assessment.id)}
+                                className="bg-green-600 hover:bg-green-700 text-white font-medium py-1 px-3 rounded-md text-sm transition-colors"
+                              >
+                                View Report
                               </button>
                               <DeleteAssessmentButton
                                 handler={handleDeleteCompleteAssessment}

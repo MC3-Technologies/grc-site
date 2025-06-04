@@ -48,14 +48,32 @@ const Navbar = () => {
     };
 
     checkUser();
-    initFlowbite();
+
+    // Set up a mutation observer to reinitialize Flowbite when dropdown elements change
+    const observer = new MutationObserver(() => {
+      initFlowbite();
+    });
+
+    // Start observing the document body for DOM changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
     setLoading(false);
 
+    // Clean up the observer when component unmounts
     return () => {
-      // Stop listening for data memory leaks
+      observer.disconnect();
       hubListener();
     };
   }, [authEvents]);
+
+  useEffect(() => {
+    if (!loading) {
+      initFlowbite();
+    }
+  }, [loading, currentUser]);
 
   return (
     <nav className="bg-white border-gray-200 dark:bg-gray-950 fixed z-20 top-0 start-0 w-full">
@@ -78,6 +96,7 @@ const Navbar = () => {
                 aria-expanded="false"
                 data-dropdown-toggle="user-dropdown"
                 data-dropdown-placement="bottom"
+                data-dropdown-trigger="click"
               >
                 <svg
                   className="w-6 h-6 text-gray-800 dark:text-white"
@@ -95,6 +114,10 @@ const Navbar = () => {
               <div
                 className="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600"
                 id="user-dropdown"
+                role="menu"
+                aria-orientation="vertical"
+                aria-labelledby="user-menu-button"
+                tabIndex={-1}
               >
                 <div className="px-4 py-3">
                   <span className="block text-sm text-gray-900 dark:text-white">
@@ -106,17 +129,17 @@ const Navbar = () => {
                     <>
                       <li>
                         <a
-                          href="#"
+                          href="/admin/"
                           className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                         >
-                          Admin
+                          Admin Dashboard
                         </a>
                       </li>
                     </>
                   )}
                   <li>
                     <a
-                      href="#"
+                      href="/account/"
                       className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                     >
                       My Account
@@ -124,7 +147,7 @@ const Navbar = () => {
                   </li>
                   <li>
                     <a
-                      href="#"
+                      href="/assessments/"
                       className="block px-4 py-1 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
                     >
                       My Assessments
@@ -261,6 +284,50 @@ const Navbar = () => {
             </li>
 
             <li>
+              <button
+                id="dropdownNavbarLink"
+                data-dropdown-toggle="securityModelsDropdown"
+                className="flex items-center justify-between w-full py-2 px-3 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-primary-700 md:p-0 md:w-auto dark:text-white md:dark:hover:text-primary-500 dark:focus:text-white dark:border-primary-700 dark:hover:bg-primary-700 md:dark:hover:bg-transparent"
+              >
+                Security Models{" "}
+                <svg
+                  className="w-2.5 h-2.5 ms-2.5"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 10 6"
+                >
+                  <path
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="m1 1 4 4 4-4"
+                  />
+                </svg>
+              </button>
+              {/* Dropdown menu */}
+              <div
+                id="securityModelsDropdown"
+                className="z-10 hidden font-normal bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600"
+              >
+                <ul
+                  className="py-2 text-sm text-gray-700 dark:text-gray-400"
+                  aria-labelledby="dropdownLargeButton"
+                >
+                  <li>
+                    <a
+                      href="/security-models/?model=cmmclevel1"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white"
+                    >
+                      CMMC Level 1
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </li>
+
+            <li>
               <a
                 href="/assessments/"
                 className="block py-2 px-3 md:p-0 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-primary-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
@@ -268,14 +335,14 @@ const Navbar = () => {
                 CMMC Assessment
               </a>
             </li>
-            <li>
+            {/* <li>
               <a
                 href="/osint/"
                 className="block py-2 px-3 md:p-0 text-gray-900 rounded hover:bg-gray-100 md:hover:bg-transparent md:hover:text-primary-700 dark:text-white md:dark:hover:text-primary-500 dark:hover:bg-primary-700 dark:hover:text-white md:dark:hover:bg-transparent dark:border-gray-700"
               >
                 OSINT Scan
               </a>
-            </li>
+            </li> */}
           </ul>
         </div>
       </div>

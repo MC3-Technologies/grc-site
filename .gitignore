@@ -5,3 +5,17 @@ amplify_outputs*
 amplifyconfiguration*
 .env
 .env.local
+password.mjs
+authConfig.mjs
+eventTester
+apiInspector
+assessment.error.test.ts
+approveUser.mjs
+babel.config.cjs
+eslint.config.js
+postcss.config.js
+tailwind.config.js
+tsconfig.json
+tsconfig.node.json
+fixedFiles/
+
