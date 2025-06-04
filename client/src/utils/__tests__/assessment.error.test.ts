@@ -61,7 +61,9 @@ const getClientSchema = originalGetClientSchema as jest.MockedFunction<
 
 // Mock storage functions directly
 const mockedUploadData = uploadData as jest.MockedFunction<typeof uploadData>;
-const mockedDownloadData = downloadData as jest.MockedFunction<typeof downloadData>;
+const mockedDownloadData = downloadData as jest.MockedFunction<
+  typeof downloadData
+>;
 const mockedRemove = remove as jest.MockedFunction<typeof remove>;
 
 describe.skip("Assessment Error Handling (skipped – flaky)", () => {
@@ -83,9 +85,9 @@ describe.skip("Assessment Error Handling (skipped – flaky)", () => {
     mockedDownloadData.mockResolvedValue({
       result: {
         body: {
-          text: async () => JSON.stringify({})
-        }
-      }
+          text: async () => JSON.stringify({}),
+        },
+      },
     } as unknown);
     mockedRemove.mockResolvedValue({} as unknown);
 
@@ -555,14 +557,14 @@ describe.skip("Assessment Error Handling (skipped – flaky)", () => {
         mockedDownloadData.mockResolvedValueOnce({
           result: {
             body: {
-              text: async () => JSON.stringify({ name: "Old Name", data: {} })
-            }
-          }
+              text: async () => JSON.stringify({ name: "Old Name", data: {} }),
+            },
+          },
         } as unknown);
-        
+
         // Use direct mock rejection for upload
         mockedUploadData.mockRejectedValueOnce(new Error("Save error"));
-        
+
         // Call updateAssessment
         const result = await assessment.updateAssessment("test-id", {
           name: "Updated Name",

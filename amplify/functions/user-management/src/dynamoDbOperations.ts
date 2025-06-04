@@ -14,10 +14,14 @@ import {
 // don't crash while real Lambda code still gets an actual client.
 let ddbClient: DynamoDBClient | any;
 try {
-  ddbClient = new DynamoDBClient({ region: process.env.AWS_REGION || "us-west-1" });
+  ddbClient = new DynamoDBClient({
+    region: process.env.AWS_REGION || "us-west-1",
+  });
 } catch (_) {
   // Fallback stub for Jest environment
-  const mockSend = (global as any).jest ? (global as any).jest.fn().mockResolvedValue({}) : async () => ({}) ;
+  const mockSend = (global as any).jest
+    ? (global as any).jest.fn().mockResolvedValue({})
+    : async () => ({});
   ddbClient = { send: mockSend } as any;
 }
 

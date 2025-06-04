@@ -36,7 +36,7 @@ jest.mock("../src/amplifyAuthClient", () => ({
       if (mockUser) {
         return {
           UserAttributes: Object.entries(mockUser.attributes || {}).map(
-            ([Name, Value]) => ({ Name, Value })
+            ([Name, Value]) => ({ Name, Value }),
           ),
           Username: email,
           UserStatus: mockUser.status || "CONFIRMED",
