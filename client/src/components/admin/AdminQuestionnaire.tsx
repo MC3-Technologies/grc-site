@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getCurrentUser } from "aws-amplify/auth";
 import { surveyJson } from "../../assessmentQuestions";
 import {
   SurveyElement,
@@ -13,6 +14,9 @@ import {
   VersionMetadata,
   loadQuestionnaireVersion,
   saveVersionToS3,
+  deleteSection,
+  addNewSection,
+  renumberSections,
 } from "../../utils/questionnaireUtils";
 import VersionManager from "./VersionManager";
 import NewVersionForm from "./NewVersionForm";
@@ -35,14 +39,20 @@ const AdminQuestionnaire = () => {
     const savedData = loadSavedQuestionnaire();
     if (savedData) {
       //console.log("Loaded saved questionnaire data from localStorage");
-      return savedData;
+      // Apply renumbering to ensure proper section numbering
+      return renumberSections(savedData);
     }
 
     //console.log("Using default questionnaire data");
-    return surveyJson.pages.map((page: SurveyPage, index: number) => ({
-      ...page,
-      id: `page-${index}`,
-    }));
+    const defaultPages = surveyJson.pages.map(
+      (page: SurveyPage, index: number) => ({
+        ...page,
+        id: `page-${index}`,
+      }),
+    );
+
+    // Apply renumbering to ensure proper section numbering
+    return renumberSections(defaultPages);
   });
 
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -67,6 +77,24 @@ const AdminQuestionnaire = () => {
 
   // Loading state for S3 operations
   const [isSaving, setIsSaving] = useState<boolean>(false);
+
+  // Section deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
+  const [deleteReason, setDeleteReason] = useState<string>("");
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+
+  // New section state
+  const [showAddSection, setShowAddSection] = useState<boolean>(false);
+  const [newSectionTitle, setNewSectionTitle] = useState<string>("");
+  const [isAddingSection, setIsAddingSection] = useState<boolean>(false);
+
+  // Section drag and drop state
+  const [draggedSection, setDraggedSection] = useState<string | null>(null);
+  const [dragOverSection, setDragOverSection] = useState<string | null>(null);
 
   // Initialize versioning system if needed
   useEffect(() => {
@@ -248,6 +276,73 @@ const AdminQuestionnaire = () => {
     setDragOverItem(null);
   };
 
+  // Section drag and drop handlers
+  const handleSectionDragStart = (e: React.DragEvent, sectionId: string) => {
+    setDraggedSection(sectionId);
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+    }
+  };
+
+  const handleSectionDragOver = (e: React.DragEvent, sectionId: string) => {
+    e.preventDefault();
+    if (draggedSection !== sectionId) {
+      setDragOverSection(sectionId);
+    }
+  };
+
+  const handleSectionDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+
+    if (
+      draggedSection &&
+      dragOverSection &&
+      draggedSection !== dragOverSection
+    ) {
+      // Find the indices of the dragged and drop target sections
+      const draggedIndex = pages.findIndex(
+        (page) => page.id === draggedSection,
+      );
+      const dropIndex = pages.findIndex((page) => page.id === dragOverSection);
+
+      if (draggedIndex !== -1 && dropIndex !== -1) {
+        // Create a new array with reordered sections
+        const newPages = [...pages];
+        const draggedPage = newPages[draggedIndex];
+
+        // Remove the dragged item
+        newPages.splice(draggedIndex, 1);
+
+        // Insert it at the new position
+        newPages.splice(dropIndex, 0, draggedPage);
+
+        // Apply renumbering to maintain sequential section numbers
+        const renumberedPages = renumberSections(newPages);
+
+        // Update state
+        setPages(renumberedPages);
+
+        // Save to localStorage
+        localStorage.setItem(
+          QUESTIONNAIRE_STORAGE_KEY,
+          JSON.stringify(renumberedPages),
+        );
+
+        // Notify other components
+        notifyQuestionnaireUpdate();
+      }
+    }
+
+    // Reset drag state
+    setDraggedSection(null);
+    setDragOverSection(null);
+  };
+
+  const handleSectionDragEnd = () => {
+    setDraggedSection(null);
+    setDragOverSection(null);
+  };
+
   // Handle save changes to the current version
   const handleSaveChanges = async () => {
     if (editForm && selectedPage) {
@@ -268,9 +363,12 @@ const AdminQuestionnaire = () => {
         };
 
         // Update the pages state
-        const updatedPages = pages.map((page) =>
+        let updatedPages = pages.map((page) =>
           page.id === selectedPage ? { ...updatedPage, id: page.id } : page,
         );
+
+        // Apply renumbering to ensure sequential section numbers
+        updatedPages = renumberSections(updatedPages);
 
         // Update the state
         setPages(updatedPages);
@@ -364,13 +462,16 @@ const AdminQuestionnaire = () => {
         const loadedData = await loadQuestionnaireVersion(versionInfo.version);
 
         if (loadedData) {
+          // Apply renumbering to ensure proper section numbering
+          const renumberedData = renumberSections(loadedData);
+
           // Update the pages state with fresh data
-          setPages(loadedData);
+          setPages(renumberedData);
 
           // Reset selected page if needed
           if (
             selectedPage &&
-            !loadedData.find((page) => page.id === selectedPage)
+            !renumberedData.find((page) => page.id === selectedPage)
           ) {
             setSelectedPage(null);
           }
@@ -379,6 +480,155 @@ const AdminQuestionnaire = () => {
     } catch (error) {
       console.error("Error refreshing version info:", error);
     }
+  };
+
+  // Handle section deletion initiation
+  const handleDeleteSectionClick = (pageId: string, pageTitle: string) => {
+    setSectionToDelete({ id: pageId, title: pageTitle });
+    setShowDeleteConfirm(true);
+    setDeleteReason("");
+  };
+
+  // Handle section deletion confirmation
+  const handleConfirmDeleteSection = async () => {
+    if (!sectionToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // Get current user email for tracking
+      const currentUser = await getCurrentUser();
+      const userEmail =
+        currentUser.signInDetails?.loginId || currentUser.username || "admin";
+
+      const success = await deleteSection(
+        sectionToDelete.id,
+        userEmail,
+        deleteReason.trim() || undefined,
+      );
+
+      if (success) {
+        // Remove the section from local state
+        let updatedPages = pages.filter(
+          (page) => page.id !== sectionToDelete.id,
+        );
+
+        // Renumber the remaining sections
+        updatedPages = renumberSections(updatedPages);
+
+        setPages(updatedPages);
+
+        // Clear selected page if it was the deleted one
+        if (selectedPage === sectionToDelete.id) {
+          setSelectedPage(null);
+        }
+
+        // Show success message
+        setSuccessMessage(
+          `Section "${sectionToDelete.title}" has been deleted successfully.`,
+        );
+        setTimeout(() => setSuccessMessage(null), 5000);
+
+        // Refresh version info
+        await handleVersionsRefresh();
+
+        // Notify other components
+        notifyQuestionnaireUpdate();
+      } else {
+        alert("Failed to delete section. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting section:", error);
+      alert("An error occurred while deleting the section. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+      setSectionToDelete(null);
+      setDeleteReason("");
+    }
+  };
+
+  // Handle section deletion cancellation
+  const handleCancelDeleteSection = () => {
+    setShowDeleteConfirm(false);
+    setSectionToDelete(null);
+    setDeleteReason("");
+  };
+
+  // Handle add new section
+  const handleAddNewSection = () => {
+    setShowAddSection(true);
+    setNewSectionTitle("");
+  };
+
+  // Handle add section confirmation
+  const handleConfirmAddSection = async () => {
+    if (!newSectionTitle.trim()) {
+      alert("Please enter a section title.");
+      return;
+    }
+
+    setIsAddingSection(true);
+    try {
+      // Create section data with a default question
+      const sectionData = {
+        title: newSectionTitle.trim(),
+        elements: [
+          {
+            type: "text",
+            name: `section_${Date.now()}_question_1`,
+            title: "Sample Question",
+            isRequired: false,
+          } as SurveyElement,
+        ],
+      };
+
+      const newSectionIdResult = await addNewSection(sectionData);
+
+      if (newSectionIdResult) {
+        // Get updated pages and renumber them
+        let updatedPages = [...pages];
+
+        // Add the new section
+        const newSection: QuestionPage = {
+          id: newSectionIdResult,
+          title: sectionData.title,
+          elements: sectionData.elements,
+        };
+        updatedPages.push(newSection);
+
+        // Renumber all sections to include proper "Section #" numbering
+        updatedPages = renumberSections(updatedPages);
+
+        setPages(updatedPages);
+
+        // Show success message
+        setSuccessMessage(
+          `Section "${newSectionTitle}" has been added successfully.`,
+        );
+        setTimeout(() => setSuccessMessage(null), 5000);
+
+        // Notify other components
+        notifyQuestionnaireUpdate();
+
+        // Select the new section
+        setSelectedPage(newSectionIdResult);
+      } else {
+        alert("Failed to add section. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error adding section:", error);
+      alert("An error occurred while adding the section. Please try again.");
+    } finally {
+      setIsAddingSection(false);
+      setShowAddSection(false);
+      setNewSectionTitle("");
+    }
+  };
+
+  // Handle add section cancellation
+  const handleCancelAddSection = () => {
+    setShowAddSection(false);
+    setNewSectionTitle("");
   };
 
   // Find the selected page object
@@ -444,26 +694,108 @@ const AdminQuestionnaire = () => {
             {/* Pages list */}
             <div className="w-full md:w-1/4">
               <div className="bg-white border border-gray-200 rounded-lg shadow-sm dark:border-gray-700 dark:bg-gray-800 p-4">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-4">
-                  Questionnaire Sections
-                </h3>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+                    Questionnaire Sections
+                  </h3>
+                  <button
+                    onClick={handleAddNewSection}
+                    className="px-3 py-1 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 flex items-center"
+                    title="Add New Section"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      ></path>
+                    </svg>
+                    Add
+                  </button>
+                </div>
+                <div className="mb-3">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 italic text-center">
+                    Drag sections to reorder
+                  </p>
+                </div>
                 <div className="space-y-2">
                   {pages.map((page) => (
-                    <button
+                    <div
                       key={page.id}
-                      onClick={() => handleViewPage(page.id)}
-                      className={`w-full text-left px-4 py-2 rounded-lg transition ${
+                      className={`group relative rounded-lg transition cursor-move ${
                         selectedPage === page.id
                           ? "bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-white"
                           : "hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                      } ${draggedSection === page.id ? "opacity-50" : ""} ${
+                        dragOverSection === page.id
+                          ? "border-2 border-blue-500"
+                          : "border border-transparent"
                       }`}
+                      draggable="true"
+                      onDragStart={(e) => handleSectionDragStart(e, page.id)}
+                      onDragOver={(e) => handleSectionDragOver(e, page.id)}
+                      onDragEnd={handleSectionDragEnd}
+                      onDrop={handleSectionDrop}
                     >
-                      <div className="font-medium">{page.title}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {page.elements.length} question
-                        {page.elements.length !== 1 ? "s" : ""}
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 p-2 text-gray-400 dark:text-gray-500">
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M4 8h16M4 16h16"
+                            ></path>
+                          </svg>
+                        </div>
+                        <button
+                          onClick={() => handleViewPage(page.id)}
+                          className="flex-grow text-left px-2 py-2 pr-12"
+                        >
+                          <div className="font-medium">{page.title}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {page.elements.length} question
+                            {page.elements.length !== 1 ? "s" : ""}
+                          </div>
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDeleteSectionClick(page.id, page.title)
+                          }
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 p-1 rounded-md text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                          aria-label={`Delete section: ${page.title}`}
+                          title={`Delete section: ${page.title}`}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            ></path>
+                          </svg>
+                        </button>
                       </div>
-                    </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1110,6 +1442,207 @@ const AdminQuestionnaire = () => {
             </p>
             <div className="mt-4 w-full bg-gray-200 rounded-full h-2.5">
               <div className="bg-blue-600 h-2.5 rounded-full animate-pulse w-full"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Section deletion confirmation dialog */}
+      {showDeleteConfirm && sectionToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <svg
+                className="w-6 h-6 text-red-500 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                ></path>
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Delete Section
+              </h3>
+            </div>
+
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Are you sure you want to delete the section "
+              {sectionToDelete.title}"? This action will create a new
+              questionnaire version without this section.
+            </p>
+
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Important:</strong> Users with ongoing assessments will
+                keep this section, but new assessments will not include it.
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="delete-reason"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Reason for deletion (optional)
+              </label>
+              <textarea
+                id="delete-reason"
+                value={deleteReason}
+                onChange={(e) => setDeleteReason(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white"
+                rows={3}
+                placeholder="Explain why this section is being removed..."
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelDeleteSection}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmDeleteSection}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete Section"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add new section dialog */}
+      {showAddSection && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <svg
+                className="w-6 h-6 text-green-500 mr-3"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                ></path>
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Add New Section
+              </h3>
+            </div>
+
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Create a new section for your questionnaire. The section will be
+              automatically numbered.
+            </p>
+
+            <div className="mb-4">
+              <label
+                htmlFor="section-title"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                Section Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                id="section-title"
+                type="text"
+                value={newSectionTitle}
+                onChange={(e) => setNewSectionTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                placeholder="e.g., Risk Assessment, Compliance Monitoring..."
+                autoFocus
+              />
+            </div>
+
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Note:</strong> A new section will be created with a
+                sample question that you can edit. This will create a new
+                questionnaire version.
+              </p>
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={handleCancelAddSection}
+                disabled={isAddingSection}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmAddSection}
+                disabled={isAddingSection || !newSectionTitle.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center"
+              >
+                {isAddingSection ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Adding...
+                  </>
+                ) : (
+                  "Add Section"
+                )}
+              </button>
             </div>
           </div>
         </div>

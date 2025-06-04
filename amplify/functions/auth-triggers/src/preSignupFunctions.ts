@@ -1,11 +1,20 @@
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
+import {
+  DynamoDBClient,
+  ListTablesCommand,
+  DescribeTableCommand,
+} from "@aws-sdk/client-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  DynamoDBDocumentClient,
+} from "@aws-sdk/lib-dynamodb";
 import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import {
   baseTemplate,
   adminNotificationTemplate,
 } from "../../user-management/src/templates/emailTemplates";
+import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
 
 // Try to import env variables, fallback to process.env if not available
 let amplifyEnv: any;
@@ -22,10 +31,10 @@ console.log(
   `[AuthTriggerConfig] Running in Lambda function: ${process.env.AWS_LAMBDA_FUNCTION_NAME}`,
 );
 console.log(
-  `[AuthTriggerConfig] Using UserStatus Table Name: ${process.env.USER_STATUS_TABLE || process.env.USER_STATUS_TABLE_NAME || "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE (Hardcoded Fallback!)"}`,
+  `[AuthTriggerConfig] Will discover UserStatus table dynamically at runtime`,
 );
 console.log(
-  `[AuthTriggerConfig] Using User Pool ID (from env): ${amplifyEnv.USER_POOL_ID || process.env.USER_POOL_ID || "NOT SET IN ENV"}`,
+  `[AuthTriggerConfig] Using User Pool ID (from env): ${amplifyEnv.USER_POOL_ID || process.env.USER_POOL_ID || "Will be provided at runtime"}`,
 ); // Log pool ID if available
 console.log(
   `[AuthTriggerConfig] Resolved ADMIN_EMAIL: ${amplifyEnv.ADMIN_EMAIL || process.env.ADMIN_EMAIL || "cmmc.support@mc3technologies.com"}`,
@@ -40,6 +49,61 @@ const cognito = new CognitoIdentityProviderClient();
 const dynamoClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const sesClient = new SESClient();
+const ssm = new SSMClient({});
+
+// Cache for table name to avoid repeated lookups
+let cachedUserStatusTableName: string | null = null;
+
+/**
+ * Dynamically discovers the UserStatus table name
+ * Tables created by Amplify Gen 2 follow the pattern: UserStatus-<hash>-<environment>
+ */
+async function getUserStatusTableName(): Promise<string> {
+  if (cachedUserStatusTableName) return cachedUserStatusTableName;
+
+  const paramName = process.env.USERSTATUS_PARAM;
+  try {
+    if (paramName) {
+      const { Parameter } = await ssm.send(
+        new GetParameterCommand({ Name: paramName }),
+      );
+      if (Parameter?.Value) {
+        cachedUserStatusTableName = Parameter.Value;
+        return cachedUserStatusTableName;
+      }
+    }
+  } catch (err) {
+    console.error("SSM lookup failed:", err);
+  }
+
+  // Fallback to ListTables discovery if SSM not ready
+  return await discoverViaListTables();
+}
+
+// ---------- helper ----------
+async function discoverViaListTables(): Promise<string> {
+  const listTables = await dynamoClient.send(new ListTablesCommand({}));
+  const all = (listTables.TableNames || []).filter((t) =>
+    t.startsWith("UserStatus-"),
+  );
+
+  if (all.length === 0) throw new Error("No UserStatus table found");
+
+  let newest = all[0];
+  let newestTime = 0;
+  for (const t of all) {
+    const meta = await dynamoClient.send(
+      new DescribeTableCommand({ TableName: t }),
+    );
+    const created = meta.Table?.CreationDateTime?.getTime() ?? 0;
+    if (created > newestTime) {
+      newestTime = created;
+      newest = t;
+    }
+  }
+  cachedUserStatusTableName = newest;
+  return newest;
+}
 
 // Admin email - Could be stored in environment variables
 const ADMIN_EMAIL =
@@ -54,16 +118,16 @@ const FROM_EMAIL =
   "no-reply-grc@mc3technologies.com";
 
 // Log email configuration for debugging
-console.log("Email configuration:", {
-  ADMIN_EMAIL,
-  FROM_EMAIL,
-  amplifyEnvAdminEmail: amplifyEnv.ADMIN_EMAIL,
-  processEnvAdminEmail: process.env.ADMIN_EMAIL,
-  amplifyEnvEmailSender: amplifyEnv.EMAIL_SENDER,
-  processEnvEmailSender: process.env.EMAIL_SENDER,
-  amplifyEnvFromEmail: amplifyEnv.FROM_EMAIL,
-  processEnvFromEmail: process.env.FROM_EMAIL,
-});
+// console.log("Email configuration:", {
+//   ADMIN_EMAIL,
+//   FROM_EMAIL,
+//   amplifyEnvAdminEmail: amplifyEnv.ADMIN_EMAIL,
+//   processEnvAdminEmail: process.env.ADMIN_EMAIL,
+//   amplifyEnvEmailSender: amplifyEnv.EMAIL_SENDER,
+//   processEnvEmailSender: process.env.EMAIL_SENDER,
+//   amplifyEnvFromEmail: amplifyEnv.FROM_EMAIL,
+//   processEnvFromEmail: process.env.FROM_EMAIL,
+// });
 
 // Define minimal UserStatus interface needed here
 interface UserStatus {
@@ -88,6 +152,33 @@ interface UserStatus {
 // User status operations
 export const userStatusOperations = {
   /**
+   * Gets a user status record from the UserStatus table
+   * @param email The user's email address
+   * @returns Promise<any> The user status record or null if not found
+   */
+  getUserStatus: async (email: string): Promise<any> => {
+    try {
+      const tableName = await getUserStatusTableName();
+      console.log(
+        `[getUserStatus] Using table: ${tableName} for email: ${email}`,
+      );
+
+      const getCommand = new GetCommand({
+        TableName: tableName,
+        Key: {
+          id: email,
+        },
+      });
+
+      const response = await docClient.send(getCommand);
+      return response.Item || null;
+    } catch (error) {
+      console.error(`[getUserStatus] Error for ${email}:`, error);
+      return null;
+    }
+  },
+
+  /**
    * Creates a new user status record in the UserStatus table
    * Creates a new user status record in the UserStatus table, including profile data if provided.
    * @param email The user's email address
@@ -102,21 +193,19 @@ export const userStatusOperations = {
       companyName?: string;
     },
   ): Promise<boolean> => {
+    console.log(
+      `[createPendingUserStatus] Attempting to create record for ${email} with profile: ${JSON.stringify(profileData)}`,
+    );
     try {
-      //console.log(`[START] createPendingUserStatus for ${email}`);
-      // Log the raw profileData argument received
-      //console.log(
-      //  `[createPendingUserStatus] Received profileData argument:`,
-      //  JSON.stringify(profileData || {}, null, 2),
-      //);
+      const tableName = await getUserStatusTableName();
+      console.log(
+        `[createPendingUserStatus] Using table: ${tableName} for email: ${email}`,
+      );
 
       // Ensure profileData exists and provide fallbacks directly in the data object
       const fName = profileData?.firstName || undefined; // Use undefined as fallback
       const lName = profileData?.lastName || undefined;
       const cName = profileData?.companyName || undefined;
-      //console.log(
-      //  `[createPendingUserStatus] Profile data received: firstName=${fName}, lastName=${lName}, companyName=${cName}`,
-      //);
 
       // Set up user with pending status and profile data in UserStatus table
       const userStatusData: Partial<UserStatus> = {
@@ -139,74 +228,43 @@ export const userStatusOperations = {
         lastStatusChangeBy: undefined,
         ttl: undefined,
       };
+      console.log(
+        `[createPendingUserStatus] Data to write: ${JSON.stringify(userStatusData)}`,
+      );
 
-      // Log the data that will be written to DynamoDB
-      //console.log(
-      //  `[createPendingUserStatus] UserStatus data to be written:`,
-      //  JSON.stringify(userStatusData),
-      //);
-
-      // Get table name - try both environment variable formats to ensure compatibility
-      const tableName =
-        process.env.USER_STATUS_TABLE ||
-        process.env.USER_STATUS_TABLE_NAME ||
-        "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"; // Hardcoded fallback as last resort
-
-      //console.log(
-      //  `[createPendingUserStatus] Using DynamoDB table: ${tableName}`,
-      //);
-
-      if (!tableName || tableName === "") {
-        //console.error(
-        //  "- [createPendingUserStatus] USER_STATUS_TABLE environment variable is not set or is empty! Using fallback.",
-        //);
+      // Reject if we are still using the hard-coded fallback (means discovery failed)
+      if (
+        !tableName ||
+        tableName === "UserStatus-jvvqiyl2bfghrnbjzog3hwam3y-NONE"
+      ) {
+        console.error(
+          `[createPendingUserStatus] Invalid or fallback table name: ${tableName}. Aborting PutCommand.`,
+        );
         return false;
       }
 
-      // Write directly to DynamoDB with better error handling
       try {
         const putCommand = new PutCommand({
           TableName: tableName,
-          Item: userStatusData, // Pass the raw JS object here
+          Item: userStatusData,
         });
-
-        //console.log(
-        //  `[createPendingUserStatus] Sending PutCommand to DynamoDB table: ${tableName}...`,
-        //);
         await docClient.send(putCommand);
-        //console.log(
-        //  `- [createPendingUserStatus] Successfully created UserStatus record for ${email} with pending status`,
-        //);
+        console.log(
+          `[createPendingUserStatus] Successfully created UserStatus record for ${email} in table ${tableName}`,
+        );
         return true;
       } catch (dbError: any) {
-        // Log specific DynamoDB error details
-        //console.error(
-        //  `- [createPendingUserStatus] DynamoDB error creating UserStatus for ${email}. Table: ${tableName}`,
-        //  dbError,
-        //);
-        // Log more details if available
-        //console.error(
-        //  `Error Details: Name: ${dbError?.name}, Code: ${dbError?.$metadata?.httpStatusCode || "N/A"}, Message: ${dbError?.message}, Full Error: ${JSON.stringify(dbError)}`,
-        //);
-
-        // If we get a ResourceNotFoundException, the table might not exist
-        if (
-          dbError?.name === "ResourceNotFoundException" ||
-          dbError?.__type?.includes("ResourceNotFoundException")
-        ) {
-          //console.error(
-          //  `Table "${tableName}" not found. Please check if the table exists and is accessible.`,
-          //);
-        }
-
+        console.error(
+          `[createPendingUserStatus] DynamoDB error for ${email} in table ${tableName}:`,
+          dbError,
+        );
         return false;
       }
     } catch (error: any) {
-      //console.error(
-      //  `- [createPendingUserStatus] Outer error for ${email}:`,
-      //  error,
-      //);
-      // If this is not critical for the sign-up flow, we can continue
+      console.error(
+        `[createPendingUserStatus] Outer error for ${email}:`,
+        error,
+      );
       return false;
     }
   },

@@ -22,6 +22,16 @@ const redirectToAccount = (): void => {
   window.location.href = "/account/";
 };
 
+const openCompletedAssessmentNewTab = (assessmentId: string): void => {
+  const url = `/completed-assessment/?assessment-id=${encodeURIComponent(assessmentId)}`;
+  window.open(url, "_blank");
+};
+
+const openInProgressAssessmentNewTab = (assessmentId: string): void => {
+  const url = `/assessment/?assessment-id=${encodeURIComponent(assessmentId)}`;
+  window.open(url, "_blank");
+};
+
 const redirectToReport = (assessmentId: string): void => {
   window.location.href = `/report/?assessment-id=${assessmentId}`;
 };
@@ -34,4 +44,6 @@ export {
   redirectToCompletedAssessment,
   redirectToAccount,
   redirectToReport,
+  openCompletedAssessmentNewTab,
+  openInProgressAssessmentNewTab,
 };

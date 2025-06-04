@@ -57,7 +57,13 @@ const schema = a
       .model({
         id: a.id().required(),
         email: a.string().required(),
-        status: a.enum(["pending", "active", "suspended", "rejected"]),
+        status: a.enum([
+          "pending",
+          "active",
+          "suspended",
+          "rejected",
+          "deleted",
+        ]),
         role: a.enum(["user", "admin"]),
         lastName: a.string(),
         firstName: a.string(),
@@ -283,6 +289,46 @@ const schema = a
       .returns(a.json())
       .authorization((allow) => [allow.groups(["GRC-Admin"])])
       .handler(a.handler.function(userManagementFunction)),
+
+    // Questionnaire Section Management Models
+    QuestionnaireVersion: a
+      .model({
+        id: a.id().required(),
+        version: a.string().required(),
+        name: a.string(),
+        description: a.string(),
+        isActive: a.boolean().required(),
+        createdAt: a.string().required(),
+        createdBy: a.string().required(),
+        changeNotes: a.string(),
+        s3Path: a.string().required(),
+      })
+      .secondaryIndexes((index) => [index("version").name("version-index")])
+      .authorization((allow) => [
+        allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
+        allow.authenticated("userPools").to(["read"]),
+      ]),
+
+    SectionDeletion: a
+      .model({
+        id: a.id().required(),
+        questionnaireVersionId: a.string().required(),
+        sectionId: a.string().required(),
+        sectionTitle: a.string().required(),
+        deletedAt: a.string().required(),
+        deletedBy: a.string().required(),
+        reason: a.string(),
+        affectedNewVersions: a.string().array(), // Array of version numbers where this section is deleted
+      })
+      .secondaryIndexes((index) => [
+        index("questionnaireVersionId")
+          .sortKeys(["deletedAt"])
+          .name("version-deletions"),
+        index("sectionId").name("section-index"),
+      ])
+      .authorization((allow) => [
+        allow.groups(["GRC-Admin"]).to(["read", "create", "update", "delete"]),
+      ]),
 
     migrateUsersToDynamoDB: a
       .mutation()

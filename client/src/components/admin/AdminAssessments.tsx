@@ -6,8 +6,8 @@ import {
 import { fetchUsers, User as AdminUserType } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 import {
-  redirectToInProgressAssessment,
-  redirectToCompletedAssessment,
+  openInProgressAssessmentNewTab,
+  openCompletedAssessmentNewTab,
 } from "../../utils/routing";
 
 // Combined assessment type for the UI
@@ -200,7 +200,7 @@ const AdminAssessments = () => {
               updatedAt: assessment.updatedAt,
               version: assessment.version,
             };
-          },
+          }
         );
 
         const completedData: AssessmentData[] = completedAssessments.map(
@@ -221,15 +221,15 @@ const AdminAssessments = () => {
               completedAt: assessment.completedAt,
               version: assessment.version,
             };
-          },
+          }
         );
 
         // Combine and sort by most recent first
         setAssessments(
           [...inProgressData, ...completedData].sort(
             (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-          ),
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          )
         );
       } catch (error) {
         console.error("Error fetching assessments:", error);
@@ -254,7 +254,7 @@ const AdminAssessments = () => {
 
   // Get filtered users for dropdown based on search query
   const filteredUsers = users.filter((user) =>
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()),
+    user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Handle user selection
@@ -284,9 +284,10 @@ const AdminAssessments = () => {
   // Handle view button click based on assessment status
   const handleViewAssessment = (assessment: AssessmentData) => {
     if (assessment.status === "in-progress") {
-      redirectToInProgressAssessment(assessment.id);
+      // redirectToInProgressAssessment(assessment.id);
+      openInProgressAssessmentNewTab(assessment.id);
     } else {
-      redirectToCompletedAssessment(assessment.id);
+      openCompletedAssessmentNewTab(assessment.id);
     }
   };
 
@@ -316,7 +317,7 @@ const AdminAssessments = () => {
 
       // Remove the assessment from the local state immediately
       setAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id),
+        prevAssessments.filter((assessment) => assessment.id !== id)
       );
 
       //console.log(`Successfully deleted assessment: ${name} (ID: ${id})`);

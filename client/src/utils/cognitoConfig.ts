@@ -79,8 +79,6 @@ function getEnvConfig(): Partial<CognitoConfig> {
 
 // Retrieve configuration with a smart fallback strategy
 export function getCognitoConfig(): CognitoConfig {
-  //console.log("Getting Cognito configuration...");
-
   // Try to get config from Amplify outputs
   const amplifyConfig = getAmplifyConfig();
 

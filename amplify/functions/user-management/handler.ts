@@ -20,9 +20,33 @@ export type AppSyncEvent = AppSyncResolverEvent<any, any> & {
  * @returns The result of the operation
  */
 export const handler = async (event: AppSyncEvent): Promise<any> => {
-  log.info(
-    "User management handler received event:",
+  console.log(
+    "[INFO] User management handler received event:",
     JSON.stringify(event, null, 2),
+  );
+
+  // Log all environment variables for debugging
+  console.log("[ENV] Environment variables available:");
+  console.log("[ENV] AWS_REGION:", process.env.AWS_REGION);
+  console.log(
+    "[ENV] AMPLIFY_AUTH_USERPOOL_ID:",
+    process.env.AMPLIFY_AUTH_USERPOOL_ID,
+  );
+  console.log("[ENV] API_ENDPOINT:", process.env.API_ENDPOINT);
+  console.log(
+    "[ENV] USERSTATUS_TABLE_NAME:",
+    process.env.USERSTATUS_TABLE_NAME,
+  );
+  console.log("[ENV] AUDITLOG_TABLE_NAME:", process.env.AUDITLOG_TABLE_NAME);
+  console.log(
+    "[ENV] All table-related env vars:",
+    Object.keys(process.env).filter((key) => key.includes("TABLE")),
+  );
+  console.log(
+    "[ENV] All API-related env vars:",
+    Object.keys(process.env).filter(
+      (key) => key.includes("API") || key.includes("ENDPOINT"),
+    ),
   );
 
   // Extract operation type from the event

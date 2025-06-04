@@ -5,7 +5,6 @@ import {
   isUserAccountActive,
   getUserAccountStatus,
   isCurrentUserAdmin,
-  getCurrentUser,
 } from "../amplify/auth";
 import Spinner from "./Spinner";
 import { Alert } from "./Alert";
@@ -34,32 +33,17 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
         setIsAuthenticated(authenticated);
 
         if (authenticated) {
-          // Try to create DynamoDB record if it doesn't exist
           await ensureUserRecordExists();
 
-          // TEMPORARY FIX: Check if this is the admin account
-          const user = await getCurrentUser();
+          const active = await isUserAccountActive();
+          setIsActive(active);
 
-          // If this is your admin email, bypass the active check
-          if (
-            user &&
-            (user.email === "no-reply-grc@mc3technologies.com" ||
-              user.email === "imatar77@hawaii.edu")
-          ) {
-            setIsActive(true);
-            setIsAdmin(true);
-            setAccountStatus("CONFIRMED");
-          } else {
-            const active = await isUserAccountActive();
-            setIsActive(active);
+          const status = await getUserAccountStatus();
+          setAccountStatus(status);
 
-            const status = await getUserAccountStatus();
-            setAccountStatus(status);
-
-            if (adminOnly) {
-              const admin = await isCurrentUserAdmin();
-              setIsAdmin(admin);
-            }
+          if (adminOnly) {
+            const admin = await isCurrentUserAdmin();
+            setIsAdmin(admin);
           }
         }
       } catch (error) {
@@ -78,11 +62,9 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
   }
 
   if (!isAuthenticated) {
-    // Redirect to login if not authenticated
     return <Navigate to="/signin" state={{ from: location }} replace />;
   }
 
-  // Handle pending/rejected/suspended users
   if (!isActive) {
     let message =
       "Your account requires attention before you can access this page.";
@@ -121,7 +103,6 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
     );
   }
 
-  // Check if admin access is required but user is not an admin
   if (adminOnly && !isAdmin) {
     return (
       <div className="container mx-auto p-4 max-w-md">
@@ -140,8 +121,7 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({
     );
   }
 
-  // If we get here, the user is authenticated and active
-  return <>{children}</>;
+  return children;
 };
 
 export default PrivateRoute;
