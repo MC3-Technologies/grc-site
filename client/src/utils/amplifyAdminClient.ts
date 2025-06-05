@@ -6,7 +6,7 @@ import { User, UserStatusType } from "./adminUser";
 const client = generateClient<Schema>();
 
 // Convert Amplify Data API UserStatus to our User interface
-const userStatusToUser = (userStatus: any): User => {
+const userStatusToUser = (userStatus: Record<string, unknown>): User => {
   return {
     id: userStatus.email,
     email: userStatus.email,
@@ -61,7 +61,9 @@ export const listAllUsers = async (): Promise<User[]> => {
     }
 
     // Convert to User interface
-    return usersData.map((userData: any) => userStatusToUser(userData));
+    return usersData.map((userData: Record<string, unknown>) =>
+      userStatusToUser(userData),
+    );
   } catch (error) {
     console.error("Error listing users:", error);
     throw error;
@@ -105,7 +107,9 @@ export const getUsersByStatus = async (status: string): Promise<User[]> => {
     }
 
     // Convert to User interface
-    return usersData.map((userData: any) => userStatusToUser(userData));
+    return usersData.map((userData: Record<string, unknown>) =>
+      userStatusToUser(userData),
+    );
   } catch (error) {
     console.error(`Error fetching users with status ${status}:`, error);
     throw error;
