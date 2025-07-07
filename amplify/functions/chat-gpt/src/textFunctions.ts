@@ -51,7 +51,7 @@ export const chatRequest = async (
       throw new Error("Error: OpenAI completion is empty.");
     }
 
-    // Create new assistant message
+    // Create a new assistant message
     const assistantMessage: ChatHistoryMessage = {
       role: "assistant",
       content: completion.choices[0].message.content,
