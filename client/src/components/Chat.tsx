@@ -183,18 +183,24 @@ const Chat = () => {
       handleChatSubmit();
     }
   };
-   //Change the current state of the microphone button
-   const toggleMic = () => {
-    setMicState(previousState => !previousState);
-  };
+   
 
 
 
 
-  // Handle the mic button being pressed
-  const handleMicPress = () =>{
-    toggleMic();
-    micOn ? console.log("Button pressed, the mic is now off") : console.log("Button pressed, the mic is now on");
+  // Handle the mic button being held down
+
+  const handleMicDown = () => {
+    setMicState(true);
+    console.log("Button pressed, mic on")
+  }
+  const handleMicUp = () => {
+    setMicState(false);
+    console.log("Button released, mic off")
+  } 
+  const handleMicLeave = () => {
+    setMicState(false);
+    console.log("Button released, mic off")
   }
 
 
@@ -495,31 +501,17 @@ const Chat = () => {
               {/*HTML FOR MICROPHONE BUTTON */}
               {/*-----------------------------------------------------------------------------------------------------------*/}
               <div className="p-4 flex rounded-b-md">
-                {micOn && currentUser && !responseLoading  ? (
+                {currentUser && !responseLoading && (
                   <button
                     id="mic-button"
-                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-l-md transition duration-300"
-                    onClick={handleMicPress}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                      aria-hidden="true"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M12 1a2 2 0 0 1 2 2v10a2 2 0 1 1-4 0V3a2 2 0 0 1 2-2Zm6 11a6 6 0 1 1-12 0H4a8 8 0 0 0 16 0h-2Zm-6 9a7.96 7.96 0 0 1-4-1.07v1.07a1 1 0 1 0 2 0v-.52a9.95 9.95 0 0 0 4 0v.52a1 1 0 1 0 2 0v-1.07A7.96 7.96 0 0 1 12 21Z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </button>
-                ) : (
-                  <button
-                    id="mic-button"
-                    className="bg-gray-600 dark:bg-gray-600 text-white px-4 py-2 rounded-l-md transition duration-300"
-                    onClick={handleMicPress}
+                    className={`px-4 py-2 rounded-l-md transition duration-300 ${
+                      micOn ? 'bg-primary-600 hover:bg-primary-700 text-white' : 'bg-gray-600 dark:bg-gray-600 text-white'
+                    }`}
+                    onMouseDown={handleMicDown}
+                    onMouseUp={handleMicUp}
+                    onMouseLeave={handleMicLeave}
+                    onTouchStart={handleMicDown}
+                    onTouchEnd={handleMicUp}
                     disabled={responseLoading || !currentUser}
                   >
                     <svg
