@@ -68,6 +68,7 @@ const Chat = () => {
     initialSystemMessage,
   ]);
   const [currentMessage, setCurrentMessage] = useState<string>("");
+  const [micOn, setMicState] = useState<boolean>(false);
 
   // Chat handling related state
   const [loading, setLoading] = useState<boolean>(true);
@@ -182,6 +183,23 @@ const Chat = () => {
       handleChatSubmit();
     }
   };
+   //Change the current state of the microphone button
+   const toggleMic = () => {
+    setMicState(previousState => !previousState);
+  };
+
+
+
+
+  // Handle the mic button being pressed
+  const handleMicPress = () =>{
+    toggleMic();
+    micOn ? console.log("Button pressed, the mic is now off") : console.log("Button pressed, the mic is now on");
+  }
+
+
+
+
 
   // Handle chat submission.
   const handleChatSubmit = async (): Promise<void> => {
@@ -473,28 +491,55 @@ const Chat = () => {
                 )}
               </div>
 
+
+              {/*HTML FOR MICROPHONE BUTTON */}
+              {/*-----------------------------------------------------------------------------------------------------------*/}
               <div className="p-4 flex rounded-b-md">
-                <button 
-                  id = "mic-button"
-                  className="bg-gray-600 dark:bg-gray-600 text-white px-4 py-2 rounded-l-md transition duration-300"
-                  //need to add button listener here next
-                >
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
+                {micOn && currentUser && !responseLoading  ? (
+                  <button
+                    id="mic-button"
+                    className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-l-md transition duration-300"
+                    onClick={handleMicPress}
                   >
-                    <path 
-                      fillRule= "evenodd"
-                      d = "M12 1a2 2 0 0 1 2 2v10a2 2 0 1 1-4 0V3a2 2 0 0 1 2-2Zm6 11a6 6 0 1 1-12 0H4a8 8 0 0 0 16 0h-2Zm-6 9a7.96 7.96 0 0 1-4-1.07v1.07a1 1 0 1 0 2 0v-.52a9.95 9.95 0 0 0 4 0v.52a1 1 0 1 0 2 0v-1.07A7.96 7.96 0 0 1 12 21Z"
-                      clipRule = "evenodd"
-                    />
-                  </svg>
-                </button>
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M12 1a2 2 0 0 1 2 2v10a2 2 0 1 1-4 0V3a2 2 0 0 1 2-2Zm6 11a6 6 0 1 1-12 0H4a8 8 0 0 0 16 0h-2Zm-6 9a7.96 7.96 0 0 1-4-1.07v1.07a1 1 0 1 0 2 0v-.52a9.95 9.95 0 0 0 4 0v.52a1 1 0 1 0 2 0v-1.07A7.96 7.96 0 0 1 12 21Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    id="mic-button"
+                    className="bg-gray-600 dark:bg-gray-600 text-white px-4 py-2 rounded-l-md transition duration-300"
+                    onClick={handleMicPress}
+                    disabled={responseLoading || !currentUser}
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M12 1a2 2 0 0 1 2 2v10a2 2 0 1 1-4 0V3a2 2 0 0 1 2-2Zm6 11a6 6 0 1 1-12 0H4a8 8 0 0 0 16 0h-2Zm-6 9a7.96 7.96 0 0 1-4-1.07v1.07a1 1 0 1 0 2 0v-.52a9.95 9.95 0 0 0 4 0v.52a1 1 0 1 0 2 0v-1.07A7.96 7.96 0 0 1 12 21Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                )}
 
-
+                {/*-----------------------------------------------------------------------------------------------------------*/}
+                {/*HTML FOR TEXT BOX */}
                 <input
                   value={currentMessage}
                   onChange={handleCurrentMessageChange}
@@ -503,7 +548,8 @@ const Chat = () => {
                   id="user-input"
                   type="text"
                   placeholder="Type or record a message"
-                  className="w-full px-3 py-2 focus:outline-none dark:bg-gray-700 dark:text-white"                />
+                  className="w-full px-3 py-2 focus:outline-none dark:bg-gray-700 dark:text-white"
+                />
 
                 
                 {currentMessage.length > 0 &&
@@ -531,6 +577,7 @@ const Chat = () => {
                     </svg>
                   </button>
                 ) : (
+                  
                   <button
                     id="send-button"
                     className="bg-gray-600 dark:bg-gray-600 text-white px-4 py-2 rounded-r-md transition duration-300"
