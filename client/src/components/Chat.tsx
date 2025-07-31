@@ -68,7 +68,12 @@ const Chat = () => {
     initialSystemMessage,
   ]);
   const [currentMessage, setCurrentMessage] = useState<string>("");
+
+  //Mic functions related state
   const [micOn, setMicState] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  
 
   // Chat handling related state
   const [loading, setLoading] = useState<boolean>(true);
@@ -150,6 +155,64 @@ const Chat = () => {
     }
   }, [isClearEnabled, messages]);
 
+//________________________________________________________________________________________________
+
+  //Start/stop the microphone recording whenever micOn changes state
+  useEffect(() => {
+    if (micOn) {
+      // Logic to start recording
+      navigator.mediaDevices.getUserMedia({audio: true})
+      .then((stream) => {
+        const recorder = new MediaRecorder(stream, {
+          mimeType: "audio/webm;codecs=opus",
+        });
+        mediaRecorderRef.current = recorder;
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            const audioBlob = event.data;
+          }
+        };
+
+
+
+        
+      recorder.start();
+      setIsRecording(true); 
+      console.log(micOn);
+      console.log("Being pressed");
+
+
+
+      }).catch(() => {
+        //Change error handling to be more graceful later
+        alert("Please enable microhpone access");
+        console.log("Mic access not enabled");
+      });
+
+
+      
+      
+    } 
+    else {
+      // Logic to stop recording
+      if (isRecording && mediaRecorderRef.current?.state === "recording") {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+        console.log("Released");
+        console.log(micOn);
+      }
+    }
+  }, [micOn]);
+
+
+
+//________________________________________________________________________________________________
+
+
+
+
+
   // Handler to toggle chatbox open/close.
   const toggleChatBox = () => {
     setChatBoxOpen(!chatBoxOpen);
@@ -188,22 +251,17 @@ const Chat = () => {
 
 
 
-  // Handle the mic button being held down
+  // Handle the mic button interactions
 
   const handleMicDown = () => {
     setMicState(true);
-    console.log("Button pressed, mic on")
   }
   const handleMicUp = () => {
     setMicState(false);
-    console.log("Button released, mic off")
   } 
   const handleMicLeave = () => {
     setMicState(false);
-    console.log("Button released, mic off")
   }
-
-
 
 
 
