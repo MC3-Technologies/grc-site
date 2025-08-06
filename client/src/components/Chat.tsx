@@ -157,6 +157,26 @@ const Chat = () => {
 
 //________________________________________________________________________________________________
 
+//Wrap in FormData and send audio
+const convertAndSendAudio = async (blob: Blob): Promise<string> => {
+  const formData = new FormData();
+  formData.append("file", blob, "audio.webm");
+
+  const response = await fetch("/transcribe", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Transcription request failed");
+  }
+
+  const data = await response.json();
+  return data.transcript;
+};
+
+
+
   //Start/stop the microphone recording whenever micOn changes state
   useEffect(() => {
     if (micOn) {
@@ -168,10 +188,13 @@ const Chat = () => {
         });
         mediaRecorderRef.current = recorder;
 
-        recorder.ondataavailable = (event) => {
+        recorder.ondataavailable =async (event) => {
           if (event.data.size > 0) {
             const audioBlob = event.data;
             console.log(audioBlob);
+            
+            const transcript = await convertAndSendAudio(audioBlob);
+            console.log("Transcript:", transcript);
           }
         };
 

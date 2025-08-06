@@ -3,6 +3,7 @@ import { defineBackend } from "@aws-amplify/backend";
 import { auth as authResourceFactory } from "./auth/resource"; // Renamed to avoid conflict with a potential 'auth' variable
 import { data } from "./data/resource";
 import { chatGptFunction } from "./functions/chat-gpt/resource";
+import { audioTranscriber } from "./functions/openai-whisper/resource";
 import { userManagementFunction } from "./functions/user-management/resource";
 import { assessmentStorage } from "./storage/resource";
 import { authTriggersFunction } from "./functions/auth-triggers/resource";
@@ -22,6 +23,7 @@ const backend = defineBackend({
   userManagementFunction,
   assessmentStorage,
   authTriggersFunction,
+  audioTranscriber,
 });
 
 // Grant the Lambda function access to Amplify resources with proper environment variables
