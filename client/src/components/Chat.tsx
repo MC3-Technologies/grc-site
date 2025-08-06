@@ -171,6 +171,7 @@ const Chat = () => {
         recorder.ondataavailable = (event) => {
           if (event.data.size > 0) {
             const audioBlob = event.data;
+            console.log(audioBlob);
           }
         };
 
