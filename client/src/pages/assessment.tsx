@@ -642,7 +642,7 @@ export function Assessment() {
           <div className="container mx-auto">{getPageData()}</div>
         )}
       </section>
-      <Chat />
+      <Chat assessment={pageData.assessment!}/>
       <Footer />
 
       {/* Completion Success Modal */}

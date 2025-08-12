@@ -12,6 +12,7 @@ import {
   clearChatHistory,
 } from "../utils/chatStorage";
 import { ChatHistoryMessage } from "../types/Chat";
+import { Model } from "survey-core";
 
 // Define the initial system message separately.
 const initialSystemMessage: ChatHistoryMessage = {
@@ -53,12 +54,16 @@ You supplement—never replace—the site's CMMC Level 1 assessment, policy-deve
   `.trim(),
 };
 
-const Chat = () => {
+type Props = {
+  assessment?: Model;
+};
+
+const Chat: React.FC<Props> = ({ assessment }) => {
   // Chat overlay open state
   const [chatBoxOpen, setChatBoxOpen] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
-  // Auth tracking state
+  // Auth tracking states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authEvents, setAuthEvents] = useState<ListenData | null>(null);
 
@@ -165,7 +170,7 @@ const Chat = () => {
 
   // Handle input change.
   const handleCurrentMessageChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setCurrentMessage(event.target.value);
   };
@@ -192,11 +197,11 @@ const Chat = () => {
     // Set response loading to true, locking send message button
     setResponseLoading(true);
 
-    // Add user message to messages array then set current message back to empty
     setMessages((prev) => [
       ...prev,
       { role: "user", content: currentMessage.trim() },
     ]);
+    let currentMessageCopy = currentMessage.trim();
     setCurrentMessage("");
 
     // TEMPORARY -- COMMENT OUT FOR PRODUCTION
@@ -214,10 +219,21 @@ const Chat = () => {
 
     try {
       // Request response from GPT completion function using previous currentMessages copy
+      if (assessment) {
+        console.info("User asked chatbot quesiton while taking an assessment.");
+        const assessmentJsonString = JSON.stringify(
+          assessment.getData(),
+          null,
+          2
+        );
+        currentMessageCopy =
+          currentMessageCopy +
+          `\nThe following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ${assessmentJsonString}. You may use this as extra context to better answer this users question.`;
+      }
       const response = await client.queries.gptCompletion({
         messages: JSON.stringify([
           ...messages,
-          { role: "user", content: currentMessage },
+          { role: "user", content: currentMessageCopy },
         ]),
       });
 
@@ -234,9 +250,14 @@ const Chat = () => {
 
       // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
-        JSON.parse(response.data as string),
+        JSON.parse(response.data as string)
       ) as ChatHistoryMessage[];
       // console.info(parsedMessages);
+      parsedMessages.forEach((pm)=>{
+        if(pm.content.includes("The following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ")){
+          pm.content = pm.content.split("The following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ")[0]
+        }
+      })
       setMessages(parsedMessages);
     } catch (error) {
       console.error("Error fetching response:", error);
