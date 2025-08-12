@@ -8,6 +8,8 @@ import { Model } from "survey-core";
 import { getClientSchema } from "../amplify/schema";
 import { remove } from "aws-amplify/storage";
 import { isCurrentUserAdmin } from "../amplify/auth";
+import {v4 as uuidv4} from 'uuid';
+
 
 // Assessment class with one global variable and one global in common method : upload assessment data to storage
 class Assessment {
@@ -438,16 +440,7 @@ class InProgressAssessment extends Assessment {
 
   // Generate URL safe hash to use for assessment ids (negligable collision chances)
   private static _generateUrlSafeHash = (): string => {
-    // Characters to use in hash
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let result = "";
-    // Build random hash string
-    for (let i = 0; i < 16; i++) {
-      result += chars[Math.floor(Math.random() * chars.length)];
-    }
-    // Return result
-    return result;
+    return uuidv4()
   };
 }
 

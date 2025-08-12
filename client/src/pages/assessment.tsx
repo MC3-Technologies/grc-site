@@ -77,26 +77,6 @@ const sanitizeAssessmentData = (data: unknown): unknown => {
   return data;
 };
 
-// Helper function to sanitize assessment ID
-const sanitizeAssessmentId = (id: string): string => {
-  // More robust sanitization that:
-  // 1. Removes anything that's not a letter, number, dash, or underscore
-  // 2. Replaces all special characters with a single underscore (not just consecutive ones)
-  // 3. Removes leading/trailing special characters
-  // 4. Ensures ID is valid by checking for content and non-special-char-only
-  const sanitized = id
-    .replace(/[^a-zA-Z0-9_-]/g, "") // Remove non-alphanumeric chars
-    .replace(/[-_]+/g, "_") // Convert all special chars runs into a single "_"
-    .replace(/^[-_]|[-_]$/g, ""); // Trim leading/trailing special chars
-
-  // Return default_id if:
-  // - sanitized is empty
-  // - sanitized is just "_" (from special char normalization)
-  // - sanitized has no alphanumeric characters (only special chars)
-  return sanitized && sanitized !== "_" && sanitized.match(/[a-zA-Z0-9]/)
-    ? sanitized
-    : "default_id";
-};
 
 // Helper function for safe navigation
 const safeNavigate = (path: string): void => {
@@ -316,7 +296,7 @@ export function Assessment() {
       }
 
       // Create local assessment id to use later
-      const currentAssessmentId = sanitizeAssessmentId(assessmentIdParam ?? "");
+      const currentAssessmentId = assessmentIdParam ?? ""
 
       // If ID is empty after sanitization or equals default_id, it was invalid
       if (currentAssessmentId === "default_id") {
@@ -380,7 +360,7 @@ export function Assessment() {
               const blob = new Blob([jsonString], { type: "application/json" });
               const file = new File(
                 [blob],
-                `${sanitizeAssessmentId(currentAssessmentId)}.json`,
+                `${currentAssessmentId}.json`,
                 {
                   type: "application/json",
                 },
@@ -441,7 +421,7 @@ export function Assessment() {
             const blob = new Blob([jsonString], { type: "application/json" });
             const file = new File(
               [blob],
-              `${sanitizeAssessmentId(currentAssessmentId)}.json`,
+              `${currentAssessmentId}.json`,
               {
                 type: "application/json",
               },
@@ -642,7 +622,7 @@ export function Assessment() {
           <div className="container mx-auto">{getPageData()}</div>
         )}
       </section>
-      <Chat />
+      <Chat assessment={pageData.assessment!}/>
       <Footer />
 
       {/* Completion Success Modal */}
