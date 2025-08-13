@@ -1,11 +1,10 @@
 import { defineFunction } from "@aws-amplify/backend";
 
-export const audioTranscriber = defineFunction({
-  name: "audio-transcriber",
+export const transcriptionFunction = defineFunction({
   entry: "./handler.ts",
-  resourceGroupName: "data",
+  timeoutSeconds: 60,        
+  memoryMB: 1024,            
   environment: {
     OPEN_AI_API_KEY: process.env.OPEN_AI_API_KEY || "",
   },
-  timeoutSeconds: 30,
 });

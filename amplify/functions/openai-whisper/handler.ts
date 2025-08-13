@@ -1,42 +1,38 @@
+import type { APIGatewayProxyHandlerV2 } from "aws-lambda";
 import { transcribeAudio } from "./src/transcriptionFunction";
-import { APIGatewayProxyEvent } from "aws-lambda";
 
-//import { env } from "$amplify/env/audio-transcriber";   REPLACE THE LINE BELOW AFTER AMPLIFY PUSH
-const env = {
-  OPEN_AI_API_KEY: process.env.OPEN_AI_API_KEY || "",
+const defaultHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*", // adjust for your domain
 };
 
-export const handler = async (event: APIGatewayProxyEvent) => {
+export const handler: APIGatewayProxyHandlerV2 = async (event) => {
   try {
-    if (!event.body || !event.isBase64Encoded) {
+    if (!event.body) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: "Invalid request: missing audio file" }),
+        headers: defaultHeaders,
+        body: JSON.stringify({ error: "No audio data received" }),
       };
     }
 
-    const contentType = event.headers["content-type"] || event.headers["Content-Type"];
-    if (!contentType?.startsWith("multipart/form-data")) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "Expected multipart/form-data" }),
-      };
-    }
+    const audioBuffer = event.isBase64Encoded
+      ? Buffer.from(event.body, "base64")
+      : Buffer.from(event.body);
 
-    // Decode the raw multipart body
-    const bodyBuffer = Buffer.from(event.body, "base64");
-
-    const transcript = await transcribeAudio(bodyBuffer, contentType, env.OPEN_AI_API_KEY);
+    const transcript = await transcribeAudio(audioBuffer);
 
     return {
       statusCode: 200,
+      headers: defaultHeaders,
       body: JSON.stringify({ transcript }),
     };
-  } catch (error) {
-    console.error("Transcription error:", error);
+  } catch (err) {
+    console.error("Transcription error:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Transcription failed" }),
+      headers: defaultHeaders,
+      body: JSON.stringify({ error: "Internal server error" }),
     };
   }
 };
