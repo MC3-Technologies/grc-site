@@ -73,6 +73,7 @@ const Chat = () => {
   const [micOn, setMicState] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   
 
   // Chat handling related state
@@ -157,21 +158,18 @@ const Chat = () => {
 
 //________________________________________________________________________________________________
 
-//Wrap in FormData and send audio
-const convertAndSendAudio = async (blob: Blob): Promise<string> => {
-  const formData = new FormData();
-  formData.append("file", blob, "audio.webm");
-
-  const response = await fetch("/transcribe", {
+const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
+  const arrayBuffer = await blob.arrayBuffer();
+  const res = await fetch("https://your-api-id.execute-api.us-east-1.amazonaws.com/transcribe", {
     method: "POST",
-    body: formData,
+    headers: { "Content-Type": "audio/webm" },
+    body: arrayBuffer,
   });
-
-  if (!response.ok) {
-    throw new Error("Transcription request failed");
+  if (!res.ok) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`Transcription request failed (${res.status}) ${msg}`);
   }
-
-  const data = await response.json();
+  const data = await res.json();
   return data.transcript;
 };
 
@@ -179,55 +177,45 @@ const convertAndSendAudio = async (blob: Blob): Promise<string> => {
 
   //Start/stop the microphone recording whenever micOn changes state
   useEffect(() => {
-    if (micOn) {
-      // Logic to start recording
-      navigator.mediaDevices.getUserMedia({audio: true})
+  if (micOn) {
+    navigator.mediaDevices.getUserMedia({ audio: true })
       .then((stream) => {
-        const recorder = new MediaRecorder(stream, {
-          mimeType: "audio/webm;codecs=opus",
-        });
+        streamRef.current = stream;
+
+        const recorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
         mediaRecorderRef.current = recorder;
 
-        recorder.ondataavailable =async (event) => {
-          if (event.data.size > 0) {
+        recorder.ondataavailable = async (event) => {
+          if (!event.data || event.data.size === 0) return; // single full Blob after stop()
+          try {
             const audioBlob = event.data;
             console.log(audioBlob);
-            
-            const transcript = await convertAndSendAudio(audioBlob);
+
+            const transcript = await sendAudioForTranscription(audioBlob);
             console.log("Transcript:", transcript);
+          } catch (err) {
+            console.error("Error sending audio:", err);
+          } finally {
+            streamRef.current?.getTracks().forEach((t) => t.stop());
+            streamRef.current = null;
           }
         };
 
-
-
-        
-      recorder.start();
-      setIsRecording(true); 
-      console.log(micOn);
-      console.log("Being pressed");
-
-
-
-      }).catch(() => {
-        //Change error handling to be more graceful later
-        alert("Please enable microhpone access");
-        console.log("Mic access not enabled");
+        recorder.start(); // no timeslice -> one dataavailable on stop
+        setIsRecording(true);
+        console.log("Recording started");
+      })
+      .catch(() => {
+        alert("Please enable microphone access");
       });
-
-
-      
-      
-    } 
-    else {
-      // Logic to stop recording
-      if (isRecording && mediaRecorderRef.current?.state === "recording") {
-        mediaRecorderRef.current.stop();
-        setIsRecording(false);
-        console.log("Released");
-        console.log(micOn);
-      }
+  } else {
+    if (isRecording && mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop(); // triggers single dataavailable with full Blob
+      setIsRecording(false);
+      console.log("Recording stopped");
     }
-  }, [micOn]);
+  }
+}, [micOn, isRecording]); 
 
 
 
