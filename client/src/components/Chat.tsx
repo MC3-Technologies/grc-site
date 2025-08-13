@@ -175,7 +175,7 @@ const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
 
 
 
-  //Start/stop the microphone recording whenever micOn changes state
+  //Start and stop the microphone recording whenever micOn changes state
   useEffect(() => {
   if (micOn) {
     navigator.mediaDevices.getUserMedia({ audio: true })
