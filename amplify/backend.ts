@@ -175,3 +175,5 @@ backend.authTriggersFunction.resources.lambda.addToRolePolicy(
 );
 
 backend.authTriggersFunction.addEnvironment("USERSTATUS_PARAM", paramName);
+
+export default backend;

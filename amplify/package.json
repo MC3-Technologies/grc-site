@@ -1,14 +1,17 @@
 {
   "type": "module",
   "dependencies": {
-    "@aws-sdk/client-cognito-identity-provider": "^3.772.0",
-    "@aws-sdk/client-ses": "^3.758.0",
-    "@aws-sdk/client-sns": "^3.772.0",
-    "busboy": "^1.6.0",
-    "form-data": "^4.0.4",
-    "node-fetch": "^3.3.2",
-    "prettier": "^3.5.0"
-  },
+  "@aws-amplify/backend": "^1.16.1",
+  "aws-cdk-lib": "^2.189.1",
+  "constructs": "^10.3.0",
+  "@aws-sdk/client-cognito-identity-provider": "^3.772.0",
+  "@aws-sdk/client-ses": "^3.758.0",
+  "@aws-sdk/client-sns": "^3.772.0",
+  "busboy": "^1.6.0",
+  "form-data": "^4.0.4",
+  "node-fetch": "^3.3.2",
+  "prettier": "^3.5.0"
+},
   "scripts": {
     "format": "npx prettier . --write",
     "test": "node --no-warnings --experimental-vm-modules node_modules/jest/bin/jest.js --config=jest.config.js --silent=true"
