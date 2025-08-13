@@ -1,6 +1,6 @@
 import { defineFunction } from "@aws-amplify/backend";
 
-export const transcriptionFunction = defineFunction({
+export const audioTranscriber = defineFunction({
   entry: "./handler.ts",
   timeoutSeconds: 60,        
   memoryMB: 1024,            
