@@ -11,8 +11,8 @@ import Footer from "../components/Footer";
 import Spinner from "../components/Spinner";
 import PageNotFound from "../components/PageNotFound";
 
-import resources from "../resourceData";
-import { ResourcesUnion } from "../resourceData";
+import resources from "../lib/resourceData";
+import { ResourcesUnion } from "../lib/resourceData";
 
 export function Resources() {
   const [resource, setResource] = useState<ResourcesUnion | null>(null);
@@ -49,9 +49,9 @@ export function Resources() {
           </div>
         ) : resourceExist ? (
           <>
-            <section className="mt-20 bg-white dark:bg-gray-900">
-              <div className="py-8 px-4 mx-auto max-w-screen-xl text-center lg:py-16 lg:px-12">
-                <h1 className="mb-4 text-4xl font-extrabold tracking-tight leading-none text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
+            <section className="mt-14 bg-white dark:bg-gray-900">
+              <div className="py-8 px-4 mx-auto max-w-screen-xl text-center ">
+                <h1 className="mb-5 text-4xl font-extrabold tracking-tight leading-none text-gray-900 md:text-5xl lg:text-6xl dark:text-white">
                   {`${resource?.name}`}
                 </h1>
 
