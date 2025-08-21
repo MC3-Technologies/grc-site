@@ -160,7 +160,7 @@ const Chat = () => {
 
 const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
   const arrayBuffer = await blob.arrayBuffer();
-  const res = await fetch("https://your-api-id.execute-api.us-east-1.amazonaws.com/transcribe", {
+  const res = await fetch("placeholder", {
     method: "POST",
     headers: { "Content-Type": "audio/webm" },
     body: arrayBuffer,
