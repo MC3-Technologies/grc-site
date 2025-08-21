@@ -16,9 +16,9 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
-import { Report as Rpt } from "../utils/report";
+import { Report as Rpt } from "../lib/report";
 
-import { surveyJson } from "../assessmentQuestions";
+import { surveyJson } from "../data/questionnaire/assessmentQuestions";
 
 type PageData = {
   assessment: Model | null;

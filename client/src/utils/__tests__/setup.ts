@@ -13,7 +13,7 @@ import { __resetMockSES } from "../../__mocks__/@aws-sdk/client-ses";
 import { __resetMockDynamoDB } from "../../__mocks__/@aws-sdk/client-dynamodb";
 
 // Create a test version of the assessment utility that uses mocks
-import { surveyJson } from "../../assessmentQuestions";
+import { surveyJson } from "../../data/questionnaire/assessmentQuestions";
 
 // Mock the schema module
 jest.mock("../../amplify/schema", () => ({

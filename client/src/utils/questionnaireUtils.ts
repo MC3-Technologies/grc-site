@@ -1,4 +1,4 @@
-import { surveyJson } from "../assessmentQuestions";
+import { surveyJson } from "../data/questionnaire/assessmentQuestions";
 import { downloadData, uploadData, list, remove } from "aws-amplify/storage";
 
 // Constant for localStorage key

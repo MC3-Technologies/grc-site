@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "aws-amplify/auth";
-import { surveyJson } from "../../assessmentQuestions";
+import { surveyJson } from "../../data/questionnaire/assessmentQuestions";
 import {
   SurveyElement,
   ChoiceItem,

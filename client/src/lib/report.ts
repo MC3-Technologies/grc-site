@@ -1,4 +1,4 @@
-import { CompletedAssessment } from "./assessment";
+import { CompletedAssessment } from "../utils/assessment";
 
 type QuestionAnswer = {
   question: string;

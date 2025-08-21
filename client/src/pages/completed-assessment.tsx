@@ -16,7 +16,7 @@ import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
 import { fetchUsers } from "../utils/adminUser";
-import { surveyJson } from "../assessmentQuestions";
+import { surveyJson } from "../data/questionnaire/assessmentQuestions";
 
 type PageData = {
   assessment: Model | null;

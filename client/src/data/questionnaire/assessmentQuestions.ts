@@ -21,7 +21,7 @@ const surveyJson = {
       title: "Onboarding Section",
       elements: [
         {
-          type: "comment",
+          type: "text",
           name: "onboarding^What is the name of your organization?^organizationName",
           title: "What is the name of your organization?",
           isRequired: true,
@@ -29,8 +29,8 @@ const surveyJson = {
         {
           type: "text",
           inputType: "number",
-          name: "onboarding^How many employees do you have?^employeeCount",
-          title: "How many employees do you have?",
+          name: "onboarding^What is your organization's primary business address?^employeeCount",
+          title: "What is your organization's primary business address?",
           isRequired: true,
         },
         {

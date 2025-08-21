@@ -10,8 +10,8 @@ import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import Spinner from "../components/Spinner";
 
-import { fetchAssessmentDataWithCache, ReportResult } from "../utils/report";
-import { Report as Rpt } from "../utils/report";
+import { fetchAssessmentDataWithCache, ReportResult } from "../lib/report";
+import { Report as Rpt } from "../lib/report";
 import { redirectToAssessments } from "../utils/routing";
 
 import { useReactToPrint } from "react-to-print";
