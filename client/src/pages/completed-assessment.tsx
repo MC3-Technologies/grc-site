@@ -48,22 +48,22 @@ const formatDate = (dateString: string): string => {
 };
 
 // Helper function to calculate duration between two dates
-const calculateDuration = (startDate: string, endDate: string): string => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const durationMs = end.getTime() - start.getTime();
+// const calculateDuration = (startDate: string, endDate: string): string => {
+//   const start = new Date(startDate);
+//   const end = new Date(endDate);
+//   const durationMs = end.getTime() - start.getTime();
 
-  const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-  );
+//   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+//   const hours = Math.floor(
+//     (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+//   );
 
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  } else {
-    return `${hours}h`;
-  }
-};
+//   if (days > 0) {
+//     return `${days}d ${hours}h`;
+//   } else {
+//     return `${hours}h`;
+//   }
+// };
 
 export function CompletedAssessmentView() {
   // Page data state
@@ -321,7 +321,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {formatDate(assessmentData.completedAt)}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {/* <p className="text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-medium text-gray-700 dark:text-gray-300">
                         Duration:
                       </span>{" "}
@@ -329,7 +329,7 @@ export function CompletedAssessmentView() {
                         assessmentData.createdAt,
                         assessmentData.completedAt,
                       )}
-                    </p>
+                    </p> */}
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-medium text-gray-700 dark:text-gray-300">
                         Version:

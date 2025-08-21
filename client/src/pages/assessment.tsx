@@ -510,7 +510,7 @@ export function Assessment() {
               <button
                 onClick={() => redirectToAssessments()}
                 onKeyDown={(e) => e.key === "Enter" && redirectToAssessments()}
-                className="flex items-center text-primary-600 hover:text-primary-800 transition-colors"
+                className="flex items-center text-primary-600 hover:text-primary-800 transition-colors mt-4"
                 tabIndex={0}
               >
                 <svg
