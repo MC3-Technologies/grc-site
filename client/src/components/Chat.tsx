@@ -159,20 +159,14 @@ const Chat = () => {
 
 //________________________________________________________________________________________________
 
-const amplify = getAmplify();
-const endpoint =
-  (amplify.getConfig() as any).custom?.TranscribeApi?.endpoint as string;
+const API_URL = "https://o32s0y8jwb.execute-api.us-west-1.amazonaws.com/transcribe";
 
-if (!endpoint) throw new Error("Transcribe API endpoint missing from Amplify config");
-
-const API_URL = `${endpoint}transcribe`;
-
-const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
+async function sendAudioForTranscription(blob: Blob): Promise<string> {
   const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "audio/webm" },
-    body: blob,                           // ← send Blob directly
-    signal: AbortSignal.timeout(30_000),  // ← safety against hangs
+    body: blob,
+    signal: AbortSignal.timeout(30_000),
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
@@ -180,8 +174,7 @@ const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
   }
   const { transcript } = await res.json();
   return transcript as string;
-};
-
+}
 
 
   //Start and stop the microphone recording whenever micOn changes state
@@ -202,6 +195,8 @@ const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
 
             const transcript = await sendAudioForTranscription(audioBlob);
             console.log("Transcript:", transcript);
+            setCurrentMessage(transcript);
+            handleChatSubmit();
           } catch (err) {
             console.error("Error sending audio:", err);
           } finally {
