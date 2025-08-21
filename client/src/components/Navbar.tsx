@@ -224,7 +224,7 @@ const Navbar = () => {
                 Home
               </a>
             </li>
-            <li>
+            {currentUser && (<li>
               <button
                 id="dropdownNavbarLink"
                 data-dropdown-toggle="dropdownNavbar"
@@ -268,7 +268,7 @@ const Navbar = () => {
                   ))}
                 </ul>
               </div>
-            </li>
+            </li>)}
 
             <li>
               <a
