@@ -22,465 +22,466 @@ const surveyJson = {
       elements: [
         {
           type: "text",
-          name: "onboarding^What is the name of your organization?^organizationName",
-          title: "What is the name of your organization?",
+          name: "onboarding^What is your company name?^companyName",
+          title: "What is your company name?",
           isRequired: true,
         },
         {
           type: "text",
-          inputType: "number",
-          name: "onboarding^What is your organization's primary business address?^employeeCount",
-          title: "What is your organization's primary business address?",
+          name: "onboarding^What is your primary business address?^businessAddress",
+          title: "What is your primary business address?",
           isRequired: true,
         },
         {
           type: "text",
-          inputType: "number",
-          name: "onboarding^How many devices do you have?^deviceCount",
-          title: "How many devices do you have?",
+          name: "onboarding^What is your CAGE code?^cageCode",
+          title: "What is your CAGE code?",
           isRequired: true,
         },
         {
           type: "text",
-          inputType: "number",
-          name: "onboarding^How many workstation/Laptops does your organization have?^workstationsLaptops",
-          title: "How many workstation/Laptops does your organization have?",
+          name: "onboarding^What is your DUNS/UEI (if available)?^dunsUei",
+          title: "What is your DUNS/UEI (if available)?",
+          isRequired: false,
+        },
+        {
+          type: "text",
+          name: "onboarding^What is your primary NAICS code (if known)?^naicsCode",
+          title: "What is your primary NAICS code (if known)?",
+          isRequired: false,
+        },
+        {
+          type: "comment",
+          name: "onboarding^How would you briefly describe your core business (1-2 sentences)?^coreBusiness",
+          title:
+            "How would you briefly describe your core business (1-2 sentences)?",
+          isRequired: true,
+        },
+        {
+          type: "comment",
+          name: "onboarding^Who is your primary cybersecurity contact (Name, Title, Email, Phone)?^primaryCyberContact",
+          title:
+            "Who is your primary cybersecurity contact (Name, Title, Email, Phone)?",
+          isRequired: true,
+        },
+        {
+          type: "comment",
+          name: "onboarding^Who is your secondary cybersecurity contact (Name, Title, Email, Phone)?^secondaryCyberContact",
+          title:
+            "Who is your secondary cybersecurity contact (Name, Title, Email, Phone)?",
+          isRequired: false,
+        },
+        {
+          type: "checkbox",
+          name: "onboarding^What types of Federal Contract Information (FCI) or Controlled Unclassified Information (CUI) does your organization handle?^fciCuiHandled",
+          title:
+            "What types of Federal Contract Information (FCI) or Controlled Unclassified Information (CUI) does your organization handle?",
+          choices: [
+            "Engineering drawings / Blueprints",
+            "Specifications",
+            "Cost estimates",
+            "Personally Identifiable Information (PII)",
+            "Technical Information (IT System Diagrams, IP addresses, etc.)",
+            "Other",
+          ],
           isRequired: true,
         },
         {
           type: "text",
-          inputType: "number",
-          name: "onboarding^How many mobile devices/tablets does your organization have?^mobileDevicesTablets",
-          title: "How many mobile devices/tablets does your organization have?",
+          name: "onboarding^What types of Federal Contract Information (FCI) or Controlled Unclassified Information (CUI) does your organization handle?^fciCuiHandled_followup",
+          visibleIf:
+            "{onboarding^What types of Federal Contract Information (FCI) or Controlled Unclassified Information (CUI) does your organization handle?^fciCuiHandled} contains 'Other'",
+          title: "Please describe the other type of information handled:",
+          isRequired: true,
+        },
+        {
+          type: "checkbox",
+          name: "onboarding^Which systems store or handle this data?^systemsHandlingData",
+          title: "Which systems store or handle this data?",
+          choices: [
+            "Office 365 (Outlook, Sharepoint, OneDrive, etc)",
+            "Google Workspace (Gmail, Drive, Docs)",
+            "Dropbox, Box, or similar cloud storage",
+            "On-Premise File Server / Network Drives",
+            "Remote worker laptops",
+            "Mobile Devices (phones/tablets)",
+            "Other",
+          ],
           isRequired: true,
         },
         {
           type: "text",
-          inputType: "number",
-          name: "onboarding^How many office locations do you have?^officeLocations",
-          title: "How many office locations do you have?",
+          name: "onboarding^Which systems store or handle this data?^systemsHandlingData_followup",
+          visibleIf:
+            "{onboarding^Which systems store or handle this data?^systemsHandlingData} contains 'Other'",
+          title: "Please describe the other system used:",
           isRequired: true,
         },
         {
           type: "radiogroup",
-          name: "onboarding^Do you have remote employees?^remoteEmployees",
-          title: "Do you have remote employees?",
+          name: "onboarding^How many employees regularly handle FCI/CUI data?^employeesHandlingData",
+          title: "How many employees regularly handle FCI/CUI data?",
+          choices: ["1-5", "6-10", "11-20", "21 or more"],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "onboarding^Who currently manages your IT and security?^itSecurityManagement",
+          title: "Who currently manages your IT and security?",
           choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
+            "Internal Employee(s)",
+            "External Managed Service Provider (MSP)",
+            "Combination (Internal/External)",
+            "Informal / No clearly defined role",
+          ],
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "onboarding^Where is most of your work performed?^workEnvironment",
+          title: "Where is most of your work performed?",
+          choices: [
+            "Office environment",
+            "Remote / Work-from-home",
+            "Project sites / Job sites",
+            "Hybrid / Combination",
+          ],
+          isRequired: true,
+        },
+        {
+          type: "comment",
+          name: "onboarding^What primary software and applications are used to handle FCI/CUI (e.g., email, CAD software, accounting software, etc.)?^primarySoftware",
+          title:
+            "What primary software and applications are used to handle FCI/CUI (e.g., email, CAD software, accounting software, etc.)?",
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "onboarding^Do you have any existing cybersecurity or compliance documentation?^existingCyberDocs",
+          title:
+            "Do you have any existing cybersecurity or compliance documentation?",
+          choices: ["Yes", "No"],
+          isRequired: true,
+        },
+        {
+          type: "comment",
+          name: "onboarding^Do you have any existing cybersecurity or compliance documentation?^existingCyberDocs_followup",
+          visibleIf:
+            "{onboarding^Do you have any existing cybersecurity or compliance documentation?^existingCyberDocs} = 'Yes'",
+          title: "Please describe the existing documentation:",
+          isRequired: true,
+        },
+        {
+          type: "radiogroup",
+          name: "onboarding^Has your organization previously experienced a cybersecurity incident?^cyberIncidentHistory",
+          title:
+            "Has your organization previously experienced a cybersecurity incident?",
+          choices: ["Yes", "No", "Unsure"],
+          isRequired: true,
+        },
+        {
+          type: "comment",
+          name: "onboarding^Has your organization previously experienced a cybersecurity incident?^cyberIncidentHistory_followup",
+          visibleIf:
+            "{onboarding^Has your organization previously experienced a cybersecurity incident?^cyberIncidentHistory} = 'Yes'",
+          title: "Please explain the cybersecurity incident:",
+          isRequired: true,
+        },
+        {
+          type: "checkbox",
+          name: "onboarding^Why is your organization pursuing CMMC Level 1 compliance now?^complianceReason",
+          title:
+            "Why is your organization pursuing CMMC Level 1 compliance now?",
+          choices: [
+            "New contract requirement",
+            "Client/customer mandate",
+            "Proactive internal risk reduction",
+            "Other",
           ],
           isRequired: true,
         },
         {
           type: "text",
-          inputType: "number",
-          name: "onboarding^If yes, how many remote employees?^remoteEmployees_followup",
-          title: "If yes, how many remote employees?",
-          isRequired: true,
+          name: "onboarding^Why is your organization pursuing CMMC Level 1 compliance now?^complianceReason_followup",
           visibleIf:
-            "{onboarding^Do you have remote employees?^remoteEmployees} = 'Yes'",
+            "{onboarding^Why is your organization pursuing CMMC Level 1 compliance now?^complianceReason} contains 'Other'",
+          title: "Please describe the other reason for pursuing compliance:",
+          isRequired: true,
         },
         {
           type: "radiogroup",
-          name: "onboarding^Do you allow employees to utilize personal devices to access company data?^personalDeviceUsage",
+          name: "onboarding^What is your desired timeline for completion of your CMMC SSP and POA&M?^timelineCompletion",
           title:
-            "Do you allow employees to utilize personal devices to access company data?",
+            "What is your desired timeline for completion of your CMMC SSP and POA&M?",
           choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
+            "Immediate (within 30-90 days)",
+            "Short-term (3-6 months)",
+            "Moderate (6-12 months)",
+            "Flexible / no immediate deadline",
           ],
           isRequired: true,
-        },
-        {
-          type: "dropdown",
-          name: "onboarding^What industry does your business belong to?^industry",
-          title: "What industry does your business belong to?",
-          choices: [
-            { value: "health", text: "Health" },
-            { value: "sales", text: "Sales" },
-            { value: "commerce", text: "Commerce" },
-            { value: "other", text: "Other" },
-          ],
-          isRequired: true,
-        },
-        {
-          type: "comment",
-          name: "onboarding^If 'Other', please list your industry:^industry_followup",
-          title: "If 'Other', please list your industry:",
-          isRequired: true,
-          visibleIf:
-            "{onboarding^What industry does your business belong to?^industry} = 'Other'",
-        },
-        {
-          type: "radiogroup",
-          name: "onboarding^Do you have any policies or procedures that cover IT/Cybersecurity?^itPoliciesQuestion",
-          title:
-            "Do you have any policies or procedures that cover IT/Cybersecurity?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
-          isRequired: true,
-        },
-        {
-          type: "comment",
-          name: "onboarding^If yes, please list any policies or procedures you may have:^itPoliciesQuestion_followup",
-          title: "If yes, please list any policies or procedures you may have:",
-          isRequired: true,
-          visibleIf:
-            "{onboarding^Do you have any policies or procedures that cover IT/Cybersecurity?^itPoliciesQuestion} = 'Yes'",
         },
       ],
     },
     {
-      name: "accessControl",
-      title: "Access Control (AC)",
+      name: "questionnaire",
+      title: "Questionnaire Section",
       elements: [
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.i@Do your employees use individual (not shared) accounts to access company systems and data?@individualAccounts",
+          name: "Access Control@Do you ensure only authorized users can access FCI/CUI and related systems, based on roles and responsibilities?@authorizedAccess",
           title:
-            "Do your employees use individual (not shared) accounts to access company systems and data?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Do you ensure only authorized users can access FCI/CUI and related systems, based on roles and responsibilities?",
+          description: "Access Control (AC)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, please list any policies or procedures you may have that enforce this.**individualAccounts_followup",
-          title:
-            "If yes, please list any policies or procedures you may have that enforce this.",
-          isRequired: true,
+          name: "Please explain how authorized access is ensured:**authorizedAccess_followup",
+          title: "Please explain how authorized access is ensured:",
           visibleIf:
-            "{AC.L1-b.1.i@Do your employees use individual (not shared) accounts to access company systems and data?@individualAccounts} = 'Yes'",
+            "{Access Control@Do you ensure only authorized users can access FCI/CUI and related systems, based on roles and responsibilities?@authorizedAccess} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.ii@Do you limit each employee’s access so they can only perform tasks relevant to their job role?@limitedAccess",
+          name: "Awareness and Training@Do all personnel receive regular cybersecurity training on protecting FCI/CUI?@trainingProgram",
           title:
-            "Do you limit each employee’s access so they can only perform tasks relevant to their job role?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Do all personnel receive regular cybersecurity training on protecting FCI/CUI?",
+          description: "Awareness and Training (AT)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, please list any policies or procedures you may have that outline job roles and access.**limitedAccess_followup",
-          title:
-            "If yes, please list any policies or procedures you may have that outline job roles and access.",
-          isRequired: true,
+          name: "Please describe your training program and frequency:**trainingProgram_followup",
+          title: "Please describe your training program and frequency:",
           visibleIf:
-            "{AC.L1-b.1.ii@Do you limit each employee’s access so they can only perform tasks relevant to their job role?@limitedAccess} = 'Yes'",
+            "{Awareness and Training@Do all personnel receive regular cybersecurity training on protecting FCI/CUI?@trainingProgram} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.iii@Do you control and monitor all external system connections (e.g., cloud services, remote systems)?@externalMonitor",
+          name: "Audit and Accountability@Does your organization generate, protect, and review audit logs to detect and respond to unauthorized system activity?@auditLogs",
           title:
-            "Do you control and monitor all external system connections (e.g., cloud services, remote systems)?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Does your organization generate, protect, and review audit logs to detect and respond to unauthorized system activity?",
+          description: "Audit and Accountability (AU)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, please describe the controls you have in place.**externalMonitor_followup",
-          title: "If yes, please describe the controls you have in place.",
-          isRequired: true,
+          name: "Please explain your audit logging and review process:**auditLogs_followup",
+          title: "Please explain your audit logging and review process:",
           visibleIf:
-            "{AC.L1-b.1.iii@Do you control and monitor all external system connections (e.g., cloud services, remote systems)?@externalMonitor} = 'Yes'",
+            "{Audit and Accountability@Does your organization generate, protect, and review audit logs to detect and respond to unauthorized system activity?@auditLogs} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "AC.L1-b.1.iv@Do you review and approve what company information can be made public (e.g., on your website)?@publicReview",
+          name: "Configuration Management@Are system configurations managed and controlled to maintain security and prevent unauthorized changes across your IT environment?@configMgmt",
           title:
-            "Do you review and approve what company information can be made public (e.g., on your website)?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Are system configurations managed and controlled to maintain security and prevent unauthorized changes across your IT environment?",
+          description: "Configuration Management (CM)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, please list any policies or procedures you may have that enforce this.**publicReview_followup",
-          title:
-            "If yes, please list any policies or procedures you may have that enforce this.",
-          isRequired: true,
+          name: "Please explain your configuration management controls:**configMgmt_followup",
+          title: "Please explain your configuration management controls:",
           visibleIf:
-            "{AC.L1-b.1.iv@Do you review and approve what company information can be made public (e.g., on your website)?@publicReview} = 'Yes'",
+            "{Configuration Management@Are system configurations managed and controlled to maintain security and prevent unauthorized changes across your IT environment?@configMgmt} = 'Yes'",
+          isRequired: true,
         },
-      ],
-    },
-    {
-      name: "identificationAuthentication",
-      title: "Identification & Authentication (IA)",
-      elements: [
+
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.v@Is each person uniquely identified before they can log into your systems?@uniqueUser",
+          name: "Identification and Authentication@Do you have methods to verify the identities of users and devices before granting access to systems containing FCI/CUI?@identityVerification",
           title:
-            "Is each person uniquely identified before they can log into your systems?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Do you have methods to verify the identities of users and devices before granting access to systems containing FCI/CUI?",
+          description: "Identification and Authentication (IA)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, do you have an inventory of all users and the systems they have access to?**uniqueUser_followup",
+          name: "Please explain your identity and device verification methods:**identityVerification_followup",
           title:
-            "If yes, do you have an inventory of all users and the systems they have access to?",
-          isRequired: true,
+            "Please explain your identity and device verification methods:",
           visibleIf:
-            "{IA.L1-b.1.v@Is each person uniquely identified before they can log into your systems?@uniqueUser} = 'Yes'",
+            "{Identification and Authentication@Do you have methods to verify the identities of users and devices before granting access to systems containing FCI/CUI?@identityVerification} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.v@Is each device uniquely identified before they can log into your systems?@uniqueDevice",
+          name: "Incident Response@Does your organization detect, respond to, and recover from cybersecurity incidents involving FCI/CUI?@incidentResponse",
           title:
-            "Is each device uniquely identified before they can log into your systems?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Does your organization detect, respond to, and recover from cybersecurity incidents involving FCI/CUI?",
+          description: "Incident Response (IR)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, how is this implemented (Active Directory, Office 365, Duo, etc.)?**uniqueDevice_followup",
-          title:
-            "If yes, how is this implemented (Active Directory, Office 365, Duo, etc.)?",
-          isRequired: true,
+          name: "Please explain your incident response capabilities:**incidentResponse_followup",
+          title: "Please explain your incident response capabilities:",
           visibleIf:
-            "{IA.L1-b.1.v@Is each device uniquely identified before they can log into your systems?@uniqueDevice} = 'Yes'",
+            "{Incident Response@Does your organization detect, respond to, and recover from cybersecurity incidents involving FCI/CUI?@incidentResponse} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.vi@Are users required to enter a password or use another method to verify their identity?@passwordAuth",
+          name: "Maintenance@Are system maintenance activities managed and monitored to ensure they do not compromise FCI/CUI security?@maintenanceMgmt",
           title:
-            "Are users required to enter a password or use another method to verify their identity?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Are system maintenance activities managed and monitored to ensure they do not compromise FCI/CUI security?",
+          description: "Maintenance (MA)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, do you have a password authentication policy that outlines password requirements?**passwordAuth_followup",
+          name: "Please explain how maintenance activities are managed and monitored:**maintenanceMgmt_followup",
           title:
-            "If yes, do you have a password authentication policy that outlines password requirements?",
-          isRequired: true,
+            "Please explain how maintenance activities are managed and monitored:",
           visibleIf:
-            "{IA.L1-b.1.vi@Are users required to enter a password or use another method to verify their identity?@passwordAuth} = 'Yes'",
+            "{Maintenance@Are system maintenance activities managed and monitored to ensure they do not compromise FCI/CUI security?@maintenanceMgmt} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?@mfaEnabled",
-          title: "Is Multi-Factor Authentication utilized?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+          name: "Media Protection@Do you have procedures that protect, transport, and sanitize physical and digital media containing FCI/CUI?@mediaProtection",
+          title:
+            "Do you have procedures that protect, transport, and sanitize physical and digital media containing FCI/CUI?",
+          description: "Media Protection (MP)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, how is this implemented and is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?**mfaEnabled_followup",
+          name: "Please explain your media protection and sanitization procedures:**mediaProtection_followup",
           title:
-            "If yes, how is this implemented and is this enabled on all systems, including cloud-based systems (e.g., Office 365, Google Workspaces, AutoDesk, etc.)?",
-          isRequired: true,
+            "Please explain your media protection and sanitization procedures:",
           visibleIf:
-            "{IA.L1-b.1.vii@Is Multi-Factor Authentication utilized?@mfaEnabled} = 'Yes'",
+            "{Media Protection@Do you have procedures that protect, transport, and sanitize physical and digital media containing FCI/CUI?@mediaProtection} = 'Yes'",
+          isRequired: true,
         },
-      ],
-    },
-    {
-      name: "mediaProtection",
-      title: "Media Protection (MP)",
-      elements: [
+
         {
           type: "radiogroup",
-          name: "MP.L1-b.1.vii@Do you properly destroy or wipe computers, hard drives, or media before disposing of them?@mediaWipe",
+          name: "Personnel Security@Do you ensure that individuals with access to FCI/CUI are properly screened and access is removed upon termination or transfer?@personnelSecurity",
           title:
-            "Do you properly destroy or wipe computers, hard drives, or media before disposing of them?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Do you ensure that individuals with access to FCI/CUI are properly screened and access is removed upon termination or transfer?",
+          description: "Personnel Security (PS)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, what is the process? Is this documented?**mediaWipe_followup",
-          title: "If yes, what is the process? Is this documented?",
-          isRequired: true,
+          name: "Please explain your screening and offboarding practices:**personnelSecurity_followup",
+          title: "Please explain your screening and offboarding practices:",
           visibleIf:
-            "{MP.L1-b.1.vii@Do you properly destroy or wipe computers, hard drives, or media before disposing of them?@mediaWipe} = 'Yes'",
+            "{Personnel Security@Do you ensure that individuals with access to FCI/CUI are properly screened and access is removed upon termination or transfer?@personnelSecurity} = 'Yes'",
+          isRequired: true,
         },
-      ],
-    },
-    {
-      name: "physicalProtection",
-      title: "Physical Protection (PE)",
-      elements: [
+
         {
           type: "radiogroup",
-          name: "PE.L1-b.1.viii@Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?@secureEquip",
+          name: "Physical Protection@Does your organization restrict physical access to systems, equipment, and storage locations that handle FCI/CUI?@physicalAccess",
           title:
-            "Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Does your organization restrict physical access to systems, equipment, and storage locations that handle FCI/CUI?",
+          description: "Physical Protection (PE)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, describe how these areas are secured and what measures are taken?**secureEquip_followup",
-          title:
-            "If yes, describe how these areas are secured and what measures are taken?",
-          isRequired: true,
+          name: "Please explain your physical access controls:**physicalAccess_followup",
+          title: "Please explain your physical access controls:",
           visibleIf:
-            "{PE.L1-b.1.viii@Are workstations, servers, and sensitive equipment kept in secure areas with restricted access?@secureEquip} = 'Yes'",
+            "{Physical Protection@Does your organization restrict physical access to systems, equipment, and storage locations that handle FCI/CUI?@physicalAccess} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "PE.L1-b.1.ix@Do you log and monitor visitors when they enter secure company areas?@visitorLog",
+          name: "Risk Assessment@Do you identify, assess, and respond to cybersecurity risks that could impact the confidentiality of FCI/CUI?@riskAssessment",
           title:
-            "Do you log and monitor visitors when they enter secure company areas?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Do you identify, assess, and respond to cybersecurity risks that could impact the confidentiality of FCI/CUI?",
+          description: "Risk Assessment (RA)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, do you have a policy documenting this and a visitor log?**visitorLog_followup",
-          title:
-            "If yes, do you have a policy documenting this and a visitor log?",
-          isRequired: true,
+          name: "Please describe your risk assessment process and cadence:**riskAssessment_followup",
+          title: "Please describe your risk assessment process and cadence:",
           visibleIf:
-            "{PE.L1-b.1.ix@Do you log and monitor visitors when they enter secure company areas?@visitorLog} = 'Yes'",
+            "{Risk Assessment@Do you identify, assess, and respond to cybersecurity risks that could impact the confidentiality of FCI/CUI?@riskAssessment} = 'Yes'",
+          isRequired: true,
         },
-      ],
-    },
-    {
-      name: "systemCommunicationsProtection",
-      title: "System & Communications Protection (SC)",
-      elements: [
+
         {
           type: "radiogroup",
-          name: "SC.L1-b.1.x@Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?@secTools",
+          name: "Security Assessment@Does your organization evaluate and improve the effectiveness of your security controls to protect FCI/CUI?@securityAssessment",
           title:
-            "Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Does your organization evaluate and improve the effectiveness of your security controls to protect FCI/CUI?",
+          description: "Security Assessment (CA)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, list these tools and software in use.**secTools_followup",
-          title: "If yes, list these tools and software in use.",
-          isRequired: true,
+          name: "Please explain how security controls are assessed and improved:**securityAssessment_followup",
+          title:
+            "Please explain how security controls are assessed and improved:",
           visibleIf:
-            "{SC.L1-b.1.x@Do you use security tools (like firewalls or antivirus) to protect your network from outside threats?@secTools} = 'Yes'",
+            "{Security Assessment@Does your organization evaluate and improve the effectiveness of your security controls to protect FCI/CUI?@securityAssessment} = 'Yes'",
+          isRequired: true,
         },
+
         {
           type: "radiogroup",
-          name: "SC.L1-b.1.xi@If you have a public website, is it kept separate from your internal business systems?@publicSite",
+          name: "System and Communications Protection@Are your systems and communications protected to prevent unauthorized data transfer and ensure FCI/CUI confidentiality?@commProtection",
           title:
-            "If you have a public website, is it kept separate from your internal business systems?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Are your systems and communications protected to prevent unauthorized data transfer and ensure FCI/CUI confidentiality?",
+          description: "System and Communications Protection (SC)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, do you have a policy in place documenting website management and information approval before posting?**publicSite_followup",
+          name: "Please explain your protections for systems and communications:**commProtection_followup",
           title:
-            "If yes, do you have a policy in place documenting website management and information approval before posting?",
-          isRequired: true,
+            "Please explain your protections for systems and communications:",
           visibleIf:
-            "{SC.L1-b.1.xi@If you have a public website, is it kept separate from your internal business systems?@publicSite} = 'Yes'",
+            "{System and Communications Protection@Are your systems and communications protected to prevent unauthorized data transfer and ensure FCI/CUI confidentiality?@commProtection} = 'Yes'",
+          isRequired: true,
         },
-      ],
-    },
-    {
-      name: "systemInformationIntegrity",
-      title: "System & Information Integrity (SI)",
-      elements: [
+
         {
           type: "radiogroup",
-          name: "SI.L1-b.1.xii@Do you install security patches and updates on your systems as soon as possible?@patchUpdates",
+          name: "System and Information Integrity@Do you detect, report, and correct system flaws or malicious activity that may affect FCI/CUI?@trackSystemFlaws",
           title:
-            "Do you install security patches and updates on your systems as soon as possible?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "Do you detect, report, and correct system flaws or malicious activity that may affect FCI/CUI?",
+          description: "System and Information Integrity (SI)",
+          choices: ["Yes", "No", "Unsure"],
           isRequired: true,
         },
         {
           type: "comment",
-          name: "If yes, do you enable auto-update for OS updates/patches, install updates for third-party applications, and enable auto-update for all third-party apps?**patchUpdates_followup",
+          name: "Please explain how you detect and remediate flaws or malicious activity:**trackSystemFlaws_followup",
           title:
-            "If yes, do you enable auto-update for OS updates/patches, install updates for third-party applications, and enable auto-update for all third-party apps?",
-          isRequired: true,
+            "Please explain how you detect and remediate flaws or malicious activity:",
           visibleIf:
-            "{SI.L1-b.1.xii@Do you install security patches and updates on your systems as soon as possible?@patchUpdates} = 'Yes'",
-        },
-        {
-          type: "radiogroup",
-          name: "SI.L1-b.1.xiii@Do you use antivirus or endpoint protection on all company devices?@antivirusUsage",
-          title:
-            "Do you use antivirus or endpoint protection on all company devices?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
-          isRequired: true,
-        },
-        {
-          type: "comment",
-          name: "If yes, please list all tools utilized.**antivirusUsage_followup",
-          title: "If yes, please list all tools utilized.",
-          isRequired: true,
-          visibleIf:
-            "{SI.L1-b.1.xiii@Do you use antivirus or endpoint protection on all company devices?@antivirusUsage} = 'Yes'",
-        },
-        {
-          type: "radiogroup",
-          name: "SI.L1-b.1.xiv@Do you regularly update your antivirus software to ensure it can detect new threats?@antivirusUpdate",
-          title:
-            "Do you regularly update your antivirus software to ensure it can detect new threats?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
-          isRequired: true,
-        },
-        {
-          type: "radiogroup",
-          name: "SI.L1-b.1.xv@Do you scan files, emails, or programs before they’re used to make sure they’re safe?@fileScan",
-          title:
-            "Do you scan files, emails, or programs before they’re used to make sure they’re safe?",
-          choices: [
-            { value: "Yes", text: "Yes" },
-            { value: "No", text: "No" },
-          ],
+            "{System and Information Integrity@Do you detect, report, and correct system flaws or malicious activity that may affect FCI/CUI?@trackSystemFlaws} = 'Yes'",
           isRequired: true,
         },
       ],

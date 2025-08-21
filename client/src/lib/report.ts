@@ -7,16 +7,10 @@ type QuestionAnswer = {
   followUp?: QuestionAnswer;
 };
 
-type ControlResult = {
-  score: number;
-  maxScore: number;
-  questionsAnswered: QuestionAnswer[];
-};
-
 type ControlGroupResult = {
   score: number;
   maxScore: number;
-  controlResults: Map<string, ControlResult>;
+  questionAnswers: QuestionAnswer[];
 };
 
 export type ReportResult = {
@@ -43,12 +37,10 @@ class Report {
   }
 
   public generateReportData = (): ReportResult => {
-    // New control group map
-    const controlGroupsMap: Map<string, ControlGroupResult> = new Map();
     // Return value placeholder
     let ret: ReportResult = {
       onboardingResults: [],
-      controlGroupResults: controlGroupsMap,
+      controlGroupResults: new Map(),
       score: 0,
       maxScore: 0,
     };
@@ -56,6 +48,18 @@ class Report {
     // Call helper method to mutate onboarding results on return data
     ret.onboardingResults = this._getOnboardingData();
 
+    // Call helper method to set control group data structures (not set the scores)
+    ret.controlGroupResults = this._setControlGroupResults();
+
+    // Call calculate scores helper method
+    ret = this._calculateScores(ret);
+
+    // Return ret
+    return ret;
+  };
+
+  private _setControlGroupResults = (): Map<string, ControlGroupResult> => {
+    const ret = new Map<string, ControlGroupResult>();
     // FOR EACH QUESTION ANSWER IN DATA:
     // 1. Parse question for control group/control -- contains '@'
     // 2. Check if follow up question -- contains 'followup'
@@ -78,58 +82,27 @@ class Report {
       }
 
       // Extract question, answer, control group and control
+      const controlGroup = key.split("@")[0];
       const question = key.split("@")[1];
       const shortFormQuestion = key.split("@")[2];
       const answer = this._assessmentData.get(key)!;
-      const controlGroup = key.split("@")[0].slice(0, 2);
-      const control = key.split("@")[0];
 
-      if (ret.controlGroupResults.has(controlGroup)) {
+      if (ret.has(controlGroup)) {
         // Get control group from map
-        const getControlGroup = ret.controlGroupResults.get(controlGroup)!;
+        const getControlGroup = ret.get(controlGroup)!;
         // Control group controls map data
-        const getControls = getControlGroup.controlResults;
+        const getQuestionAnswers = getControlGroup.questionAnswers;
 
-        // Control already exists within control group
-        if (getControls.has(control)) {
-          // Get the control
-          const getControl = getControls.get(control)!;
+        // Create new question answer
+        const maybeFollowUp = this._getFollowUp(shortFormQuestion);
+        const newQuestionAnswer: QuestionAnswer = {
+          shortFormQuestion,
+          question,
+          answer,
+          ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
+        };
 
-          // Create new question answer object to be added to control question answers array
-          const maybeFollowUp = this._getFollowUp(shortFormQuestion);
-          const newQuestionAnswer: QuestionAnswer = {
-            shortFormQuestion,
-            question,
-            answer,
-            ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
-          };
-
-          // Push new question answer object to control question answers array
-          getControl.questionsAnswered.push(newQuestionAnswer);
-        }
-        // Control does not yet exist in control group
-        else {
-          // Create new control object
-          const newControl: ControlResult = {
-            score: 0,
-            maxScore: 0,
-            questionsAnswered: [],
-          };
-
-          // Create new question answer object to be added to control question answers array
-          const maybeFollowUp = this._getFollowUp(shortFormQuestion);
-          const newQuestionAnswer: QuestionAnswer = {
-            shortFormQuestion,
-            question,
-            answer,
-            ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
-          };
-
-          // Push question answer onto new control question answers array
-          newControl.questionsAnswered.push(newQuestionAnswer);
-          // Add new control result to controls map
-          getControlGroup.controlResults.set(control, newControl);
-        }
+        getQuestionAnswers.push(newQuestionAnswer);
       } else {
         // Create new question answer
         const maybeFollowUp = this._getFollowUp(shortFormQuestion);
@@ -140,35 +113,20 @@ class Report {
           ...(maybeFollowUp != null ? { followUp: maybeFollowUp } : {}),
         };
 
-        // Create new control
-        const newControl: ControlResult = {
-          score: 0,
-          maxScore: 0,
-          questionsAnswered: [newQuestionAnswer],
-        };
-
-        // Create new control map
-        const newControlMap: Map<string, ControlResult> = new Map();
-
-        // Set new control into new control map
-        newControlMap.set(control, newControl);
-
         // Create new control group
         const newControlGroup: ControlGroupResult = {
           score: 0,
           maxScore: 0,
-          controlResults: newControlMap,
+          questionAnswers: [],
         };
 
+        newControlGroup.questionAnswers.push(newQuestionAnswer);
+
         // Set new control group map
-        ret.controlGroupResults.set(controlGroup, newControlGroup);
+        ret.set(controlGroup, newControlGroup);
       }
     }
 
-    // Call calculate scores helper method
-    ret = this._calculateScores(ret);
-
-    // Return ret
     return ret;
   };
 
@@ -177,16 +135,30 @@ class Report {
     const ret: QuestionAnswer[] = [];
     for (const [key] of this._assessmentData.entries()) {
       // Onboarding questions contaion "^" and "onboarding" so check for that
-      if (!key.includes("^") || !key.includes("onboarding")) {
+      if (
+        !key.includes("^") ||
+        !key.includes("onboarding") ||
+        key.includes("followup")
+      ) {
         continue;
       }
 
       // Extract onboarding question and answer
       const question = key.split("^")[1];
+      const shortHandQuestion = key.split("^")[2];
       const answer = this._assessmentData.get(key)!;
 
       // Push new question answer object to return array
       ret.push({ question, answer });
+
+      const maybeFollowUp = this._getFollowUp(shortHandQuestion);
+      if (maybeFollowUp !== null) {
+        ret.push({
+          question: `${question} follow up explaination:`,
+          answer: maybeFollowUp.answer,
+        });
+        continue;
+      }
     }
 
     // Return ret array
@@ -217,28 +189,22 @@ class Report {
     // Loop through control group results
     for (const [, controlGroupResult] of ret.controlGroupResults.entries()) {
       // Loop through control results within control groups
-      for (const [
-        ,
-        controlResult,
-      ] of controlGroupResult.controlResults.entries()) {
-        // Loop through all questions associated with a control
-        controlResult.questionsAnswered.forEach((questionAnswer) => {
-          // Increment individual control, control group and overall max score for every question
-          controlResult.maxScore = controlResult.maxScore + 1;
-          controlGroupResult.maxScore = controlGroupResult.maxScore + 1;
-          ret.maxScore = ret.maxScore + 1;
 
-          if (
-            typeof questionAnswer.answer === "string" &&
-            questionAnswer.answer.toLowerCase() === "yes"
-          ) {
-            // If question is yes, incremement individual control, control group and overall score
-            controlResult.score = controlResult.score + 1;
-            controlGroupResult.score = controlGroupResult.score + 1;
-            ret.score = ret.score + 1;
-          }
-        });
-      }
+      // Loop through all questions associated with a control
+      controlGroupResult.questionAnswers.forEach((questionAnswer) => {
+        // Increment individual control, control group and overall max score for every question
+        controlGroupResult.maxScore = controlGroupResult.maxScore + 1;
+        ret.maxScore = ret.maxScore + 1;
+
+        if (
+          typeof questionAnswer.answer === "string" &&
+          questionAnswer.answer.toLowerCase() === "yes"
+        ) {
+          // If question is yes, incremement individual control, control group and overall score
+          controlGroupResult.score = controlGroupResult.score + 1;
+          ret.score = ret.score + 1;
+        }
+      });
     }
 
     return ret;

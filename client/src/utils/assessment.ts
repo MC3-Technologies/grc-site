@@ -8,8 +8,7 @@ import { Model } from "survey-core";
 import { getClientSchema } from "../amplify/schema";
 import { remove } from "aws-amplify/storage";
 import { isCurrentUserAdmin } from "../amplify/auth";
-import {v4 as uuidv4} from 'uuid';
-
+import { v4 as uuidv4 } from "uuid";
 
 // Assessment class with one global variable and one global in common method : upload assessment data to storage
 class Assessment {
@@ -440,7 +439,7 @@ class InProgressAssessment extends Assessment {
 
   // Generate URL safe hash to use for assessment ids (negligable collision chances)
   private static _generateUrlSafeHash = (): string => {
-    return uuidv4()
+    return uuidv4();
   };
 }
 

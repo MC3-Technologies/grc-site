@@ -61,7 +61,7 @@ export function Report() {
           JSON.parse(assessmentJsonData as string) as Record<
             string,
             string | number
-          >
+          >,
         );
 
         // Call report generation method
@@ -121,32 +121,10 @@ export function Report() {
     );
   };
 
-  // Helper function that takes in abbreviated control group name to return full control group name
-  const getControlGroupName = (
-    abbreviatedControlGroupName: string
-  ): string | null => {
-    switch (abbreviatedControlGroupName) {
-      case "AC":
-        return "Access Control";
-      case "IA":
-        return "Identification & Authentication";
-      case "MP":
-        return "Media Protection";
-      case "PE":
-        return "Physical Protection";
-      case "SC":
-        return "System & Communications Protection";
-      case "SI":
-        return "System & Information Integrity";
-      default:
-        return null;
-    }
-  };
-
   // Control compliance status helper function, returns a badge component that indicates control compliance
   const getControlComplianceStatusComponent = (
     score: number,
-    maxScore: number
+    maxScore: number,
   ): JSX.Element => {
     if (score === maxScore) {
       return (
@@ -172,9 +150,9 @@ export function Report() {
     }
   };
 
-  const isControlCompliant = (score: number, maxScore: number): boolean => {
-    return !(score >= 0 && score < maxScore);
-  };
+  // const isControlCompliant = (score: number, maxScore: number): boolean => {
+  //   return !(score >= 0 && score < maxScore);
+  // };
 
   const getReportUi = (assessmentReportData: ReportResult): JSX.Element => {
     return (
@@ -255,7 +233,7 @@ export function Report() {
                   {Math.round(
                     (assessmentReportData.score /
                       assessmentReportData.maxScore) *
-                      100
+                      100,
                   )}
                   %
                 </h5>
@@ -277,13 +255,7 @@ export function Report() {
                       scope="col"
                       className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                     >
-                      Control
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                    >
-                      Control Score
+                      Control Group Score
                     </th>
                     <th
                       scope="col"
@@ -295,83 +267,59 @@ export function Report() {
                 </thead>
                 <tbody>
                   {[...assessmentReportData.controlGroupResults.entries()].map(
-                    ([groupKey, groupVal]) => (
+                    ([controlGroupKey, controlGroupVal]) => (
                       <>
-                        {[...groupVal.controlResults.entries()].map(
-                          ([controlKey, controlVal]) => (
-                            <>
-                              <tr
-                                className="bg-white dark:bg-gray-800"
-                                key={controlKey}
-                              >
-                                <th
-                                  scope="row"
-                                  className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
-                                >
-                                  {getControlGroupName(groupKey)} ({groupKey})
-                                </th>
-                                <th
-                                  scope="row"
-                                  className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
-                                >
-                                  {controlKey}
-                                </th>
-                                <th
-                                  scope="row"
-                                  className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
-                                >
-                                  {controlVal.score} / {controlVal.maxScore}
-                                </th>
-                                <td className="px-6 pt-3 font-semibold text-base">
-                                  {getControlComplianceStatusComponent(
-                                    controlVal.score,
-                                    controlVal.maxScore
-                                  )}
-                                </td>
-                              </tr>
+                        <tr
+                          className="bg-white dark:bg-gray-800"
+                          key={controlGroupKey}
+                        >
+                          <th
+                            scope="row"
+                            className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
+                          >
+                            {controlGroupKey}
+                          </th>
 
-                              {controlVal.questionsAnswered.map((qa, idx) => (
-                                <>
-                                  <tr key={idx}>
-                                    <td colSpan={3} key={idx} className="px-3">
-                                      <p>
-                                        {controlKey}.{idx + 1}: {qa.question}
-                                      </p>
-                                    </td>
-                                    <td colSpan={1} key={idx} className="px-6 ">
-                                      <p>{qa.answer}</p>
-                                    </td>
-                                  </tr>
-                                  {qa.followUp && (
-                                    <>
-                                      <tr key={idx}>
-                                        <td
-                                          colSpan={3}
-                                          key={idx}
-                                          className="px-3"
-                                        >
-                                          <p>
-                                            {controlKey}.{idx + 1} Follow up:{" "}
-                                            {qa.followUp.question}
-                                          </p>
-                                        </td>
-                                        <td
-                                          colSpan={1}
-                                          key={idx}
-                                          className="px-6 "
-                                        >
-                                          <p>{qa.followUp.answer}</p>
-                                        </td>
-                                      </tr>
-                                    </>
-                                  )}
-                                </>
-                              ))}
-                            </>
-                          )
-                        )}
+                          <th
+                            scope="row"
+                            className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
+                          >
+                            {controlGroupVal.score} / {controlGroupVal.maxScore}
+                          </th>
+                          <td className="px-6 pt-3 font-semibold text-base">
+                            {getControlComplianceStatusComponent(
+                              controlGroupVal.score,
+                              controlGroupVal.maxScore,
+                            )}
+                          </td>
+                        </tr>
+
+                        {controlGroupVal.questionAnswers.map((qa, idx) => (
+                          <>
+                            <tr key={idx}>
+                              <td colSpan={2} key={idx} className="px-3">
+                                <p>{qa.question}</p>
+                              </td>
+                              <td colSpan={1} key={idx} className="px-6 ">
+                                <p>{qa.answer}</p>
+                              </td>
+                            </tr>
+                            {qa.followUp && (
+                              <>
+                                <tr key={idx}>
+                                  <td colSpan={2} key={idx} className="px-3">
+                                    <p>Follow up: {qa.followUp.question}</p>
+                                  </td>
+                                  <td colSpan={1} key={idx} className="px-6 ">
+                                    <p>{qa.followUp.answer}</p>
+                                  </td>
+                                </tr>
+                              </>
+                            )}
+                          </>
+                        ))}
                       </>
-                    )
+                    ),
                   )}
                 </tbody>
               </table>
@@ -416,13 +364,7 @@ export function Report() {
                         scope="col"
                         className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                       >
-                        Control
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-3 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
-                      >
-                        Control Score
+                        Control Group Score
                       </th>
                       <th
                         scope="col"
@@ -435,100 +377,49 @@ export function Report() {
                   <tbody>
                     {[
                       ...assessmentReportData.controlGroupResults.entries(),
-                    ].map(([groupKey, groupVal]) => (
+                    ].map(([controlGroupKey, controlGroupVal]) => (
                       <>
-                        {[...groupVal.controlResults.entries()].map(
-                          ([controlKey, controlVal]) => (
-                            <>
-                              {!isControlCompliant(
-                                controlVal.score,
-                                controlVal.maxScore
-                              ) && (
-                                <>
-                                  <tr
-                                    className="bg-white dark:bg-gray-800"
-                                    key={controlKey}
-                                  >
-                                    <th
-                                      scope="row"
-                                      className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
-                                    >
-                                      {getControlGroupName(groupKey)} (
-                                      {groupKey})
-                                    </th>
-                                    <th
-                                      scope="row"
-                                      className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
-                                    >
-                                      {controlKey}
-                                    </th>
+                        {controlGroupVal.score != controlGroupVal.maxScore && (
+                          <>
+                            <tr
+                              className="bg-white dark:bg-gray-800"
+                              key={controlGroupKey}
+                            >
+                              <th
+                                scope="row"
+                                className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
+                              >
+                                {controlGroupKey}
+                              </th>
 
-                                    <th
-                                      scope="row"
-                                      className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
-                                    >
-                                      {controlVal.score} / {controlVal.maxScore}
-                                    </th>
-                                    <td className="px-6 pt-3 font-semibold text-base">
-                                      {getControlComplianceStatusComponent(
-                                        controlVal.score,
-                                        controlVal.maxScore
-                                      )}
-                                    </td>
-                                  </tr>
+                              <th
+                                scope="row"
+                                className="px-3 pt-3 font-semibold text-base text-gray-900 whitespace-nowrap dark:text-white"
+                              >
+                                {controlGroupVal.score} /{" "}
+                                {controlGroupVal.maxScore}
+                              </th>
+                              <td className="px-6 pt-3 font-semibold text-base">
+                                {getControlComplianceStatusComponent(
+                                  controlGroupVal.score,
+                                  controlGroupVal.maxScore,
+                                )}
+                              </td>
+                            </tr>
 
-                                  {controlVal.questionsAnswered.map(
-                                    (qa, idx) => (
-                                      <>
-                                        <tr key={idx}>
-                                          <td
-                                            colSpan={3}
-                                            key={idx}
-                                            className="px-3"
-                                          >
-                                            <p>
-                                              {controlKey}.{idx + 1}:{" "}
-                                              {qa.question}
-                                            </p>
-                                          </td>
-                                          <td
-                                            colSpan={1}
-                                            key={idx}
-                                            className="px-6 "
-                                          >
-                                            <p>{qa.answer}</p>
-                                          </td>
-                                        </tr>
-                                        {qa.followUp && (
-                                          <>
-                                            <tr key={idx}>
-                                              <td
-                                                colSpan={3}
-                                                key={idx}
-                                                className="px-3"
-                                              >
-                                                <p>
-                                                  {controlKey}.{idx + 1} Follow
-                                                  up: {qa.followUp.question}
-                                                </p>
-                                              </td>
-                                              <td
-                                                colSpan={1}
-                                                key={idx}
-                                                className="px-6 "
-                                              >
-                                                <p>{qa.followUp.answer}</p>
-                                              </td>
-                                            </tr>
-                                          </>
-                                        )}
-                                      </>
-                                    )
-                                  )}
-                                </>
-                              )}
-                            </>
-                          )
+                            {controlGroupVal.questionAnswers.map((qa, idx) => (
+                              <>
+                                <tr key={idx}>
+                                  <td colSpan={2} key={idx} className="px-3">
+                                    <p>{qa.question}</p>
+                                  </td>
+                                  <td colSpan={1} key={idx} className="px-6 ">
+                                    <p>{qa.answer}</p>
+                                  </td>
+                                </tr>
+                              </>
+                            ))}
+                          </>
                         )}
                       </>
                     ))}
@@ -547,7 +438,7 @@ export function Report() {
     // If error fetching assessment
     if (pageData.error) {
       return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`
+        `There was an error fetching your completed assessment : ${pageData.error}`,
       );
     }
     // If fetching assessment successful
@@ -558,7 +449,7 @@ export function Report() {
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(
-      "Error getting assessment, fetching operation never started!"
+      "Error getting assessment, fetching operation never started!",
     );
   };
 
@@ -639,5 +530,5 @@ export function Report() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Report />
-  </StrictMode>
+  </StrictMode>,
 );

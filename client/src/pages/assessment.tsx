@@ -77,7 +77,6 @@ const sanitizeAssessmentData = (data: unknown): unknown => {
   return data;
 };
 
-
 // Helper function for safe navigation
 const safeNavigate = (path: string): void => {
   // Ensure path starts with a slash, doesn't contain protocol/domain, and isn't the current path
@@ -296,7 +295,7 @@ export function Assessment() {
       }
 
       // Create local assessment id to use later
-      const currentAssessmentId = assessmentIdParam ?? ""
+      const currentAssessmentId = assessmentIdParam ?? "";
 
       // If ID is empty after sanitization or equals default_id, it was invalid
       if (currentAssessmentId === "default_id") {
@@ -358,13 +357,9 @@ export function Assessment() {
                 2,
               );
               const blob = new Blob([jsonString], { type: "application/json" });
-              const file = new File(
-                [blob],
-                `${currentAssessmentId}.json`,
-                {
-                  type: "application/json",
-                },
-              );
+              const file = new File([blob], `${currentAssessmentId}.json`, {
+                type: "application/json",
+              });
 
               await InProgressAssessment.updateAssessment(
                 currentAssessmentId,
@@ -419,13 +414,9 @@ export function Assessment() {
             );
             const jsonString = JSON.stringify(finalAssessmentData, null, 2);
             const blob = new Blob([jsonString], { type: "application/json" });
-            const file = new File(
-              [blob],
-              `${currentAssessmentId}.json`,
-              {
-                type: "application/json",
-              },
-            );
+            const file = new File([blob], `${currentAssessmentId}.json`, {
+              type: "application/json",
+            });
 
             // First update with 100% progress
             await InProgressAssessment.updateAssessment(
@@ -622,7 +613,7 @@ export function Assessment() {
           <div className="container mx-auto">{getPageData()}</div>
         )}
       </section>
-      <Chat assessment={pageData.assessment!}/>
+      <Chat assessment={pageData.assessment!} />
       <Footer />
 
       {/* Completion Success Modal */}

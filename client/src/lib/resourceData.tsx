@@ -30,7 +30,7 @@ const slug = (str: string): string => {
 export type ResourcesUnion = Resource<typeof cmmcLevel1Data>;
 
 function createResourceEntry(
-  resource: ResourcesUnion
+  resource: ResourcesUnion,
 ): [string, ResourcesUnion] {
   return [resource.slug, resource];
 }
@@ -63,18 +63,6 @@ const resources = new Map<string, ResourcesUnion>([
                   <p>{val.requirement}</p>
                   <p>{val.plainEnglish}</p>
                 </div>
-              </div>
-
-              {/* Question asked section */}
-              <div className="mb-2 md:text-base text-sm">
-                <h5 className="font-bold tracking-tight text-gray-900 dark:text-white">
-                  Questions Asked
-                </h5>
-                <ul className="font-normal text-gray-700 dark:text-gray-400 list-disc ml-5">
-                  {val.assessmentQuestions.map((val2, key2) => (
-                    <li key={key2}>{val2}</li>
-                  ))}
-                </ul>
               </div>
 
               {/* POAM sectopm */}

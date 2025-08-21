@@ -72,5 +72,5 @@ export function Resources() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Resources />
-  </StrictMode>
+  </StrictMode>,
 );
