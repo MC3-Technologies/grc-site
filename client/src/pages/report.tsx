@@ -61,7 +61,7 @@ export function Report() {
           JSON.parse(assessmentJsonData as string) as Record<
             string,
             string | number
-          >,
+          >
         );
 
         // Call report generation method
@@ -123,7 +123,7 @@ export function Report() {
 
   // Helper function that takes in abbreviated control group name to return full control group name
   const getControlGroupName = (
-    abbreviatedControlGroupName: string,
+    abbreviatedControlGroupName: string
   ): string | null => {
     switch (abbreviatedControlGroupName) {
       case "AC":
@@ -146,7 +146,7 @@ export function Report() {
   // Control compliance status helper function, returns a badge component that indicates control compliance
   const getControlComplianceStatusComponent = (
     score: number,
-    maxScore: number,
+    maxScore: number
   ): JSX.Element => {
     if (score === maxScore) {
       return (
@@ -255,7 +255,7 @@ export function Report() {
                   {Math.round(
                     (assessmentReportData.score /
                       assessmentReportData.maxScore) *
-                      100,
+                      100
                   )}
                   %
                 </h5>
@@ -325,7 +325,7 @@ export function Report() {
                                 <td className="px-6 pt-3 font-semibold text-base">
                                   {getControlComplianceStatusComponent(
                                     controlVal.score,
-                                    controlVal.maxScore,
+                                    controlVal.maxScore
                                   )}
                                 </td>
                               </tr>
@@ -368,10 +368,10 @@ export function Report() {
                                 </>
                               ))}
                             </>
-                          ),
+                          )
                         )}
                       </>
-                    ),
+                    )
                   )}
                 </tbody>
               </table>
@@ -395,7 +395,7 @@ export function Report() {
                 Click{" "}
                 <a
                   target="_blank"
-                  href="/security-models/?model=cmmclevel1"
+                  href="/resources/?resource=cmmc-level-1"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   here
@@ -442,7 +442,7 @@ export function Report() {
                             <>
                               {!isControlCompliant(
                                 controlVal.score,
-                                controlVal.maxScore,
+                                controlVal.maxScore
                               ) && (
                                 <>
                                   <tr
@@ -472,7 +472,7 @@ export function Report() {
                                     <td className="px-6 pt-3 font-semibold text-base">
                                       {getControlComplianceStatusComponent(
                                         controlVal.score,
-                                        controlVal.maxScore,
+                                        controlVal.maxScore
                                       )}
                                     </td>
                                   </tr>
@@ -523,12 +523,12 @@ export function Report() {
                                           </>
                                         )}
                                       </>
-                                    ),
+                                    )
                                   )}
                                 </>
                               )}
                             </>
-                          ),
+                          )
                         )}
                       </>
                     ))}
@@ -547,7 +547,7 @@ export function Report() {
     // If error fetching assessment
     if (pageData.error) {
       return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`,
+        `There was an error fetching your completed assessment : ${pageData.error}`
       );
     }
     // If fetching assessment successful
@@ -558,7 +558,7 @@ export function Report() {
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(
-      "Error getting assessment, fetching operation never started!",
+      "Error getting assessment, fetching operation never started!"
     );
   };
 
@@ -639,5 +639,5 @@ export function Report() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Report />
-  </StrictMode>,
+  </StrictMode>
 );
