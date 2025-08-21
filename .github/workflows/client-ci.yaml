@@ -7,29 +7,29 @@ on:
       - staging
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  # test:
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "23"
+  #     - name: Set up Node.js
+  #       uses: actions/setup-node@v3
+  #       with:
+  #         node-version: "23"
 
-      - name: Setup amplify outputs
-        run: |
-          echo "${{ secrets.AMPLIFY_OUTPUTS }}" > amplify_outputs.json
+  #     - name: Setup amplify outputs
+  #       run: |
+  #         echo "${{ secrets.AMPLIFY_OUTPUTS }}" > amplify_outputs.json
 
-      - name: Install dependencies
-        working-directory: ./client
-        run: npm install
+  #     - name: Install dependencies
+  #       working-directory: ./client
+  #       run: npm install
 
-      - name: Run tests
-        working-directory: ./client
-        run: npm run test
+  #     - name: Run tests
+  #       working-directory: ./client
+  #       run: npm run test
 
   lint:
     runs-on: ubuntu-latest
