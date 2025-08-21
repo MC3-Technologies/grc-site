@@ -2,14 +2,18 @@ import { defineBackend } from "@aws-amplify/backend";
 import { auth as authResourceFactory } from "./auth/resource";
 import { data } from "./data/resource";
 import { chatGptFunction } from "./functions/chat-gpt/resource";
-import { audioTranscriber } from "./functions/openai-whisper/resource";
 import { userManagementFunction } from "./functions/user-management/resource";
 import { assessmentStorage } from "./storage/resource";
 import { authTriggersFunction } from "./functions/auth-triggers/resource";
 import { PolicyStatement, Effect } from "aws-cdk-lib/aws-iam";
 import { StringParameter } from "aws-cdk-lib/aws-ssm";
-import * as apigwv2 from "aws-cdk-lib/aws-apigatewayv2";
-import * as integrations from "aws-cdk-lib/aws-apigatewayv2-integrations";
+
+import { audioTranscriber } from "./functions/openai-whisper/resource";
+import { Duration } from "aws-cdk-lib";
+import { HttpApi, HttpMethod, CorsHttpMethod } from "aws-cdk-lib/aws-apigatewayv2";
+import { HttpLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations";
+
+
 
 // ===== Define backend resources =====
 const backend = defineBackend({
@@ -22,24 +26,48 @@ const backend = defineBackend({
   audioTranscriber,
 });
 
-const httpApi = new apigwv2.HttpApi(backend.stack, "ChatbotHttpApi", {
-  apiName: "chatbot-api",
+
+const apiStack = backend.createStack("http-api-stack");
+const httpApi = new HttpApi(apiStack, "TranscribeApi", {
+  apiName: "TranscribeApi",
+  createDefaultStage: true,
   corsPreflight: {
-    allowOrigins: ["*"], // adjust for prod
-    allowMethods: [apigwv2.CorsHttpMethod.POST],
-    allowHeaders: ["*"],
+    allowOrigins: [
+      "http://localhost:5173",
+      "https://rohan-branch.d2xilxp1mil40w.amplifyapp.com",
+    ],
+    allowMethods: [CorsHttpMethod.POST, CorsHttpMethod.OPTIONS],
+    allowHeaders: ["Content-Type"],
+    maxAge: Duration.seconds(86400),
   },
 });
 
-// POST /transcribe → audioTranscriber Lambda
+const integration = new HttpLambdaIntegration(
+  "TranscribeIntegration",
+  backend.audioTranscriber.resources.lambda
+)
+
 httpApi.addRoutes({
   path: "/transcribe",
-  methods: [apigwv2.HttpMethod.POST],
-  integration: new integrations.HttpLambdaIntegration(
-    "AudioTranscriberIntegration",
-    backend.audioTranscriber.resources.lambda
-  ),
+  methods: [HttpMethod.POST],
+  integration,
 });
+
+backend.addOutput({
+  custom: {
+    API: {
+      [httpApi.httpApiName!]: {
+        endpoint: httpApi.url,                 
+      },
+    },
+  },
+});
+
+
+
+
+
+
 
 backend.userManagementFunction.addEnvironment(
   "AMPLIFY_AUTH_USERPOOL_ID",
@@ -175,3 +203,5 @@ backend.authTriggersFunction.resources.lambda.addToRolePolicy(
 );
 
 backend.authTriggersFunction.addEnvironment("USERSTATUS_PARAM", paramName);
+
+export { backend };

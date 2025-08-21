@@ -13,6 +13,7 @@ import {
 } from "../utils/chatStorage";
 import { ChatHistoryMessage } from "../types/Chat";
 
+
 // Define the initial system message separately.
 const initialSystemMessage: ChatHistoryMessage = {
   role: "system",
@@ -158,19 +159,27 @@ const Chat = () => {
 
 //________________________________________________________________________________________________
 
+const amplify = getAmplify();
+const endpoint =
+  (amplify.getConfig() as any).custom?.TranscribeApi?.endpoint as string;
+
+if (!endpoint) throw new Error("Transcribe API endpoint missing from Amplify config");
+
+const API_URL = `${endpoint}transcribe`;
+
 const sendAudioForTranscription = async (blob: Blob): Promise<string> => {
-  const arrayBuffer = await blob.arrayBuffer();
-  const res = await fetch("placeholder", {
+  const res = await fetch(API_URL, {
     method: "POST",
     headers: { "Content-Type": "audio/webm" },
-    body: arrayBuffer,
+    body: blob,                           // ← send Blob directly
+    signal: AbortSignal.timeout(30_000),  // ← safety against hangs
   });
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
     throw new Error(`Transcription request failed (${res.status}) ${msg}`);
   }
-  const data = await res.json();
-  return data.transcript;
+  const { transcript } = await res.json();
+  return transcript as string;
 };
 
 
