@@ -1,7 +1,7 @@
 import { StrictMode, useEffect, useState, useRef, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import { initFlowbite } from "flowbite";
-import DOMPurify from "dompurify"; // Import DOMPurify for XSS protection
+// import DOMPurify from "dompurify"; // Import DOMPurify for XSS protection
 
 import "../index.css";
 import "survey-core/defaultV2.min.css";
@@ -10,15 +10,16 @@ import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
-import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
-// import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
+import {
+  AssessmentStorageData,
+  CompletedAssessment,
+  InProgressAssessment,
+} from "../utils/assessment";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
 import { Report as Rpt } from "../lib/report";
-
-import { surveyJson } from "../data/questionnaire/assessmentQuestions";
 
 type PageData = {
   assessment: Model | null;
@@ -44,38 +45,38 @@ type PageData = {
  * and event handlers like onerror, onclick, etc.
  * Strips ALL HTML elements and attributes for maximum security.
  */
-const sanitizeAssessmentData = (data: unknown): unknown => {
-  if (!data) return data;
+// const sanitizeAssessmentData = (data: unknown): unknown => {
+//   if (!data) return data;
 
-  // For objects, recursively sanitize each property
-  if (typeof data === "object" && data !== null) {
-    if (Array.isArray(data)) {
-      return data.map((item) => sanitizeAssessmentData(item));
-    }
+//   // For objects, recursively sanitize each property
+//   if (typeof data === "object" && data !== null) {
+//     if (Array.isArray(data)) {
+//       return data.map((item) => sanitizeAssessmentData(item));
+//     }
 
-    const sanitized: Record<string, unknown> = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        sanitized[key] = sanitizeAssessmentData(
-          (data as Record<string, unknown>)[key],
-        );
-      }
-    }
-    return sanitized;
-  }
+//     const sanitized: Record<string, unknown> = {};
+//     for (const key in data) {
+//       if (Object.prototype.hasOwnProperty.call(data, key)) {
+//         sanitized[key] = sanitizeAssessmentData(
+//           (data as Record<string, unknown>)[key]
+//         );
+//       }
+//     }
+//     return sanitized;
+//   }
 
-  // For strings, use DOMPurify with maximum restrictions to strip ALL HTML
-  if (typeof data === "string") {
-    // Completely strip all HTML and attributes for maximum security
-    return DOMPurify.sanitize(data, {
-      ALLOWED_TAGS: [], // Allow no HTML tags
-      ALLOWED_ATTR: [], // Allow no HTML attributes
-    });
-  }
+//   // For strings, use DOMPurify with maximum restrictions to strip ALL HTML
+//   if (typeof data === "string") {
+//     // Completely strip all HTML and attributes for maximum security
+//     return DOMPurify.sanitize(data, {
+//       ALLOWED_TAGS: [], // Allow no HTML tags
+//       ALLOWED_ATTR: [], // Allow no HTML attributes
+//     });
+//   }
 
-  // Return unchanged for other data types
-  return data;
-};
+//   // Return unchanged for other data types
+//   return data;
+// };
 
 // Helper function for safe navigation
 const safeNavigate = (path: string): void => {
@@ -319,8 +320,8 @@ export function Assessment() {
           );
 
         // Create assessment and give assessment data and current page
-        const assessment = new Model(surveyJson);
-        assessment.data = JSON.parse(assessmentJsonData as string);
+        const assessment = new Model(assessmentJsonData.questionnaire);
+        assessment.data = assessmentJsonData.data;
         assessment.currentPageNo = assessmentEntryData.currentPage;
         assessment.completedHtml = `
         <div style="text-align:center">
@@ -349,13 +350,16 @@ export function Assessment() {
             try {
               setSaving(true);
               console.info("Saving assessment");
+              // Create new assessment JSON to upload - STORE COMPLETE QUESTIONNAIRE DATA
 
+              const assessmentData: AssessmentStorageData = {
+                data: assessment.data,
+                questionnaire: assessmentJsonData.questionnaire,
+                questionnaireVersion: assessmentJsonData.questionnaireVersion,
+              };
               // Turn assessment data into blob and then file to upload
-              const jsonString = JSON.stringify(
-                sanitizeAssessmentData(updatedAssessment.getData()),
-                null,
-                2,
-              );
+
+              const jsonString = JSON.stringify(assessmentData, null, 2);
               const blob = new Blob([jsonString], { type: "application/json" });
               const file = new File([blob], `${currentAssessmentId}.json`, {
                 type: "application/json",
@@ -408,11 +412,14 @@ export function Assessment() {
           }
 
           try {
-            // Get final assessment data
-            const finalAssessmentData = sanitizeAssessmentData(
-              assessment.getData(),
-            );
-            const jsonString = JSON.stringify(finalAssessmentData, null, 2);
+            const assessmentData: AssessmentStorageData = {
+              data: assessment.getData(),
+              questionnaire: assessmentJsonData.questionnaire,
+              questionnaireVersion: assessmentJsonData.questionnaireVersion,
+            };
+            // Turn assessment data into blob and then file to upload
+
+            const jsonString = JSON.stringify(assessmentData, null, 2);
             const blob = new Blob([jsonString], { type: "application/json" });
             const file = new File([blob], `${currentAssessmentId}.json`, {
               type: "application/json",
@@ -427,9 +434,7 @@ export function Assessment() {
             );
 
             // Create temporary report isntance to calculate adherence score
-            const tempReport = new Rpt(
-              finalAssessmentData as Record<string, string | number>,
-            );
+            const tempReport = new Rpt(assessment.getData());
             const score = Math.round(
               (tempReport.generateReportData().score /
                 tempReport.generateReportData().maxScore) *
@@ -465,7 +470,6 @@ export function Assessment() {
 
   // Error component to show if errors
   const errorFeedback = (message: string): React.JSX.Element => {
-    // Set up redirect without rendering in JSX
     setTimeout(() => {
       window.location.href = "/assessments/";
     }, 5000);

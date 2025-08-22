@@ -16,7 +16,6 @@ import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
 import { fetchUsers } from "../utils/adminUser";
-import { surveyJson } from "../data/questionnaire/assessmentQuestions";
 
 type PageData = {
   assessment: Model | null;
@@ -142,9 +141,6 @@ export function CompletedAssessmentView() {
             assessmentIdParam,
           );
 
-        // Parse the assessment JSON data
-        const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
-
         // Questionnaire ssurvery data versioning disabled for now  -- 5/27/25
 
         // Use the questionnaire stored with the assessment if available
@@ -161,10 +157,9 @@ export function CompletedAssessmentView() {
         // Create assessment survey model with the data
         // const questionnaireData = await getLatestQuestionnaireData();
         // const assessment = new Model(questionnaireData);
-
-        const assessment = new Model(surveyJson);
+        const assessment = new Model(assessmentJsonData.questionnaire);
         // assessment.data = parsedAssessmentData.data || parsedAssessmentData;
-        assessment.data = parsedAssessmentData;
+        assessment.data = assessmentJsonData.data;
 
         // Set survey to display mode (read-only)
         assessment.mode = "display";

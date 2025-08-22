@@ -1,14 +1,17 @@
 import { uploadData, downloadData } from "aws-amplify/storage";
 import { fetchAuthSession } from "aws-amplify/auth";
-import {
-  getCurrentVersionInfo,
-  getLatestQuestionnaireData,
-} from "./questionnaireUtils";
 import { Model } from "survey-core";
 import { getClientSchema } from "../amplify/schema";
 import { remove } from "aws-amplify/storage";
 import { isCurrentUserAdmin } from "../amplify/auth";
 import { v4 as uuidv4 } from "uuid";
+import { cmmcLevel1Data } from "../data/questionnaire/cmmcLevel1/v1.1";
+
+export type AssessmentStorageData = {
+  data: string;
+  questionnaire: string;
+  questionnaireVersion: string;
+};
 
 // Assessment class with one global variable and one global in common method : upload assessment data to storage
 class Assessment {
@@ -70,6 +73,82 @@ class Assessment {
         `Error deleting assessment JSON blob from storage: ${error}`,
       );
     }
+  };
+
+  // Get assessment storage path from database entry
+  protected static _fetchAssessmentStoragePath = async (
+    id: string,
+  ): Promise<string> => {
+    try {
+      const { data: inProgress, errors: inProgressErrors } =
+        await this.client.models.InProgressAssessment.get({ id });
+
+      if (inProgressErrors) {
+        throw new Error(
+          `Error fetching in-progress assessment: ${inProgressErrors}`,
+        );
+      }
+      if (inProgress?.storagePath) {
+        return inProgress.storagePath;
+      }
+
+      const { data: completed, errors: completedErrors } =
+        await this.client.models.CompletedAssessment.get({ id });
+
+      if (completedErrors?.length) {
+        throw new Error(
+          `Error fetching completed assessment: ${completedErrors}`,
+        );
+      }
+      if (completed?.storagePath) {
+        return completed.storagePath;
+      }
+
+      throw new Error(`Assessment ${id} not found in progress or completed`);
+    } catch (err) {
+      throw new Error(
+        `Error fetching assessment storage path: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  // Return JSON assessment data from storage give storage path
+  protected static _fetchAssessmentStorageJson = async (
+    path: string,
+  ): Promise<unknown> => {
+    try {
+      // Fetch assessment json and parse into texty
+      const assessmentDownloadResult = await downloadData({
+        path,
+        options: { bucket: "assessmentStorage" },
+      }).result;
+      const assessmentJson = await assessmentDownloadResult.body.text();
+
+      // Return
+      return assessmentJson;
+    } catch (err) {
+      throw new Error(`Error downloading assessment data: ${err}`);
+    }
+  };
+
+  public static fetchAssessmentStorageData = async (
+    id: string,
+  ): Promise<AssessmentStorageData> => {
+    const storagePath = await this._fetchAssessmentStoragePath(id).catch(
+      (err) => {
+        throw new Error(`Error getting storage path from database: ${err}`);
+      },
+    );
+
+    const assessmentJson = await this._fetchAssessmentStorageJson(
+      storagePath,
+    ).catch((err) => {
+      throw new Error(`Error getting assessment storage: ${err}`);
+    });
+    // console.log(assessmentJson)
+    const ret = JSON.parse(assessmentJson as string) as AssessmentStorageData;
+
+    return ret;
   };
 }
 
@@ -224,28 +303,6 @@ class InProgressAssessment extends Assessment {
     }
   };
 
-  // Fetch JSON assessment data from storage
-  public static fetchAssessmentStorageData = async <T = unknown>(
-    id: string,
-  ): Promise<T> => {
-    // Fetch assessment storage path fromd database using id
-    const storagePath = await this._fetchAssessmentStoragePath(id).catch(
-      (err) => {
-        throw new Error(`Error getting storage path from database: ${err}`);
-      },
-    );
-
-    // Use storage path from above to call storage download
-    const assessmentJson = await this._fetchAssessmentStorageJson(
-      storagePath,
-    ).catch((err) => {
-      throw new Error(`Error getting assessment storage: ${err}`);
-    });
-
-    // Return assessment data
-    return assessmentJson as T;
-  };
-
   // Fetch all assessments (in progress)
   public static fetchAllAssessments = async (): Promise<
     {
@@ -283,19 +340,11 @@ class InProgressAssessment extends Assessment {
     // Create hash to use for id
     const idHash = this._generateUrlSafeHash();
 
-    // Fetch the latest questionnaire data from S3 (falling back to local if needed)
-    const questionnaireData = await getLatestQuestionnaireData();
-
-    // Get current version info to store with assessment
-    const versionInfo = await getCurrentVersionInfo();
-    const versionNumber = versionInfo?.version || "1.0";
-
     // Create new assessment JSON to upload - STORE COMPLETE QUESTIONNAIRE DATA
-    const assessmentData = {
-      data: new Model(questionnaireData).data,
-      questionnaire: questionnaireData, // Store the complete questionnaire
-      questionnaireVersion: versionNumber, // Store version number
-      createdAt: new Date().toISOString(),
+    const assessmentData: AssessmentStorageData = {
+      data: new Model(cmmcLevel1Data.surveyJson).data,
+      questionnaire: JSON.stringify(cmmcLevel1Data.surveyJson),
+      questionnaireVersion: cmmcLevel1Data.version,
     };
 
     const jsonString = JSON.stringify(assessmentData, null, 2);
@@ -317,7 +366,7 @@ class InProgressAssessment extends Assessment {
       idHash,
       name,
       storageUploadPath,
-      versionNumber, // Pass the fetched version number
+      cmmcLevel1Data.version, // Pass the fetched version number
     ).catch((err) => {
       throw new Error(`Error creating new assessment entry: ${err}`);
     });
@@ -393,47 +442,6 @@ class InProgressAssessment extends Assessment {
       return data.id;
     } catch (e) {
       throw new Error(`${e}`);
-    }
-  };
-
-  // Return JSON assessment data from storage give storage path
-  private static _fetchAssessmentStorageJson = async (
-    path: string,
-  ): Promise<unknown> => {
-    try {
-      // Fetch assessment json and parse into texty
-      const assessmentDownloadResult = await downloadData({
-        path,
-        options: { bucket: "assessmentStorage" },
-      }).result;
-      const assessmentJson = await assessmentDownloadResult.body.text();
-
-      // Return
-      return assessmentJson;
-    } catch (err) {
-      throw new Error(`Error downloading assessment data: ${err}`);
-    }
-  };
-
-  // Get assessment storage path from database entry
-  private static _fetchAssessmentStoragePath = async (
-    id: string,
-  ): Promise<string> => {
-    try {
-      const { data, errors } =
-        // Get assessment database entry
-        await this.client.models.InProgressAssessment.get({ id });
-      // If errors or no data, throw error
-      if (errors) {
-        throw new Error(`Error fetching in-progress assessments: ${errors}`);
-      }
-      if (!data) {
-        throw new Error("No data found from query!");
-      }
-      // Return storage path
-      return data.storagePath;
-    } catch (err) {
-      throw new Error(`Error fetching in-progress assessments: ${err}`);
     }
   };
 
@@ -627,28 +635,6 @@ class CompletedAssessment extends Assessment {
     }
   };
 
-  // Fetch JSON assessment data from storage
-  public static fetchAssessmentStorageData = async <T = unknown>(
-    id: string,
-  ): Promise<T> => {
-    // Fetch assessment storage path fromd database using id
-    const storagePath = await this._fetchAssessmentStoragePath(id).catch(
-      (err) => {
-        throw new Error(`Error getting storage path from database: ${err}`);
-      },
-    );
-
-    // Use storage path from above to call storage download
-    const assessmentJson = await this._fetchAssessmentStorageJson(
-      storagePath,
-    ).catch((err) => {
-      throw new Error(`Error getting assessment storage: ${err}`);
-    });
-
-    // Return assessment data
-    return assessmentJson as T;
-  };
-
   // Fetch all completed assessments
   public static fetchAllCompletedAssessments = async (): Promise<
     {
@@ -720,203 +706,6 @@ class CompletedAssessment extends Assessment {
       throw new Error(`${e}`);
     }
   };
-
-  // Return JSON assessment data from storage give storage path
-  private static _fetchAssessmentStorageJson = async (
-    path: string,
-  ): Promise<unknown> => {
-    try {
-      // Fetch assessment json and parse into texty
-      const assessmentDownloadResult = await downloadData({
-        path,
-        options: { bucket: "assessmentStorage" },
-      }).result;
-      const assessmentJson = await assessmentDownloadResult.body.text();
-
-      // Return
-      return assessmentJson;
-    } catch (err) {
-      throw new Error(`Error downloading assessment data: ${err}`);
-    }
-  };
-
-  // Get assessment storage path from database entry
-  private static _fetchAssessmentStoragePath = async (
-    id: string,
-  ): Promise<string> => {
-    try {
-      const { data, errors } =
-        // Get assessment database entry
-        await this.client.models.CompletedAssessment.get({ id });
-      // If errors or no data, throw error
-      if (errors) {
-        throw new Error(`Error fetching completed assessments: ${errors}`);
-      }
-      if (!data) {
-        throw new Error("No data found from query!");
-      }
-      // Return storage path
-      return data.storagePath;
-    } catch (err) {
-      throw new Error(`Error fetching completed assessments: ${err}`);
-    }
-  };
 }
 
 export { InProgressAssessment, CompletedAssessment };
-
-// Function to save an assessment
-export async function saveAssessment({
-  id,
-  name,
-  data,
-}: {
-  id: string;
-  name: string;
-  data: unknown;
-}): Promise<{ success: boolean; message: string }> {
-  try {
-    // Get identity for storage path
-    const session = await fetchAuthSession();
-    if (!session.identityId) {
-      return {
-        success: false,
-        message: "Could not determine user identity for storage",
-      };
-    }
-
-    // Convert data to JSON and create a file
-    const dataToSave =
-      typeof data === "object" && data !== null ? { ...data, name } : { name };
-    const jsonString = JSON.stringify(dataToSave, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const file = new File([blob], `${id}.json`, { type: "application/json" });
-
-    // Upload to storage
-    await uploadData({
-      path: `assessments/${session.identityId}/in-progress/${file.name}`,
-      data: file,
-      options: { bucket: "assessmentStorage" },
-    }).result;
-
-    return { success: true, message: "Assessment saved successfully" };
-  } catch (error) {
-    return {
-      success: false,
-      message: `Error saving assessment: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
-
-// Function to get an assessment
-export async function getAssessment(id: string): Promise<unknown | null> {
-  try {
-    // Get identity for storage path
-    const session = await fetchAuthSession();
-    if (!session.identityId) {
-      throw new Error("Could not determine user identity");
-    }
-
-    // Download from storage
-    const path = `assessments/${session.identityId}/in-progress/${id}.json`;
-    const result = await downloadData({
-      path,
-      options: { bucket: "assessmentStorage" },
-    }).result;
-
-    const jsonString = await result.body.text();
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error("Error downloading assessment:", error);
-    return null;
-  }
-}
-
-// Function to list all assessments
-export async function listAssessments(): Promise<
-  { id: string; title: string }[]
-> {
-  try {
-    // Wrap the InProgressAssessment.fetchAllAssessments method
-    const assessments = await InProgressAssessment.fetchAllAssessments();
-    return assessments.map((assessment) => ({
-      id: assessment.id,
-      title: assessment.name || "",
-    }));
-  } catch (error) {
-    console.error("Error listing assessments:", error);
-    return [];
-  }
-}
-
-// Function to delete an assessment
-export async function deleteAssessment(
-  id: string,
-): Promise<{ success: boolean; message: string }> {
-  try {
-    await InProgressAssessment.deleteAssessment(id);
-    return { success: true, message: "Assessment deleted successfully" };
-  } catch (error) {
-    return {
-      success: false,
-      message: `Error deleting assessment: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
-
-// Function to create a new assessment
-export async function createAssessment(
-  title: string,
-): Promise<{ success: boolean; message: string; id?: string }> {
-  try {
-    const id = await InProgressAssessment.createAssessment(title);
-    return {
-      success: true,
-      message: "Assessment created successfully",
-      id,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      message: `Error creating assessment: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}
-
-// Function to update an assessment
-export async function updateAssessment(
-  id: string,
-  updates: { name?: string },
-): Promise<{ success: boolean; message: string }> {
-  try {
-    // Get the current assessment data
-    const assessmentData = await getAssessment(id);
-    if (!assessmentData) {
-      throw new Error("Assessment not found");
-    }
-
-    // Apply updates
-    const updatedData = {
-      ...assessmentData,
-      ...(updates.name ? { name: updates.name } : {}),
-    };
-
-    // Save the updated assessment
-    const result = await saveAssessment({
-      id,
-      name:
-        updates.name ||
-        (assessmentData as { name?: string }).name ||
-        id ||
-        "Untitled Assessment",
-      data: updatedData,
-    });
-
-    return result;
-  } catch (error) {
-    return {
-      success: false,
-      message: `Error updating assessment: ${error instanceof Error ? error.message : String(error)}`,
-    };
-  }
-}

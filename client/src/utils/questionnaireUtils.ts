@@ -1,4 +1,4 @@
-import { surveyJson } from "../data/questionnaire/assessmentQuestions";
+import { cmmcLevel1Data } from "../data/questionnaire/cmmcLevel1/v1.1";
 import { downloadData, uploadData, list, remove } from "aws-amplify/storage";
 
 // Constant for localStorage key
@@ -77,14 +77,14 @@ export interface QuestionnaireData {
 }
 
 // Function to get empty questionnaire metadata
-const getEmptyVersionMetadata = (): VersionMetadata => {
-  return {
-    version: "1.0",
-    lastUpdated: new Date().toISOString(),
-    updatedBy: "admin",
-    changeNotes: "Initial version",
-  };
-};
+// const getEmptyVersionMetadata = (): VersionMetadata => {
+//   return {
+//     version: "1.0",
+//     lastUpdated: new Date().toISOString(),
+//     updatedBy: "admin",
+//     changeNotes: "Initial version",
+//   };
+// };
 
 // Function to load saved questionnaire data from localStorage
 export const loadSavedQuestionnaire = (): QuestionPage[] | null => {
@@ -127,7 +127,7 @@ export const createNewVersion = async (
 
     // Create the full questionnaire object
     const questionnaireData: QuestionnaireData = {
-      ...surveyJson,
+      ...cmmcLevel1Data.surveyJson,
       pages: cleanedPages,
       version: metadata.version,
       lastUpdated: metadata.lastUpdated,
@@ -251,7 +251,7 @@ export const saveVersionToS3 = async (
       // If we can't find the version, create new metadata
       //console.log(`Creating new version data for ${version}`);
       versionData = {
-        ...surveyJson,
+        ...cmmcLevel1Data.surveyJson,
         pages: [],
         version: version,
         lastUpdated: new Date().toISOString(),
@@ -503,31 +503,31 @@ export const getCurrentVersionInfo = async (): Promise<VersionInfo | null> => {
 };
 
 // Initialize the versioning system (run once at startup if needed)
-export const initializeVersioning = async (): Promise<boolean> => {
-  try {
-    // Check if there are any versions
-    const versions = await listVersions();
+// export const initializeVersioning = async (): Promise<boolean> => {
+//   try {
+//     // Check if there are any versions
+//     const versions = await listVersions();
 
-    if (versions.length === 0) {
-      // No versions exist, create the first one from the default questionnaire
-      //console.log("No questionnaire versions found. Creating initial version.");
+//     if (versions.length === 0) {
+//       // No versions exist, create the first one from the default questionnaire
+//       //console.log("No questionnaire versions found. Creating initial version.");
 
-      // Create pages from default survey
-      const pages = surveyJson.pages.map((page: SurveyPage, index: number) => ({
-        ...page,
-        id: `page-${index}`,
-      }));
+//       // Create pages from default survey
+//       const pages = cmmcLevel1Data.surveyJson.pages.map((page: SurveyPage, index: number) => ({
+//         ...page,
+//         id: `page-${index}`,
+//       }));
 
-      // Create first version
-      return await createNewVersion(pages, getEmptyVersionMetadata());
-    }
+//       // Create first version
+//       return await createNewVersion(pages, getEmptyVersionMetadata());
+//     }
 
-    return true;
-  } catch (error) {
-    console.error("Error initializing versioning:", error);
-    return false;
-  }
-};
+//     return true;
+//   } catch (error) {
+//     console.error("Error initializing versioning:", error);
+//     return false;
+//   }
+// };
 
 // Export the questionnaire data for other components to use
 export const getLatestQuestionnaireData = async () => {
@@ -555,17 +555,17 @@ export const getLatestQuestionnaireData = async () => {
 
       // Return the complete survey configuration with updated pages
       return {
-        ...surveyJson,
+        ...cmmcLevel1Data.surveyJson,
         pages: cleanedPages,
       };
     }
 
     // If no custom questionnaire is found, return the default
     //console.log("Using default questionnaire");
-    return surveyJson;
+    return cmmcLevel1Data.surveyJson;
   } catch (error) {
     console.error("Error retrieving questionnaire data:", error);
-    return surveyJson;
+    return cmmcLevel1Data.surveyJson;
   }
 };
 
@@ -586,14 +586,14 @@ export const getLatestQuestionnaireDataSync = () => {
 
       // Return the complete survey configuration with updated pages
       return {
-        ...surveyJson,
+        ...cmmcLevel1Data.surveyJson,
         pages: cleanedPages,
       };
     }
-    return surveyJson;
+    return cmmcLevel1Data.surveyJson;
   } catch (error) {
     console.error("Error retrieving questionnaire data:", error);
-    return surveyJson;
+    return cmmcLevel1Data.surveyJson;
   }
 };
 

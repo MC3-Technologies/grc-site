@@ -1,16 +1,15 @@
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "aws-amplify/auth";
-import { surveyJson } from "../../data/questionnaire/assessmentQuestions";
+// import { surveyJson } from "../../data/questionnaire/cmmcLevel1/v1.1";
 import {
   SurveyElement,
   ChoiceItem,
   QuestionPage,
-  SurveyPage,
+  // SurveyPage,
   loadSavedQuestionnaire,
   QUESTIONNAIRE_STORAGE_KEY,
   saveQuestionnaireToS3,
   getCurrentVersionInfo,
-  initializeVersioning,
   VersionMetadata,
   loadQuestionnaireVersion,
   saveVersionToS3,
@@ -44,15 +43,15 @@ const AdminQuestionnaire = () => {
     }
 
     //console.log("Using default questionnaire data");
-    const defaultPages = surveyJson.pages.map(
-      (page: SurveyPage, index: number) => ({
-        ...page,
-        id: `page-${index}`,
-      }),
-    );
+    // const defaultPages = surveyJson.pages.map(
+    //   (page: SurveyPage, index: number) => ({
+    //     ...page,
+    //     id: `page-${index}`,
+    //   }),
+    // );
 
     // Apply renumbering to ensure proper section numbering
-    return renumberSections(defaultPages);
+    return renumberSections([]);
   });
 
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -100,7 +99,7 @@ const AdminQuestionnaire = () => {
   useEffect(() => {
     const initialize = async () => {
       try {
-        await initializeVersioning();
+        // await initializeVersioning();
         // Load current version info
         const versionInfo = await getCurrentVersionInfo();
         if (versionInfo) {

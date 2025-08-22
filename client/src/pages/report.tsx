@@ -55,14 +55,9 @@ export function Report() {
         // Function to handle the above
         const assessmentJsonData =
           await fetchAssessmentDataWithCache(assessmentIdParam);
-
+        console.log(assessmentJsonData.questionnaire);
         // New report instance
-        const report = new Rpt(
-          JSON.parse(assessmentJsonData as string) as Record<
-            string,
-            string | number
-          >,
-        );
+        const report = new Rpt(assessmentJsonData.data);
 
         // Call report generation method
         const reportData = report.generateReportData();
@@ -70,7 +65,6 @@ export function Report() {
         // Set page state
         setPageData((prev) => ({
           ...prev,
-          assessmentData: assessmentJsonData as Record<string, string>,
           assessmentReportData: reportData,
         }));
       } catch (e) {
@@ -85,15 +79,15 @@ export function Report() {
   }, []);
 
   // Add redirection effect when there's an error
-  useEffect(() => {
-    if (pageData.error) {
-      const timer = setTimeout(() => {
-        window.location.href = "/assessments/";
-      }, 5000);
+  // useEffect(() => {
+  //   if (pageData.error) {
+  //     const timer = setTimeout(() => {
+  //       window.location.href = "/assessments/";
+  //     }, 5000);
 
-      return () => clearTimeout(timer);
-    }
-  }, [pageData.error]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [pageData.error]);
 
   // errorFeedback function to show error feedback and redirect after 5 seconds
   const errorFeedback = (message: string): React.JSX.Element => {

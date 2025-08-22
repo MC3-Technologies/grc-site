@@ -1,4 +1,7 @@
-import { CompletedAssessment } from "../utils/assessment";
+import {
+  AssessmentStorageData,
+  CompletedAssessment,
+} from "../utils/assessment";
 
 type QuestionAnswer = {
   question: string;
@@ -24,7 +27,7 @@ class Report {
   // Assessment data class variable
   private _assessmentData: Map<string, string | number>;
 
-  constructor(assessmentData: Record<string, string | number>) {
+  constructor(assessmentData: string) {
     // If assessment data is not an object or is null, throw an error
     if (assessmentData === null) {
       throw new Error("Assessment data is null!");
@@ -213,12 +216,8 @@ class Report {
 
 const fetchAssessmentDataWithCache = async (
   assessmentId: string,
-): Promise<unknown> => {
-  if (localStorage.getItem(`${assessmentId}_assessmentData`) !== null) {
-    // If assessment data is cached in local storage, use it
-    console.log("Assessment data in cache.");
-    return localStorage.getItem(`${assessmentId}_assessmentData`);
-  } else {
+): Promise<AssessmentStorageData> => {
+  if (localStorage.getItem(`${assessmentId}_assessmentData`) === null) {
     console.log("Assessment data not found in cache, fetching from storage.");
     // If assessment data is not cached in local storage, fetch from storage to use it and cache it
 
@@ -227,11 +226,19 @@ const fetchAssessmentDataWithCache = async (
       await CompletedAssessment.fetchAssessmentStorageData(assessmentId);
 
     // Cache it
-    localStorage.setItem(`${assessmentId}_assessmentData`, data as string);
+    localStorage.setItem(
+      `${assessmentId}_assessmentData`,
+      JSON.stringify(data),
+    );
     console.log("Assessment data cached for next time.");
 
     return data;
   }
+  // If assessment data is cached in local storage, use it
+  console.log("Assessment data in cache.");
+  return JSON.parse(
+    localStorage.getItem(`${assessmentId}_assessmentData`)!,
+  ) as AssessmentStorageData;
 };
 
 export { Report, fetchAssessmentDataWithCache };
