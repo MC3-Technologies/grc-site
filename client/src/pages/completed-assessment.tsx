@@ -138,7 +138,7 @@ export function CompletedAssessmentView() {
         // Grab assessment storage json
         const assessmentJsonData =
           await CompletedAssessment.fetchAssessmentStorageData(
-            assessmentIdParam
+            assessmentIdParam,
           );
 
         // Questionnaire ssurvery data versioning disabled for now  -- 5/27/25
@@ -269,7 +269,7 @@ export function CompletedAssessmentView() {
     // If error fetching assessment
     if (pageData.error) {
       return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`
+        `There was an error fetching your completed assessment : ${pageData.error}`,
       );
     }
     // If fetching assessment successful
@@ -437,7 +437,7 @@ export function CompletedAssessmentView() {
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(
-      "Error getting assessment, fetching operation never started!"
+      "Error getting assessment, fetching operation never started!",
     );
   };
 
@@ -462,5 +462,5 @@ export function CompletedAssessmentView() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <CompletedAssessmentView />
-  </StrictMode>
+  </StrictMode>,
 );

@@ -11,7 +11,7 @@ import { initFlowbite } from "flowbite";
 import { Hub } from "aws-amplify/utils";
 import { getAmplify } from "../amplify/amplify";
 import Spinner from "./Spinner";
-import resources from "../lib/resourceData";
+import resources from "../lib/resources";
 
 const Navbar = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);

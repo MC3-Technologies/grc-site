@@ -1,4 +1,4 @@
-import { cmmcLevel1Data } from "../data/assessments/cmmcLevel1/v1.1";
+import { cmmcLevel1Data } from "../data/assessments/cmmcLevel1/v1.1.0";
 import { downloadData, uploadData, list, remove } from "aws-amplify/storage";
 
 // Constant for localStorage key
@@ -103,7 +103,7 @@ export const loadSavedQuestionnaire = (): QuestionPage[] | null => {
 // Function to create a new version
 export const createNewVersion = async (
   pages: QuestionPage[],
-  metadata: VersionMetadata
+  metadata: VersionMetadata,
 ): Promise<boolean> => {
   try {
     // Get existing versions to determine next version number if not provided
@@ -143,7 +143,7 @@ export const createNewVersion = async (
       `v${metadata.version.replace(".", "_")}.json`,
       {
         type: "application/json",
-      }
+      },
     );
 
     // Upload to S3 versions folder
@@ -222,7 +222,7 @@ export const setCurrentVersion = async (version: string): Promise<boolean> => {
 // Helper function to save the current localStorage questionnaire data to a specific version
 export const saveVersionToS3 = async (
   version: string,
-  pages: QuestionPage[]
+  pages: QuestionPage[],
 ): Promise<boolean> => {
   try {
     //console.log(`Starting save for version ${version}...`);
@@ -385,7 +385,7 @@ export const listVersions = async (): Promise<VersionInfo[]> => {
 
     // Sort by version (newest first)
     return versions.sort(
-      (a, b) => parseFloat(b.version) - parseFloat(a.version)
+      (a, b) => parseFloat(b.version) - parseFloat(a.version),
     );
   } catch (error) {
     console.error("Error listing versions:", error);
@@ -396,7 +396,7 @@ export const listVersions = async (): Promise<VersionInfo[]> => {
 // Function to save questionnaire to S3
 export const saveQuestionnaireToS3 = async (
   pages: QuestionPage[],
-  metadata?: Partial<VersionMetadata>
+  metadata?: Partial<VersionMetadata>,
 ): Promise<boolean> => {
   try {
     // Get current version info to determine where to save
@@ -422,7 +422,7 @@ export const saveQuestionnaireToS3 = async (
 
 // Function to load a specific version directly
 export const loadQuestionnaireVersion = async (
-  version: string
+  version: string,
 ): Promise<QuestionPage[] | null> => {
   try {
     const versionPath = `${QUESTIONNAIRE_VERSIONS_PATH}/v${version.replace(".", "_")}.json`;
@@ -470,7 +470,7 @@ export const fetchQuestionnaireFromS3 = async (version?: string) => {
   } catch (error) {
     console.error(
       `Error fetching questionnaire from S3 ${version ? `(version ${version})` : ""}:`,
-      error
+      error,
     );
     return null;
   }
@@ -627,7 +627,7 @@ export const getAssessmentQuestionnaire = async (assessmentData: unknown) => {
 export const deleteSection = async (
   sectionId: string,
   deletedBy: string,
-  reason?: string
+  reason?: string,
 ): Promise<boolean> => {
   try {
     // Get current questionnaire data
@@ -670,7 +670,7 @@ export const deleteSection = async (
       // Update local storage with the new pages
       localStorage.setItem(
         QUESTIONNAIRE_STORAGE_KEY,
-        JSON.stringify(updatedPages)
+        JSON.stringify(updatedPages),
       );
 
       // Log the section deletion (this would ideally be stored in DynamoDB)
@@ -699,7 +699,7 @@ export const deleteSection = async (
  */
 export const getVersionSpecificQuestionnaire = async (
   version: string,
-  deletedSections: SectionDeletion[] = []
+  deletedSections: SectionDeletion[] = [],
 ): Promise<QuestionPage[] | null> => {
   try {
     // Load the questionnaire version
@@ -712,7 +712,7 @@ export const getVersionSpecificQuestionnaire = async (
     const versionNum = parseFloat(version);
     const filteredPages = pages.filter((page) => {
       const sectionDeletion = deletedSections.find(
-        (deletion) => deletion.sectionId === page.id
+        (deletion) => deletion.sectionId === page.id,
       );
 
       if (!sectionDeletion) {
@@ -721,10 +721,10 @@ export const getVersionSpecificQuestionnaire = async (
 
       // Check if the section was deleted in a version after the requested version
       const deletionVersions = sectionDeletion.affectedNewVersions.map((v) =>
-        parseFloat(v)
+        parseFloat(v),
       );
       const wasDeletedInThisVersion = deletionVersions.some(
-        (v) => v <= versionNum
+        (v) => v <= versionNum,
       );
 
       return !wasDeletedInThisVersion; // Include if not deleted in this version
@@ -745,7 +745,7 @@ export const getVersionSpecificQuestionnaire = async (
  */
 export const sectionExistsInVersion = async (
   sectionId: string,
-  version: string
+  version: string,
 ): Promise<boolean> => {
   try {
     const pages = await loadQuestionnaireVersion(version);
@@ -770,7 +770,7 @@ export const sectionExistsInVersion = async (
 export const restoreSection = async (
   sectionId: string,
   restoredBy: string,
-  sourceVersion: string
+  sourceVersion: string,
 ): Promise<boolean> => {
   try {
     // Get current questionnaire data
@@ -788,7 +788,7 @@ export const restoreSection = async (
     const sectionToRestore = sourcePages.find((page) => page.id === sectionId);
     if (!sectionToRestore) {
       throw new Error(
-        `Section ${sectionId} not found in version ${sourceVersion}`
+        `Section ${sectionId} not found in version ${sourceVersion}`,
       );
     }
 
@@ -825,7 +825,7 @@ export const restoreSection = async (
       // Update local storage with the new pages
       localStorage.setItem(
         QUESTIONNAIRE_STORAGE_KEY,
-        JSON.stringify(updatedPages)
+        JSON.stringify(updatedPages),
       );
     }
 
@@ -868,7 +868,7 @@ export const addNewSection = async (sectionData: {
     // Save to localStorage (this is just adding to the current working version)
     localStorage.setItem(
       QUESTIONNAIRE_STORAGE_KEY,
-      JSON.stringify(updatedPages)
+      JSON.stringify(updatedPages),
     );
 
     // Log the section addition

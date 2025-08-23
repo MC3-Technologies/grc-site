@@ -19,7 +19,7 @@ import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
-import { Report as Rpt } from "../lib/report";
+import reports from "../lib/report";
 
 type PageData = {
   assessment: Model | null;
@@ -434,11 +434,15 @@ export function Assessment() {
             );
 
             // Create temporary report isntance to calculate adherence score
-            const tempReport = new Rpt(assessment.getData());
+
+            const reportInstance = reports.get(
+              assessmentData.questionnaireVersion,
+            )!;
+            const tempReport = reportInstance.getReportData(
+              assessment.getData(),
+            );
             const score = Math.round(
-              (tempReport.generateReportData().score /
-                tempReport.generateReportData().maxScore) *
-                100,
+              (tempReport.score / tempReport.maxScore) * 100,
             );
 
             // Now create a completed assessment record and remove from in-progress
@@ -470,9 +474,9 @@ export function Assessment() {
 
   // Error component to show if errors
   const errorFeedback = (message: string): React.JSX.Element => {
-    // setTimeout(() => {
-    //   window.location.href = "/assessments/";
-    // }, 5000);
+    setTimeout(() => {
+      window.location.href = "/assessments/";
+    }, 5000);
 
     return (
       <>

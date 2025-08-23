@@ -71,7 +71,7 @@ const getTimeAgo = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -190,7 +190,7 @@ export function Assessments() {
         dismissToast(id);
       }, 5000);
     },
-    [] // Empty dependency array ensures this function is memoized and doesn't change on each render.
+    [], // Empty dependency array ensures this function is memoized and doesn't change on each render.
   );
 
   // Dismiss a toast notification
@@ -270,10 +270,10 @@ export function Assessments() {
         // Filter assessments to show only those owned by the current user for this page
         if (userSub) {
           const myInProgress = allInProgressAssessments.filter(
-            (assessment) => assessment.owner === userSub
+            (assessment) => assessment.owner === userSub,
           );
           const myCompleted = allCompletedAssessments.filter(
-            (assessment) => assessment.owner === userSub
+            (assessment) => assessment.owner === userSub,
           );
           setInProgressAssessments(myInProgress);
           setCompletedAssessments(myCompleted);
@@ -297,12 +297,12 @@ export function Assessments() {
   // Creating new assessments handler
   const handleCreateNewAssessment = async (
     name: string,
-    assessmentType: string
+    assessmentType: string,
   ) => {
     try {
       const id = await InProgressAssessment.createAssessment(
         name,
-        assessmentType
+        assessmentType,
       );
       redirectToInProgressAssessment(id);
     } catch (error) {
@@ -317,7 +317,7 @@ export function Assessments() {
       await InProgressAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setInProgressAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -332,7 +332,7 @@ export function Assessments() {
       await CompletedAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setCompletedAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id)
+        prevAssessments.filter((assessment) => assessment.id !== id),
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -451,7 +451,7 @@ export function Assessments() {
                         className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-2 py-1 rounded-lg transition-colors inline-flex items-center"
                       >
                         <svg
-                          className="w-4 h-4 mr-1  text-gray-800 dark:text-white"
+                          className="w-4 h-4 mr-1  text-white"
                           aria-hidden="true"
                           xmlns="http://www.w3.org/2000/svg"
                           width="24"
@@ -492,7 +492,7 @@ export function Assessments() {
                               </option>
 
                               {Array.from(
-                                InProgressAssessment.assessmentsMap.entries()
+                                InProgressAssessment.assessmentsMap.entries(),
                               ).map(([key, val]) => (
                                 <option key={key} value={key}>
                                   {val?.().name}
@@ -521,7 +521,7 @@ export function Assessments() {
                             onClick={() => {
                               handleCreateNewAssessment(
                                 newAssessmentName,
-                                newAssessmentType
+                                newAssessmentType,
                               );
                             }}
                             disabled={
@@ -682,7 +682,7 @@ export function Assessments() {
                             {/* Version Information */}
                             <div className="flex flex-wrap gap-1 mt-1">
                               <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
-                                v{assessment.version}
+                                {`${formatAssessmentString(assessment.version)}`}
                               </span>
                             </div>
 
@@ -831,5 +831,5 @@ export function Assessments() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessments />
-  </StrictMode>
+  </StrictMode>,
 );
