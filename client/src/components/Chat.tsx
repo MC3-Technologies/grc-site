@@ -170,7 +170,7 @@ const Chat: React.FC<Props> = ({ assessment }) => {
 
   // Handle input change.
   const handleCurrentMessageChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     setCurrentMessage(event.target.value);
   };
@@ -224,7 +224,7 @@ const Chat: React.FC<Props> = ({ assessment }) => {
         const assessmentJsonString = JSON.stringify(
           assessment.getData(),
           null,
-          2
+          2,
         );
         currentMessageCopy =
           currentMessageCopy +
@@ -250,14 +250,20 @@ const Chat: React.FC<Props> = ({ assessment }) => {
 
       // Otherwise double parse response for response messages array and set messages state
       const parsedMessages = JSON.parse(
-        JSON.parse(response.data as string)
+        JSON.parse(response.data as string),
       ) as ChatHistoryMessage[];
       // console.info(parsedMessages);
-      parsedMessages.forEach((pm)=>{
-        if(pm.content.includes("The following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ")){
-          pm.content = pm.content.split("The following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ")[0]
+      parsedMessages.forEach((pm) => {
+        if (
+          pm.content.includes(
+            "The following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ",
+          )
+        ) {
+          pm.content = pm.content.split(
+            "The following text is from the application and not from the user. This user is taking a CMMC assessment while asking this question. This is the current data for the assessment they are taking : ",
+          )[0];
         }
-      })
+      });
       setMessages(parsedMessages);
     } catch (error) {
       console.error("Error fetching response:", error);

@@ -13,7 +13,7 @@ import { __resetMockSES } from "../../__mocks__/@aws-sdk/client-ses";
 import { __resetMockDynamoDB } from "../../__mocks__/@aws-sdk/client-dynamodb";
 
 // Create a test version of the assessment utility that uses mocks
-import { surveyJson } from "../../assessmentQuestions";
+import { cmmcLevel1Data } from "../../data/assessments/cmmcLevel1/v1.1.0";
 
 // Mock the schema module
 jest.mock("../../amplify/schema", () => ({
@@ -60,7 +60,7 @@ export const createTestAssessmentFile = (
   filename = "test-assessment.json",
 ) => {
   // Create a Model instance with the survey JSON and merge with any provided data
-  const model = new Model(surveyJson);
+  const model = new Model(cmmcLevel1Data);
   if (Object.keys(data).length > 0) {
     model.data = data;
   }

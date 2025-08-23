@@ -19,19 +19,16 @@ This documentation describes the unit testing approach implemented for the user 
 The testing framework mocks three key AWS service categories:
 
 1. **AWS Cognito Identity Provider**:
-
    - Location: `client/src/__mocks__/@aws-sdk/client-cognito-identity-provider.ts`
    - Purpose: Mocks user management operations (create, read, update, delete users and groups)
    - Features: In-memory user storage with helper methods for test setup
 
 2. **AWS Simple Email Service (SES)**:
-
    - Location: `client/src/__mocks__/@aws-sdk/client-ses.ts`
    - Purpose: Mocks email sending operations
    - Features: Captures sent emails for verification in tests
 
 3. **AWS DynamoDB**:
-
    - Location: `client/src/__mocks__/@aws-sdk/client-dynamodb.ts`
    - Purpose: Mocks database operations for audit logs and system settings
    - Features: In-memory tables with support for basic query and scan operations
@@ -85,20 +82,17 @@ The test suite covers the following user management functionality:
 ### User Operations Tests
 
 1. **User Listing and Filtering**
-
    - Retrieving all users
    - Filtering users by status (PENDING, APPROVED, etc.)
    - Fetching detailed user information
 
 2. **User Status Management**
-
    - Approving pending users
    - Rejecting user applications
    - Suspending active users
    - Reactivating suspended users
 
 3. **User Creation and Modification**
-
    - Creating new users
    - Updating user roles
    - Deleting users

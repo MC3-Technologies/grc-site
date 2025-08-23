@@ -9,14 +9,13 @@ import Navbar from "../components/Navbar";
 import Chat from "../components/Chat";
 import Footer from "../components/Footer";
 import { Model } from "survey-core";
-import { CompletedAssessment } from "../utils/assessment";
+import { CompletedAssessment } from "../lib/assessment";
 // import { getLatestQuestionnaireData } from "../utils/questionnaireUtils";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
 import { redirectToAssessments } from "../utils/routing";
 import { fetchUsers } from "../utils/adminUser";
-import { surveyJson } from "../assessmentQuestions";
 
 type PageData = {
   assessment: Model | null;
@@ -48,22 +47,22 @@ const formatDate = (dateString: string): string => {
 };
 
 // Helper function to calculate duration between two dates
-const calculateDuration = (startDate: string, endDate: string): string => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const durationMs = end.getTime() - start.getTime();
+// const calculateDuration = (startDate: string, endDate: string): string => {
+//   const start = new Date(startDate);
+//   const end = new Date(endDate);
+//   const durationMs = end.getTime() - start.getTime();
 
-  const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-  );
+//   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+//   const hours = Math.floor(
+//     (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+//   );
 
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  } else {
-    return `${hours}h`;
-  }
-};
+//   if (days > 0) {
+//     return `${days}d ${hours}h`;
+//   } else {
+//     return `${hours}h`;
+//   }
+// };
 
 export function CompletedAssessmentView() {
   // Page data state
@@ -142,9 +141,6 @@ export function CompletedAssessmentView() {
             assessmentIdParam,
           );
 
-        // Parse the assessment JSON data
-        const parsedAssessmentData = JSON.parse(assessmentJsonData as string);
-
         // Questionnaire ssurvery data versioning disabled for now  -- 5/27/25
 
         // Use the questionnaire stored with the assessment if available
@@ -161,10 +157,9 @@ export function CompletedAssessmentView() {
         // Create assessment survey model with the data
         // const questionnaireData = await getLatestQuestionnaireData();
         // const assessment = new Model(questionnaireData);
-
-        const assessment = new Model(surveyJson);
+        const assessment = new Model(assessmentJsonData.questionnaire);
         // assessment.data = parsedAssessmentData.data || parsedAssessmentData;
-        assessment.data = parsedAssessmentData;
+        assessment.data = assessmentJsonData.data;
 
         // Set survey to display mode (read-only)
         assessment.mode = "display";
@@ -321,7 +316,7 @@ export function CompletedAssessmentView() {
                       </span>{" "}
                       {formatDate(assessmentData.completedAt)}
                     </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {/* <p className="text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-medium text-gray-700 dark:text-gray-300">
                         Duration:
                       </span>{" "}
@@ -329,7 +324,7 @@ export function CompletedAssessmentView() {
                         assessmentData.createdAt,
                         assessmentData.completedAt,
                       )}
-                    </p>
+                    </p> */}
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       <span className="font-medium text-gray-700 dark:text-gray-300">
                         Version:

@@ -1,7 +1,10 @@
 import { resetAllMocks, createTestAssessmentFile } from "./setup";
 import { __setMockIdentity } from "../../__mocks__/aws-amplify/auth";
 import { __setMockStorageItem } from "../../__mocks__/aws-amplify/storage";
-import { InProgressAssessment, CompletedAssessment } from "../assessment";
+import {
+  InProgressAssessment,
+  CompletedAssessment,
+} from "../../lib/assessment";
 
 // Import ESLint disable directive for the file since we need to use 'any' in mock tests
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -225,7 +228,7 @@ describe("InProgressAssessment", () => {
       // Arrange
       const testName = "Test Assessment";
       // Act
-      const id = await InProgressAssessment.createAssessment(testName);
+      const id = await InProgressAssessment.createAssessment(testName,"");
       // Assert
       expect(id).toBeTruthy();
       const assessments = await InProgressAssessment.fetchAllAssessments();

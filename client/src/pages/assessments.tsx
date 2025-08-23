@@ -18,8 +18,21 @@ import {
 } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
-import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
+import { CompletedAssessment, InProgressAssessment } from "../lib/assessment";
 import { fetchUsers } from "../utils/adminUser";
+
+// Helper to get Version
+function formatAssessmentString(input: string): string {
+  const [assessment, version] = input.split(":");
+
+  // Split the assessment part by "-" and format
+  const parts = assessment.split("-");
+  const framework = parts[0].toUpperCase(); // e.g., "CMMC"
+  const level = parts[1]?.charAt(0).toUpperCase() + parts[1]?.slice(1); // "level" → "Level"
+  const levelNum = parts[2]; // e.g., "1"
+
+  return `${framework} ${level} ${levelNum} v${version}`;
+}
 
 // Helper function to format dates
 const formatDate = (dateString: string): string => {
@@ -34,22 +47,22 @@ const formatDate = (dateString: string): string => {
 };
 
 // Helper function to calculate duration between two dates
-const calculateDuration = (startDate: string, endDate: string): string => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const durationMs = end.getTime() - start.getTime();
+// const calculateDuration = (startDate: string, endDate: string): string => {
+//   const start = new Date(startDate);
+//   const end = new Date(endDate);
+//   const durationMs = end.getTime() - start.getTime();
 
-  const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor(
-    (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-  );
+//   const days = Math.floor(durationMs / (1000 * 60 * 60 * 24));
+//   const hours = Math.floor(
+//     (durationMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+//   );
 
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  } else {
-    return `${hours}h`;
-  }
-};
+//   if (days > 0) {
+//     return `${days}d ${hours}h`;
+//   } else {
+//     return `${hours}h`;
+//   }
+// };
 
 // Helper function to calculate time elapsed since a given date
 const getTimeAgo = (dateString: string): string => {
@@ -153,6 +166,7 @@ export function Assessments() {
     useState<boolean>(false);
   // New assessment name state
   const [newAssessmentName, setNewAssessmentName] = useState<string>("");
+  const [newAssessmentType, setNewAssessmentType] = useState<string>("default");
   // Toast notifications
   const [toasts, setToasts] = useState<Toast[]>([]);
   // Is loading
@@ -281,9 +295,15 @@ export function Assessments() {
   }, [addToast]);
 
   // Creating new assessments handler
-  const handleCreateNewAssessment = async (name: string) => {
+  const handleCreateNewAssessment = async (
+    name: string,
+    assessmentType: string,
+  ) => {
     try {
-      const id = await InProgressAssessment.createAssessment(name);
+      const id = await InProgressAssessment.createAssessment(
+        name,
+        assessmentType,
+      );
       redirectToInProgressAssessment(id);
     } catch (error) {
       console.error("Error creating assessment:", error);
@@ -405,7 +425,7 @@ export function Assessments() {
       </div>
 
       <section className="mt-20 bg-white dark:bg-gray-900 px-4 py-8">
-        <div className="container mx-auto max-w-6xl">
+        <div className="container mx-auto max-w-screen-xl px-4">
           {loading ? (
             <div className="flex justify-center py-10">
               <Spinner />
@@ -415,66 +435,120 @@ export function Assessments() {
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    CMMC Level 1 Assessments
+                    Your Assessments
                   </h1>
-                  <button
-                    onClick={() => setShowNewAssessmentForm(true)}
-                    className="bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
-                  >
-                    New Assessment
-                  </button>
                 </div>
-
-                {showNewAssessmentForm && (
-                  <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg mb-6">
-                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-                      Create New Assessment
-                    </h2>
-                    <div className="mb-4">
-                      <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
-                        Assessment name
-                      </label>
-                      <input
-                        type="text"
-                        value={newAssessmentName}
-                        onChange={(e) => setNewAssessmentName(e.target.value)}
-                        className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
-                        placeholder="Enter a name for your assessment"
-                      />
-                    </div>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          handleCreateNewAssessment(newAssessmentName);
-                        }}
-                        disabled={!newAssessmentName.trim()}
-                        className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
-                          !newAssessmentName.trim()
-                            ? "opacity-50 cursor-not-allowed"
-                            : ""
-                        }`}
-                      >
-                        Create
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowNewAssessmentForm(false);
-                          setNewAssessmentName("");
-                        }}
-                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 <div className="space-y-8">
                   {/* In Progress Assessments */}
                   <div>
-                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-                      In Progress
-                    </h2>
+                    <div className="inline-flex mb-3">
+                      <h2 className="text-xl font-semibold mr-3 text-gray-900 dark:text-white">
+                        In Progress
+                      </h2>
+                      <button
+                        onClick={() => setShowNewAssessmentForm(true)}
+                        className="bg-primary-600 hover:bg-primary-700 text-white font-medium px-2 py-1 rounded-lg transition-colors inline-flex items-center"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-1  text-white"
+                          aria-hidden="true"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            fill-rule="evenodd"
+                            d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm11-4.243a1 1 0 1 0-2 0V11H7.757a1 1 0 1 0 0 2H11v3.243a1 1 0 1 0 2 0V13h3.243a1 1 0 1 0 0-2H13V7.757Z"
+                            clip-rule="evenodd"
+                          />
+                        </svg>
+                        New Assessment
+                      </button>
+                    </div>
+
+                    {showNewAssessmentForm && (
+                      <div className="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg mb-6 mt-2">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                          Create New Assessment
+                        </h2>
+                        <div className="mb-4">
+                          <div className="mb-2">
+                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                              Assessment Type
+                            </label>
+                            <select
+                              value={newAssessmentType}
+                              onChange={(e) =>
+                                setNewAssessmentType(e.target.value)
+                              }
+                              id="assessment-types"
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            >
+                              <option value={"default"}>
+                                Choose assessment type
+                              </option>
+
+                              {Array.from(
+                                InProgressAssessment.assessmentsMap.entries(),
+                              ).map(([key, val]) => (
+                                <option key={key} value={key}>
+                                  {val?.().name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                              Assessment name
+                            </label>
+                            <input
+                              type="text"
+                              value={newAssessmentName}
+                              onChange={(e) =>
+                                setNewAssessmentName(e.target.value)
+                              }
+                              className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
+                              placeholder="Enter a name for your assessment"
+                            />
+                          </div>
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              handleCreateNewAssessment(
+                                newAssessmentName,
+                                newAssessmentType,
+                              );
+                            }}
+                            disabled={
+                              !newAssessmentName.trim() ||
+                              newAssessmentType === "default"
+                            }
+                            className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
+                              !newAssessmentName.trim() ||
+                              newAssessmentType === "default"
+                                ? "opacity-50 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            Create
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowNewAssessmentForm(false);
+                              setNewAssessmentName("");
+                            }}
+                            className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {inProgressAssessments.length === 0 ? (
                       <p className="text-gray-500 dark:text-gray-400">
@@ -499,25 +573,26 @@ export function Assessments() {
                             {/* Version Information */}
                             <div className="flex flex-wrap gap-1 mt-1">
                               <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
-                                v{assessment.version}
+                                {`${formatAssessmentString(assessment.version)}`}
                               </span>
                             </div>
 
                             <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                              <p>ID: {assessment.id}</p>
                               <p>Started: {formatDate(assessment.createdAt)}</p>
                               <p>
                                 Last updated: {formatDate(assessment.updatedAt)}
                               </p>
 
                               {/* Time Since Last Update */}
-                              <p className="text-sm italic mt-1">
+                              <p className="text-sm italic ">
                                 Last activity:{" "}
                                 {getTimeAgo(assessment.updatedAt)}
                               </p>
 
                               {/* Owner Details */}
                               {assessment.owner && (
-                                <p className="flex items-center mt-1">
+                                <p className="flex items-center ">
                                   <svg
                                     className="w-4 h-4 mr-1"
                                     fill="currentColor"
@@ -581,7 +656,7 @@ export function Assessments() {
 
                   {/* Completed Assessments */}
                   <div>
-                    <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                    <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">
                       Completed
                     </h2>
                     {completedAssessments.length === 0 ? (
@@ -607,23 +682,24 @@ export function Assessments() {
                             {/* Version Information */}
                             <div className="flex flex-wrap gap-1 mt-1">
                               <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
-                                v{assessment.version}
+                                {`${formatAssessmentString(assessment.version)}`}
                               </span>
                             </div>
 
                             <div className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                              <p>ID: {assessment.id}</p>
                               <p>
                                 Completed: {formatDate(assessment.completedAt)}
                               </p>
 
                               {/* Duration Metrics */}
-                              <p>
+                              {/* <p>
                                 Duration:{" "}
                                 {calculateDuration(
                                   assessment.createdAt,
                                   assessment.completedAt,
                                 )}
-                              </p>
+                              </p> */}
 
                               {/* Owner Details */}
                               {assessment.owner && (

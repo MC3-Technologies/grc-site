@@ -11,8 +11,8 @@ import Footer from "../components/Footer";
 import Spinner from "../components/Spinner";
 import PageNotFound from "../components/PageNotFound";
 
-import resources from "../lib/resourceData";
-import { ResourcesUnion } from "../lib/resourceData";
+import resources from "../lib/resources";
+import { ResourcesUnion } from "../lib/resources";
 
 export function Resources() {
   const [resource, setResource] = useState<ResourcesUnion | null>(null);
