@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react"; // Add useCallback
 import {
   CompletedAssessment,
   InProgressAssessment,
-} from "../../utils/assessment";
+} from "../../lib/assessment";
 import { fetchUsers, User as AdminUserType } from "../../utils/adminUser";
 import Spinner from "../Spinner";
 import {

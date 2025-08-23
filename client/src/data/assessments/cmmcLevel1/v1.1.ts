@@ -1,5 +1,5 @@
 const cmmcLevel1Data = {
-  version: "1.1.0",
+  version: "cmmc-level-1:1.1.0",
   surveyJson: {
     showProgressBar: "topBottom",
     progressBarType: "buttons",

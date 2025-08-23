@@ -14,7 +14,7 @@ import {
   AssessmentStorageData,
   CompletedAssessment,
   InProgressAssessment,
-} from "../utils/assessment";
+} from "../lib/assessment";
 import { Survey } from "survey-react-ui";
 import Spinner from "../components/Spinner";
 import { BorderlessDark, BorderlessLight } from "survey-core/themes";
@@ -318,8 +318,6 @@ export function Assessment() {
           await InProgressAssessment.fetchAssessmentStorageData(
             assessmentIdParam,
           );
-
-        // Create assessment and give assessment data and current page
         const assessment = new Model(assessmentJsonData.questionnaire);
         assessment.data = assessmentJsonData.data;
         assessment.currentPageNo = assessmentEntryData.currentPage;
@@ -353,6 +351,7 @@ export function Assessment() {
               // Create new assessment JSON to upload - STORE COMPLETE QUESTIONNAIRE DATA
 
               const assessmentData: AssessmentStorageData = {
+                name: assessmentJsonData.name,
                 data: assessment.data,
                 questionnaire: assessmentJsonData.questionnaire,
                 questionnaireVersion: assessmentJsonData.questionnaireVersion,
@@ -413,6 +412,7 @@ export function Assessment() {
 
           try {
             const assessmentData: AssessmentStorageData = {
+              name: assessmentJsonData.name,
               data: assessment.getData(),
               questionnaire: assessmentJsonData.questionnaire,
               questionnaireVersion: assessmentJsonData.questionnaireVersion,
@@ -470,9 +470,9 @@ export function Assessment() {
 
   // Error component to show if errors
   const errorFeedback = (message: string): React.JSX.Element => {
-    setTimeout(() => {
-      window.location.href = "/assessments/";
-    }, 5000);
+    // setTimeout(() => {
+    //   window.location.href = "/assessments/";
+    // }, 5000);
 
     return (
       <>

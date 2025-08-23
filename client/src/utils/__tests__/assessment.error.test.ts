@@ -41,8 +41,8 @@ jest.mock("../questionnaireUtils", () => ({
 jest.mock("../../amplify/schema");
 
 // Now import everything after mocks are set up
-import { InProgressAssessment, CompletedAssessment } from "../assessment";
-import * as assessment from "../assessment";
+import { InProgressAssessment, CompletedAssessment } from "../../lib/assessment";
+import * as assessment from "../../lib/assessment";
 import { getClientSchema as originalGetClientSchema } from "../../amplify/schema"; // Import original for type inference
 import { uploadData, downloadData, remove } from "aws-amplify/storage"; // Import storage functions directly
 

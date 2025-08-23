@@ -1,7 +1,7 @@
 import {
   AssessmentStorageData,
   CompletedAssessment,
-} from "../utils/assessment";
+} from "./assessment";
 
 type QuestionAnswer = {
   question: string;

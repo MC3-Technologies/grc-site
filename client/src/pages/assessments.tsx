@@ -18,8 +18,21 @@ import {
 } from "../utils/routing";
 import Spinner from "../components/Spinner";
 
-import { CompletedAssessment, InProgressAssessment } from "../utils/assessment";
+import { CompletedAssessment, InProgressAssessment } from "../lib/assessment";
 import { fetchUsers } from "../utils/adminUser";
+
+// Helper to get Version
+function formatAssessmentString(input: string): string {
+  const [assessment, version] = input.split(":");
+
+  // Split the assessment part by "-" and format
+  const parts = assessment.split("-");
+  const framework = parts[0].toUpperCase(); // e.g., "CMMC"
+  const level = parts[1]?.charAt(0).toUpperCase() + parts[1]?.slice(1); // "level" → "Level"
+  const levelNum = parts[2]; // e.g., "1"
+
+  return `${framework} ${level} ${levelNum} v${version}`;
+}
 
 // Helper function to format dates
 const formatDate = (dateString: string): string => {
@@ -58,7 +71,7 @@ const getTimeAgo = (dateString: string): string => {
   const diffMs = now.getTime() - date.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor(
-    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
   );
   const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
@@ -153,6 +166,7 @@ export function Assessments() {
     useState<boolean>(false);
   // New assessment name state
   const [newAssessmentName, setNewAssessmentName] = useState<string>("");
+  const [newAssessmentType, setNewAssessmentType] = useState<string>("default");
   // Toast notifications
   const [toasts, setToasts] = useState<Toast[]>([]);
   // Is loading
@@ -176,7 +190,7 @@ export function Assessments() {
         dismissToast(id);
       }, 5000);
     },
-    [], // Empty dependency array ensures this function is memoized and doesn't change on each render.
+    [] // Empty dependency array ensures this function is memoized and doesn't change on each render.
   );
 
   // Dismiss a toast notification
@@ -256,10 +270,10 @@ export function Assessments() {
         // Filter assessments to show only those owned by the current user for this page
         if (userSub) {
           const myInProgress = allInProgressAssessments.filter(
-            (assessment) => assessment.owner === userSub,
+            (assessment) => assessment.owner === userSub
           );
           const myCompleted = allCompletedAssessments.filter(
-            (assessment) => assessment.owner === userSub,
+            (assessment) => assessment.owner === userSub
           );
           setInProgressAssessments(myInProgress);
           setCompletedAssessments(myCompleted);
@@ -281,9 +295,15 @@ export function Assessments() {
   }, [addToast]);
 
   // Creating new assessments handler
-  const handleCreateNewAssessment = async (name: string) => {
+  const handleCreateNewAssessment = async (
+    name: string,
+    assessmentType: string
+  ) => {
     try {
-      const id = await InProgressAssessment.createAssessment(name);
+      const id = await InProgressAssessment.createAssessment(
+        name,
+        assessmentType
+      );
       redirectToInProgressAssessment(id);
     } catch (error) {
       console.error("Error creating assessment:", error);
@@ -297,7 +317,7 @@ export function Assessments() {
       await InProgressAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setInProgressAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id),
+        prevAssessments.filter((assessment) => assessment.id !== id)
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -312,7 +332,7 @@ export function Assessments() {
       await CompletedAssessment.deleteAssessment(id);
       // Update state to remove the deleted assessment
       setCompletedAssessments((prevAssessments) =>
-        prevAssessments.filter((assessment) => assessment.id !== id),
+        prevAssessments.filter((assessment) => assessment.id !== id)
       );
       addToast("Assessment deleted successfully", "success");
     } catch (error) {
@@ -455,27 +475,62 @@ export function Assessments() {
                           Create New Assessment
                         </h2>
                         <div className="mb-4">
-                          <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
-                            Assessment name
-                          </label>
-                          <input
-                            type="text"
-                            value={newAssessmentName}
-                            onChange={(e) =>
-                              setNewAssessmentName(e.target.value)
-                            }
-                            className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
-                            placeholder="Enter a name for your assessment"
-                          />
+                          <div className="mb-2">
+                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                              Assessment Type
+                            </label>
+                            <select
+                              value={newAssessmentType}
+                              onChange={(e) =>
+                                setNewAssessmentType(e.target.value)
+                              }
+                              id="assessment-types"
+                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                            >
+                              <option value={"default"}>
+                                Choose assessment type
+                              </option>
+
+                              {Array.from(
+                                InProgressAssessment.assessmentsMap.entries()
+                              ).map(([key, val]) => (
+                                <option key={key} value={key}>
+                                  {val?.().name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-gray-700 dark:text-gray-300 text-sm font-bold mb-2">
+                              Assessment name
+                            </label>
+                            <input
+                              type="text"
+                              value={newAssessmentName}
+                              onChange={(e) =>
+                                setNewAssessmentName(e.target.value)
+                              }
+                              className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg py-2 px-4 w-full text-gray-700 dark:text-white"
+                              placeholder="Enter a name for your assessment"
+                            />
+                          </div>
                         </div>
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
-                              handleCreateNewAssessment(newAssessmentName);
+                              handleCreateNewAssessment(
+                                newAssessmentName,
+                                newAssessmentType
+                              );
                             }}
-                            disabled={!newAssessmentName.trim()}
+                            disabled={
+                              !newAssessmentName.trim() ||
+                              newAssessmentType === "default"
+                            }
                             className={`bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-colors ${
-                              !newAssessmentName.trim()
+                              !newAssessmentName.trim() ||
+                              newAssessmentType === "default"
                                 ? "opacity-50 cursor-not-allowed"
                                 : ""
                             }`}
@@ -518,7 +573,7 @@ export function Assessments() {
                             {/* Version Information */}
                             <div className="flex flex-wrap gap-1 mt-1">
                               <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
-                                v{assessment.version}
+                                {`${formatAssessmentString(assessment.version)}`}
                               </span>
                             </div>
 
@@ -776,5 +831,5 @@ export function Assessments() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Assessments />
-  </StrictMode>,
+  </StrictMode>
 );

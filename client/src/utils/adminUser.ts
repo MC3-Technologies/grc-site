@@ -1270,7 +1270,7 @@ export const getAllAssessmentCounts = async (): Promise<{
 
     // Import assessment utility classes
     const { InProgressAssessment, CompletedAssessment } = await import(
-      "./assessment"
+      "../lib/assessment"
     );
 
     // Fetch assessments from both tables concurrently for efficiency
