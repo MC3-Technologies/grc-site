@@ -122,7 +122,7 @@ export function Report() {
     // If error fetching assessment
     if (pageData.error) {
       return errorFeedback(
-        `There was an error fetching your completed assessment : ${pageData.error}`,
+        `There was an error fetching your completed assessment : ${pageData.error}`
       );
     }
     // If fetching assessment successful
@@ -138,7 +138,7 @@ export function Report() {
     }
     // If no conditions above met, it means fetching of any assessment never started
     return errorFeedback(
-      "Error getting assessment, fetching operation never started!",
+      "Error getting assessment, fetching operation never started!"
     );
   };
 
@@ -219,5 +219,5 @@ export function Report() {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Report />
-  </StrictMode>,
+  </StrictMode>
 );
